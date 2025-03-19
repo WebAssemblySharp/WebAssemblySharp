@@ -9,8 +9,6 @@ WebAssemblySharp aims to provide a seamless integration of WebAssembly (Wasm) in
 ## Features
 
 - **Wasm Module Execution**: Load and execute WebAssembly modules within C# applications.
-- **Cross-Platform Compatibility**: Utilize the platform-independent nature of Wasm to run modules consistently across various environments.
-- **Interoperability**: Facilitate interaction between C# code and Wasm modules, enabling complex workflows and functionality sharing.
 
 ## Getting Started
 
