@@ -4,7 +4,7 @@
         <TargetFramework>net9.0</TargetFramework>
         <LangVersion>latest</LangVersion>
         <ImplicitUsings>false</ImplicitUsings>
-        <Nullable>false</Nullable>
+        <Nullable>disable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>
@@ -18,6 +18,25 @@
 
     <ItemGroup>
       <ProjectReference Include="..\WebAssemblySharp\WebAssemblySharp.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Data\Example\add.wasm" />
+      <EmbeddedResource Include="Data\Example\add.wasm" />
+      <None Remove="Data\Example\add.wat" />
+      <EmbeddedResource Include="Data\Example\add.wat" />
+      <None Remove="Data\Example\addReaderResult.txt" />
+      <EmbeddedResource Include="Data\Example\addReaderResult.txt" />
+      <None Remove="Data\Example\ifexpr.wat" />
+      <EmbeddedResource Include="Data\Example\ifexpr.wat" />
+      <None Remove="Data\Example\isprime.wasm" />
+      <EmbeddedResource Include="Data\Example\isprime.wasm" />
+      <None Remove="Data\Example\isprime.wat" />
+      <EmbeddedResource Include="Data\Example\isprime.wat" />
+      <None Remove="Data\Example\loops.wat" />
+      <EmbeddedResource Include="Data\Example\loops.wat" />
+      <None Remove="Data\Example\isprimeReaderResult.txt" />
+      <EmbeddedResource Include="Data\Example\isprimeReaderResult.txt" />
     </ItemGroup>
 
 </Project>

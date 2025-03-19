@@ -100,6 +100,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.MemoryGrow:
                 break;
             case WasmOpcode.I32Const:
+                l_Result = new WasmI32Const();
                 break;
             case WasmOpcode.I64Const:
                 break;
@@ -116,6 +117,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.I32LtS:
                 break;
             case WasmOpcode.I32LtU:
+                l_Result = new WasmI32LtU();
                 break;
             case WasmOpcode.I32GtS:
                 break;

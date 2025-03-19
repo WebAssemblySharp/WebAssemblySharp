@@ -11,7 +11,8 @@ namespace WebAssemblySharpTest;
 public class WasmBinaryReaderTest
 {
     [DataTestMethod]
-    [DataRow("WebAssembyTest.Data.Example.add.wasm", "WebAssembyTest.Data.Example.addReaderResult.txt")]
+    [DataRow("WebAssemblySharpTest.Data.Example.add.wasm", "WebAssemblySharpTest.Data.Example.addReaderResult.txt")]
+    [DataRow("WebAssemblySharpTest.Data.Example.isprime.wasm", "WebAssemblySharpTest.Data.Example.addReaderResult.txt")]
     public async Task ReadTest(string p_SourcePath, string p_ExpectedResultPath)
     {
         using (Stream l_Stream = typeof(WasmTextReaderTest).Assembly.GetManifestResourceStream(p_SourcePath))
@@ -36,11 +37,50 @@ public class WasmBinaryReaderTest
                     
             }
 
-            WasmMetaData l_WasmMetaData = l_WasmReader.Finish();
-            Assert.IsNotNull(l_WasmMetaData);
-            
+            Finish(l_WasmReader);
+        }
+    }
+    
+    
+    [DataTestMethod]
+    [DataRow("WebAssemblySharpTest.Data.Example.add.wasm", "WebAssemblySharpTest.Data.Example.addReaderResult.txt")]
+    [DataRow("WebAssemblySharpTest.Data.Example.isprime.wasm", "WebAssemblySharpTest.Data.Example.addReaderResult.txt")]
+    public async Task ReadTestSlow(string p_SourcePath, string p_ExpectedResultPath)
+    {
+        using (Stream l_Stream = typeof(WasmTextReaderTest).Assembly.GetManifestResourceStream(p_SourcePath))
+        {
+            WasmBinaryReader l_WasmReader = new WasmBinaryReader();
 
-            /*
+            byte[] l_Bytes = new Byte[1];
+
+            while (true)
+            {
+                int l_ReadBlock = await l_Stream.ReadAsync(l_Bytes);
+
+                if (l_ReadBlock != 0)
+                {
+                    l_WasmReader.Read(l_Bytes.AsSpan().Slice(0, l_ReadBlock));
+                }
+                    
+                if (l_ReadBlock < l_Bytes.Length)
+                {
+                    break;
+                }
+                    
+            }
+
+            Finish(l_WasmReader);
+        }
+    }
+    
+
+    private static void Finish(WasmBinaryReader l_WasmReader)
+    {
+        WasmMetaData l_WasmMetaData = l_WasmReader.Finish();
+        Assert.IsNotNull(l_WasmMetaData);
+
+
+        /*
             List<WasmReaderElement> l_Elements = l_WasmReader.Finish();
 
             string l_Invalid = string.Join(Environment.NewLine, l_Elements.Where(IsInvalid));
@@ -53,9 +93,8 @@ public class WasmBinaryReaderTest
 
             Assert.AreEqual(l_ExpectedResult, l_ElementsString);
             */
-        }
     }
-    
+
     private async Task<string> ReadResourceFile(String p_ExpectedResultPath)
     {
         using (Stream l_Stream = typeof(WasmTextReaderTest).Assembly.GetManifestResourceStream(p_ExpectedResultPath))

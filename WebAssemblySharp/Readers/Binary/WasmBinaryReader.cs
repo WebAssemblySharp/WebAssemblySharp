@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
 using WebAssemblySharp.Readers.Binary.MetaData;
@@ -25,6 +26,7 @@ public class WasmBinaryReader
     private WasmExport m_CurrentExport;
     private WasmCodeInComplete m_CurrentCode;
     private WasmInstruction m_CurrentInstruction;
+    private Stack<WasmBlockInstruction> m_InstructionStack;
 
     public WasmBinaryReader()
     {
@@ -32,6 +34,7 @@ public class WasmBinaryReader
         m_Buffer = new byte[255];
         m_BufferIndex = 0;
         m_MetaData = new WasmMetaData();
+        m_InstructionStack = new Stack<WasmBlockInstruction>(16);
     }
 
     public void Read(ReadOnlySpan<byte> p_Data)
@@ -122,8 +125,28 @@ public class WasmBinaryReader
                     return;
             
                 if (l_Opcode == WasmOpcode.End) {
-                    m_ReaderPosition = ReaderPosition.ReadCode;
-                    return;
+                    
+                    if (m_InstructionStack.Count > 0) {
+                        m_InstructionStack.Pop();
+                        continue;
+                    }
+                    else
+                    {
+                        m_ReaderPosition = ReaderPosition.ReadCode;
+                        return;    
+                    }
+                }
+
+                if (l_Opcode == WasmOpcode.Else)
+                {
+                    if (m_InstructionStack.Count > 0) {
+                        m_InstructionStack.Peek().HandleBlockOpCode(l_Opcode.Value);
+                        continue;
+                    }
+                    else
+                    {
+                        throw new WasmBinaryReaderException("Invalid else instruction");
+                    }    
                 }
             
                 m_CurrentInstruction = WasmInstructionFactory.CreateInstruction(l_Opcode.Value);
@@ -131,9 +154,23 @@ public class WasmBinaryReader
             
             if (!m_CurrentInstruction.ReadInstruction(l_Reader))
                 return;
-        
-            m_CurrentCode.ProcessedInstructions.Add(m_CurrentInstruction);
-            m_CurrentInstruction = null;    
+
+            
+            if (m_InstructionStack.Count > 0)
+            {
+                m_InstructionStack.Peek().AddInstruction(m_CurrentInstruction);
+            }
+            else
+            {
+                m_CurrentCode.ProcessedInstructions.Add(m_CurrentInstruction);
+            }
+
+            if (m_CurrentInstruction is WasmBlockInstruction)
+            {
+                m_InstructionStack.Push((WasmBlockInstruction)m_CurrentInstruction);
+            }
+            
+            m_CurrentInstruction = null;
         }
     }
 
@@ -404,7 +441,7 @@ public class WasmBinaryReader
 
     private WasmDataType? ReadWasmDataType(ReadOnlySpan<byte> p_Data, ref int p_Index, ref long p_Limit)
     {
-        ReadOnlySpan<byte> l_Bytes = ReaReadBytes(p_Data, ref p_Index, 1, ref p_Limit, true);
+        ReadOnlySpan<byte> l_Bytes = ReadReadBytes(p_Data, ref p_Index, 1, ref p_Limit, true);
 
         if (l_Bytes.IsEmpty)
             return null;
@@ -845,6 +882,49 @@ public class WasmBinaryReader
         m_SectionSize = -1;
     }
 
+    private long? ReadLEB128Int(ReadOnlySpan<byte> p_Data, ref int p_Index)
+    {
+        long l_Limit = -1;
+        return ReadLEB128Int(p_Data, ref p_Index, ref l_Limit);
+    }
+
+    private long? ReadLEB128Int(ReadOnlySpan<byte> p_Data, ref int p_Index, ref long p_Limit)
+    {
+        long l_Result = 0;
+        int l_Shift = 0;
+        int l_RequestedBytes = 0;
+
+        byte l_ByteValue;
+        
+        while (true)
+        {
+            l_RequestedBytes++;
+            ReadOnlySpan<byte> l_NextByte = ReadReadBytes(p_Data, ref p_Index, l_RequestedBytes, ref p_Limit, false);
+
+            if (l_NextByte.IsEmpty)
+            {
+                return null;
+            }
+
+            l_ByteValue = l_NextByte[l_RequestedBytes - 1];
+            l_Result |= (long)(l_ByteValue & 0x7F) << l_Shift;
+
+            if ((l_ByteValue & 0x80) == 0)
+                break;
+
+            l_Shift += 7;
+        }
+        
+        if (l_Shift < 64 && (l_ByteValue & 0x40) != 0)
+        {
+            l_Result |= ~0L << l_Shift;
+        }
+
+        // Reset buffer
+        ResetBuffer(ref p_Limit, l_RequestedBytes);
+        return l_Result;
+    }
+    
     private ulong? ReadLEB128UInt(ReadOnlySpan<byte> p_Data, ref int p_Index)
     {
         long l_Limit = -1;
@@ -860,7 +940,7 @@ public class WasmBinaryReader
         while (true)
         {
             l_RequestedBytes++;
-            ReadOnlySpan<byte> l_NextByte = ReaReadBytes(p_Data, ref p_Index, l_RequestedBytes, ref p_Limit, false);
+            ReadOnlySpan<byte> l_NextByte = ReadReadBytes(p_Data, ref p_Index, l_RequestedBytes, ref p_Limit, false);
 
             if (l_NextByte.IsEmpty)
             {
@@ -899,7 +979,7 @@ public class WasmBinaryReader
         m_ReaderPosition = ReaderPosition.Section;
     }
 
-    private ReadOnlySpan<byte> ReaReadBytes(ReadOnlySpan<byte> p_Data, ref int p_Index,
+    private ReadOnlySpan<byte> ReadReadBytes(ReadOnlySpan<byte> p_Data, ref int p_Index,
         int p_RequestedBytes, ref long p_Limit, bool p_ResetBuffer)
     {
         while (true)
@@ -953,12 +1033,12 @@ public class WasmBinaryReader
     private ReadOnlySpan<byte> ReaReadBytes(ReadOnlySpan<byte> p_Data, ref int p_Index, int p_RequestedBytes,
         ref long p_Limit)
     {
-        return ReaReadBytes(p_Data, ref p_Index, p_RequestedBytes, ref p_Limit, true);
+        return ReadReadBytes(p_Data, ref p_Index, p_RequestedBytes, ref p_Limit, true);
     }
 
     private ReadOnlySpan<byte> ReaReadBytes(ReadOnlySpan<byte> p_Data, ref int p_Index, int p_RequestedBytes)
     {
-        return ReaReadBytes(p_Data, ref p_Index, p_RequestedBytes, ref m_NoLimit, true);
+        return ReadReadBytes(p_Data, ref p_Index, p_RequestedBytes, ref m_NoLimit, true);
     }
 
     public WasmMetaData Finish()
@@ -1016,6 +1096,16 @@ public class WasmBinaryReader
         public ulong? ReadLEB128UInt()
         {
             return m_Parent.ReadLEB128UInt(m_Data, ref m_Index, ref m_Parent.m_CurrentCode.CodeSizeRemaining);
+        }
+
+        public long? ReadLEB128Int()
+        {
+            return m_Parent.ReadLEB128Int(m_Data, ref m_Index, ref m_Parent.m_CurrentCode.CodeSizeRemaining);
+        }
+
+        public ReadOnlySpan<byte> ReadReadBytes(int p_Length)
+        {
+            return m_Parent.ReadReadBytes(m_Data, ref m_Index, p_Length, ref m_Parent.m_CurrentCode.CodeSizeRemaining, true);
         }
     }
 }
