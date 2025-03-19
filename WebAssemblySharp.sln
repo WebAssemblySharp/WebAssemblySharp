@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebAssemblySharp", "WebAssemblySharp\WebAssemblySharp.csproj", "{1652AC83-5A7E-471F-9697-2FF044E8AFC6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebAssemblySharpTest", "WebAssemblySharpTest\WebAssemblySharpTest.csproj", "{A942BB41-6194-46CD-99AF-5CFF8FF4C709}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1652AC83-5A7E-471F-9697-2FF044E8AFC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1652AC83-5A7E-471F-9697-2FF044E8AFC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1652AC83-5A7E-471F-9697-2FF044E8AFC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1652AC83-5A7E-471F-9697-2FF044E8AFC6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A942BB41-6194-46CD-99AF-5CFF8FF4C709}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A942BB41-6194-46CD-99AF-5CFF8FF4C709}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A942BB41-6194-46CD-99AF-5CFF8FF4C709}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A942BB41-6194-46CD-99AF-5CFF8FF4C709}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

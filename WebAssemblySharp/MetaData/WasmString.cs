@@ -1,0 +1,20 @@
+﻿using System;
+
+namespace WebAssemblySharp.MetaData;
+
+public class WasmString
+{
+    protected String m_RawValue;
+    public WasmString(String p_FinalValue)
+    {
+        m_RawValue = p_FinalValue;
+    }
+    
+    public String Value
+    {
+        get
+        {
+            return m_RawValue;
+        }
+    }
+}
