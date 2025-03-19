@@ -79,5 +79,5 @@ We extend our gratitude to the open-source community and projects that have insp
 
 ---
 
-*Note: WebAssemblySharp is currently in development. Features and instructions may evolve as the project progresses. For the latest updates, please visit the [GitHub repository](https://github.com/WebAssemblySharp/WebAssemblySharp).*
+*Note: WebAssemblySharp is currently in development. Features and instructions may evolve as the project progresses.
 
