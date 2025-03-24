@@ -15,22 +15,30 @@ public static class WasmInstructionFactory
             case WasmOpcode.Nop:
                 break;
             case WasmOpcode.Block:
+                l_Result = new WasmBlock();
                 break;
             case WasmOpcode.Loop:
+                l_Result = new WasmLoop();
                 break;
             case WasmOpcode.If:
+                l_Result = new WasmIf();
                 break;
             case WasmOpcode.Else:
+                // Should be handled by the If instruction
                 break;
             case WasmOpcode.End:
+                // Should be handled by the Block, Loop or If instruction
                 break;
             case WasmOpcode.Br:
+                l_Result = new WasmBr();
                 break;
             case WasmOpcode.BrIf:
+                l_Result = new WasmBrIf();
                 break;
             case WasmOpcode.BrTable:
                 break;
             case WasmOpcode.Return:
+                l_Result = WasmReturn.Instance;
                 break;
             case WasmOpcode.Call:
                 break;
@@ -44,6 +52,7 @@ public static class WasmInstructionFactory
                 l_Result = new WasmLocalGet();
                 break;
             case WasmOpcode.LocalSet:
+                l_Result = new WasmLocalSet();
                 break;
             case WasmOpcode.LocalTee:
                 break;
@@ -111,13 +120,14 @@ public static class WasmInstructionFactory
             case WasmOpcode.I32Eqz:
                 break;
             case WasmOpcode.I32Eq:
+                l_Result = WasmI32Eq.Instance;
                 break;
             case WasmOpcode.I32Ne:
                 break;
             case WasmOpcode.I32LtS:
                 break;
             case WasmOpcode.I32LtU:
-                l_Result = new WasmI32LtU();
+                l_Result = WasmI32LtU.Instance;
                 break;
             case WasmOpcode.I32GtS:
                 break;
@@ -130,6 +140,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.I32GeS:
                 break;
             case WasmOpcode.I32GeU:
+                l_Result = WasmI32GeU.Instance;
                 break;
             case WasmOpcode.I64Eqz:
                 break;
@@ -184,7 +195,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.I32Popcnt:
                 break;
             case WasmOpcode.I32Add:
-                l_Result = new WasmI32Add();
+                l_Result = WasmI32Add.Instance;
                 break;
             case WasmOpcode.I32Sub:
                 break;
@@ -197,6 +208,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.I32RemS:
                 break;
             case WasmOpcode.I32RemU:
+                l_Result = WasmI32RemU.Instance;
                 break;
             case WasmOpcode.I32And:
                 break;

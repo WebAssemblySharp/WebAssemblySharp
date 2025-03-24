@@ -1,12 +1,12 @@
 ﻿namespace WebAssemblySharp.MetaData.Instructions;
 
-public class WasmI32LtU: WasmInstruction
+public class WasmReturn: WasmInstruction
 {
-    public static readonly WasmI32LtU Instance = new WasmI32LtU();
+    public static readonly WasmReturn Instance = new WasmReturn(); 
     
     protected override WasmOpcode GetOpcode()
     {
-        return WasmOpcode.I32LtU;
+        return WasmOpcode.Return;
     }
 
     public override bool ReadInstruction<TReader>(TReader p_Reader)

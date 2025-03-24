@@ -127,7 +127,8 @@ public class WasmBinaryReader
                 if (l_Opcode == WasmOpcode.End) {
                     
                     if (m_InstructionStack.Count > 0) {
-                        m_InstructionStack.Pop();
+                        WasmBlockInstruction l_BlockInstruction = m_InstructionStack.Pop();
+                        l_BlockInstruction.Finished();
                         continue;
                     }
                     else

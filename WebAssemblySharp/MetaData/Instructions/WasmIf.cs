@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace WebAssemblySharp.MetaData.Instructions;
 
 public class WasmIf: WasmBlockInstruction
 {
-    public WasmInstruction[] IfBody { get; set; }
-    public WasmInstruction[] ElseBody { get; set; }
+    public IEnumerable<WasmInstruction> IfBody { get; set; }
+    public IEnumerable<WasmInstruction> ElseBody { get; set; }
     
     protected override WasmOpcode GetOpcode()
     {
@@ -21,13 +22,21 @@ public class WasmIf: WasmBlockInstruction
             return false;
         
         BlockType = (WasmBlockType)l_ReadBytes[0];
+        IfBody = new List<WasmInstruction>();
         
         return true;
     }
 
     public override void AddInstruction(WasmInstruction p_Instruction)
     {
-        
+        if (ElseBody != null)
+        {
+            ((List<WasmInstruction>)ElseBody).Add(p_Instruction);
+        }
+        else
+        {
+            ((List<WasmInstruction>)IfBody).Add(p_Instruction);
+        }
         
         
     }
@@ -36,9 +45,26 @@ public class WasmIf: WasmBlockInstruction
     {
         if (p_Opcode == WasmOpcode.Else)
         {
-            ElseBody = new WasmInstruction[0];
+            ElseBody = new List<WasmInstruction>();
         }
         
         base.HandleBlockOpCode(p_Opcode);
+    }
+
+    public override void Finished()
+    {
+        base.Finished();
+        
+        // Optimize it to an Array
+        IfBody = ((List<WasmInstruction>)IfBody).ToArray();
+        
+        if (ElseBody == null)
+        {
+            ElseBody = Array.Empty<WasmInstruction>();
+        }
+        else
+        {
+            ElseBody = ((List<WasmInstruction>)ElseBody).ToArray();
+        }
     }
 }

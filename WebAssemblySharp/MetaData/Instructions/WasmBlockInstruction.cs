@@ -12,4 +12,9 @@ public abstract class WasmBlockInstruction: WasmInstruction
     {
         throw new Exception($"Invalid Block Opcode {p_Opcode} for block instruction {GetOpcode()}");
     }
+
+    public virtual void Finished()
+    {
+        // nothing to do
+    }
 }
