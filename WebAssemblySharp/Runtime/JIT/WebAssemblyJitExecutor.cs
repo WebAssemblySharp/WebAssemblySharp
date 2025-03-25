@@ -11,11 +11,13 @@ public class WebAssemblyJitExecutor : IWebAssemblyExecutor
     private readonly WasmMetaData m_WasmMetaData;
     private Dictionary<String, IWebAssemblyMethod> m_Methods;
     private ReaderWriterLockSlim m_MethodsLock = new ReaderWriterLockSlim();
+    private WebAssemblyJitVirtualMaschine m_VirtualMaschine;
 
     public WebAssemblyJitExecutor(WasmMetaData p_WasmMetaData)
     {
         m_WasmMetaData = p_WasmMetaData;
         m_Methods = new Dictionary<String, IWebAssemblyMethod>();
+        m_VirtualMaschine = new WebAssemblyJitVirtualMaschine();
     }
     
     public IWebAssemblyMethod GetMethod(string p_Name)
@@ -66,7 +68,7 @@ public class WebAssemblyJitExecutor : IWebAssemblyExecutor
         WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_Export.Index];
         WasmCode l_Code = m_WasmMetaData.Code[m_WasmMetaData.FuncIndex[l_Export.Index]];
         
-        return new WebAssemblyJitMethod(l_FuncType, l_Code);
+        return new WebAssemblyJitMethod(m_VirtualMaschine, l_FuncType, l_Code);
     }
 
     private WasmExport FindExport(string p_Name, WasmExternalKind p_ExternalKind)
