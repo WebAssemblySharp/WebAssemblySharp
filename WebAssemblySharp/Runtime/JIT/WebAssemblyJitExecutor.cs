@@ -8,14 +8,13 @@ namespace WebAssemblySharp.Runtime.JIT;
 
 public class WebAssemblyJitExecutor : IWebAssemblyExecutor
 {
-    private readonly WasmMetaData m_WasmMetaData;
+    private WasmMetaData m_WasmMetaData;
     private Dictionary<String, IWebAssemblyMethod> m_Methods;
     private ReaderWriterLockSlim m_MethodsLock = new ReaderWriterLockSlim();
     private WebAssemblyJitVirtualMaschine m_VirtualMaschine;
 
-    public WebAssemblyJitExecutor(WasmMetaData p_WasmMetaData)
+    public WebAssemblyJitExecutor()
     {
-        m_WasmMetaData = p_WasmMetaData;
         m_Methods = new Dictionary<String, IWebAssemblyMethod>();
         m_VirtualMaschine = new WebAssemblyJitVirtualMaschine();
     }
@@ -23,6 +22,13 @@ public class WebAssemblyJitExecutor : IWebAssemblyExecutor
     public IWebAssemblyMethod GetMethod(string p_Name)
     {
         return GetOrCompileMethod(p_Name);  
+    }
+
+    public void LoadCode(WasmMetaData p_WasmMetaData)
+    {
+        m_WasmMetaData = p_WasmMetaData;
+        m_VirtualMaschine.OptimizeCode(p_WasmMetaData);
+
     }
 
     private IWebAssemblyMethod GetOrCompileMethod(string p_Name)

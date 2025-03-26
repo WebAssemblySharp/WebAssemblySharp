@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace WebAssemblySharp.MetaData.Instructions;
 
@@ -17,4 +18,5 @@ public abstract class WasmBlockInstruction: WasmInstruction
     {
         // nothing to do
     }
+    public abstract IEnumerable<WasmInstruction> GetAllInstructions();
 }

@@ -67,4 +67,17 @@ public class WasmIf: WasmBlockInstruction
             ElseBody = ((List<WasmInstruction>)ElseBody).ToArray();
         }
     }
+
+    public override IEnumerable<WasmInstruction> GetAllInstructions()
+    {
+        foreach (WasmInstruction l_Instruction in IfBody)
+        {
+            yield return l_Instruction;
+        }
+        
+        foreach (WasmInstruction l_Instruction in ElseBody)
+        {
+            yield return l_Instruction;
+        }
+    }
 }

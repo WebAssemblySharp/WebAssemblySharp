@@ -39,4 +39,9 @@ public class WasmLoop: WasmBlockInstruction
         // Optimize it to an Array
         Body = ((List<WasmInstruction>)Body).ToArray();
     }
+
+    public override IEnumerable<WasmInstruction> GetAllInstructions()
+    {
+        return Body;
+    }
 }
