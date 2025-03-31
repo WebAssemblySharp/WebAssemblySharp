@@ -28,7 +28,7 @@ public class IsPrimeBenchmark {
             await l_Runtime.LoadModule(
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
 
-        m_Module.Call("is_prime", 1);     
+        await m_Module.Call("is_prime", 1);     
     }
 
     [GlobalCleanup]
@@ -45,9 +45,9 @@ public class IsPrimeBenchmark {
     }
 
     [Benchmark]
-    public void JIT() {
+    public async Task JIT() {
 
-        m_Module.Call("is_prime", N); 
+        await m_Module.Call("is_prime", N); 
 
     }
 

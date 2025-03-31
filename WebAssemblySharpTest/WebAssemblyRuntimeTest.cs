@@ -17,7 +17,7 @@ public class WebAssemblyRuntimeTest
             await l_Runtime.LoadModule(
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.add.wasm"));
 
-        int l_Result = (int)l_Module.Call("add", 1, 2);
+        int l_Result = (int) await l_Module.Call("add", 1, 2);
         Assert.AreEqual(3, l_Result);
     }
 
@@ -41,7 +41,7 @@ public class WebAssemblyRuntimeTest
             await l_Runtime.LoadModule(
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
 
-        int l_Result = (int)l_Module.Call("is_prime", p_Number);
+        int l_Result = (int) await l_Module.Call("is_prime", p_Number);
 
         if (p_IsPrime)
             Assert.AreEqual(1, l_Result);

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.Runtime.Utils;
 
@@ -18,19 +19,19 @@ public class WebAssemblyJitMethod : IWebAssemblyMethod
         m_VirtualMachine = p_VirtualMachine;
     }
 
-    public object Invoke(params object[] p_Args)
+    public async Task<object> Invoke(params object[] p_Args)
     {
         ValidateParameters(p_Args);
 
         WebAssemblyJitStackFrame l_Frame = CreateStackFrame(p_Args);
 
         WebAssemblyJitExecutionContext l_Context = m_VirtualMachine.CreateContext(m_FuncType, m_Code, l_Frame);
-        bool l_ExecuteFrame = m_VirtualMachine.ExecuteFrame(ref l_Context, 0);
+        bool l_ExecuteFrame = await m_VirtualMachine.ExecuteFrame(l_Context, 0);
 
         if (!l_ExecuteFrame)
             throw new WebAssemblyJitException("Unexpected abort of the frame execution");
 
-        Span<WebAssemblyJitValue> l_JitValues = m_VirtualMachine.FinishContext(ref l_Context);
+        Span<WebAssemblyJitValue> l_JitValues = m_VirtualMachine.FinishContext(l_Context);
 
         if (l_JitValues.Length == 0)
             return null;

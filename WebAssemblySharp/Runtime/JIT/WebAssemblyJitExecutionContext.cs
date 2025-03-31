@@ -5,7 +5,7 @@ using WebAssemblySharp.MetaData.Instructions;
 
 namespace WebAssemblySharp.Runtime.JIT;
 
-public ref struct WebAssemblyJitExecutionContext
+public class WebAssemblyJitExecutionContext
 {
     private WebAssemblyJitExecutionCallFrame m_CurrentCallFrame;
     public WasmFuncType FuncType { get; }

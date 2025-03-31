@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace WebAssemblySharp.Runtime.JIT;
 
@@ -11,7 +12,7 @@ public class WebAssemblyJitMethodNotFound: IWebAssemblyMethod
         m_Name = p_Name;
     }
 
-    public object Invoke(params object[] p_Args)
+    public Task<object> Invoke(params object[] p_Args)
     {
         throw new InvalidOperationException("Method not found: " + m_Name);
     }
