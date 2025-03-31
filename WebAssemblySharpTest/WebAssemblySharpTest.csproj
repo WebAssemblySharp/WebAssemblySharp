@@ -17,11 +17,16 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\WebAssemblySharp\WebAssemblySharpExampleData.csproj" />
+      <ProjectReference Include="..\WebAssemblySharpExampleData\WebAssemblySharpExampleData.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\WebAssemblySharp\WebAssemblySharp.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Include="Data\Result\addReaderResult.txt" />
+      <EmbeddedResource Include="Data\Result\isprimeReaderResult.txt" />
     </ItemGroup>
 
   

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WebAssemblySharp.Runtime;
+using WebAssemblySharpExampleData;
 
 namespace WebAssemblySharpTest;
 
@@ -14,7 +15,7 @@ public class WebAssemblyRuntimeTest
         WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
         WebAssemblyModule l_Module =
             await l_Runtime.LoadModule(
-                typeof(WebAssemblyRuntimeTest).Assembly.GetManifestResourceStream("WebAssemblySharpTest.Data.Example.add.wasm"));
+                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.add.wasm"));
 
         int l_Result = (int)l_Module.Call("add", 1, 2);
         Assert.AreEqual(3, l_Result);
@@ -38,7 +39,7 @@ public class WebAssemblyRuntimeTest
         WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
         WebAssemblyModule l_Module =
             await l_Runtime.LoadModule(
-                typeof(WebAssemblyRuntimeTest).Assembly.GetManifestResourceStream("WebAssemblySharpTest.Data.Example.isprime.wasm"));
+                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
 
         int l_Result = (int)l_Module.Call("is_prime", p_Number);
 

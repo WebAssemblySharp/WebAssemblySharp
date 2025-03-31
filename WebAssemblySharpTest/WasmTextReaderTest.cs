@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using WebAssemblySharp.Readers.Text;
 using WebAssemblySharp.Readers.Text.Model;
+using WebAssemblySharpExampleData;
 
 namespace WebAssemblySharpTest;
 
@@ -13,11 +14,11 @@ namespace WebAssemblySharpTest;
 public class WasmTextReaderTest
 {
     [DataTestMethod]
-    [DataRow("WebAssemblySharpTest.Data.Example.add.wat", "WebAssemblySharpTest.Data.Example.addReaderResult.txt")]
-    [DataRow("WebAssemblySharpTest.Data.Example.isprime.wat", "WebAssemblySharpTest.Data.Example.addReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.add.wat", "WebAssemblySharpTest.Data.Result.addReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.isprime.wat", "WebAssemblySharpTest.Data.Result.isprimeReaderResult.txt")]
     public async Task ReadTest(string p_SourcePath, string p_ExpectedResultPath)
     {
-        using (Stream l_Stream = typeof(WasmTextReaderTest).Assembly.GetManifestResourceStream(p_SourcePath))
+        using (Stream l_Stream = typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream(p_SourcePath))
         {
             WasmTextReader l_WasmTextReader = new WasmTextReader();
 
@@ -48,11 +49,11 @@ public class WasmTextReaderTest
     
     
     [DataTestMethod]
-    [DataRow("WebAssemblySharpTest.Data.Example.add.wat", "WebAssemblySharpTest.Data.Example.addReaderResult.txt")]
-    [DataRow("WebAssemblySharpTest.Data.Example.isprime.wat", "WebAssemblySharpTest.Data.Example.addReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.add.wat", "WebAssemblySharpTest.Data.Result.addReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.isprime.wat", "WebAssemblySharpTest.Data.Result.isprimeReaderResult.txt")]
     public async Task ReadTestSlow(string p_SourcePath, string p_ExpectedResultPath)
     {
-        using (Stream l_Stream = typeof(WasmTextReaderTest).Assembly.GetManifestResourceStream(p_SourcePath))
+        using (Stream l_Stream = typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream(p_SourcePath))
         {
             WasmTextReader l_WasmTextReader = new WasmTextReader();
 

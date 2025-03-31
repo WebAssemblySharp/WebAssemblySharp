@@ -12,7 +12,6 @@
       <None Remove="Programms\add.wat" />
       <EmbeddedResource Include="Programms\add.wat" />
       <None Remove="Programms\addReaderResult.txt" />
-      <EmbeddedResource Include="Programms\addReaderResult.txt" />
       <None Remove="Programms\ifexpr.wat" />
       <EmbeddedResource Include="Programms\ifexpr.wat" />
       <None Remove="Programms\isprime.wasm" />
@@ -22,7 +21,6 @@
       <None Remove="Programms\loops.wat" />
       <EmbeddedResource Include="Programms\loops.wat" />
       <None Remove="Programms\isprimeReaderResult.txt" />
-      <EmbeddedResource Include="Programms\isprimeReaderResult.txt" />
     </ItemGroup>
 
 </Project>
