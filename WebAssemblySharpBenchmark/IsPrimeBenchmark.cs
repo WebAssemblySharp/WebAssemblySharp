@@ -1,10 +1,12 @@
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Diagnostics.dotTrace;
 using BenchmarkDotNet.Running;
 using WebAssemblySharp.Runtime;
 using WebAssemblySharpExampleData;
 
 namespace WebAssemblySharpBenchmark;
 
+//[DotTraceDiagnoser]
 [MemoryDiagnoser]
 public class IsPrimeBenchmark {
 

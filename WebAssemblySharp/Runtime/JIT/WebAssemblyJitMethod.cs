@@ -24,7 +24,13 @@ public class WebAssemblyJitMethod : IWebAssemblyMethod
 
         WebAssemblyJitStackFrame l_Frame = CreateStackFrame(p_Args);
 
-        WebAssemblyJitValue[] l_JitValues = m_VirtualMachine.ExecuteFrame(m_FuncType, m_Code, l_Frame);
+        WebAssemblyJitExecutionContext l_Context = m_VirtualMachine.CreateContext(m_FuncType, m_Code, l_Frame);
+        bool l_ExecuteFrame = m_VirtualMachine.ExecuteFrame(ref l_Context, 0);
+
+        if (!l_ExecuteFrame)
+            throw new WebAssemblyJitException("Unexpected abort of the frame execution");
+
+        Span<WebAssemblyJitValue> l_JitValues = m_VirtualMachine.FinishContext(ref l_Context);
 
         if (l_JitValues.Length == 0)
             return null;
