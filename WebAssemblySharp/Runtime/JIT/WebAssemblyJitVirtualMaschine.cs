@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
@@ -36,7 +37,7 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
     private void HandleLocalGet(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
     {
         WasmLocalGet l_Instruction = (WasmLocalGet)p_Instruction;
-        WebAssemblyJitValue l_Value = p_Context.Frame.GetLocal(l_Instruction.LocalIndex);
+        WebAssemblyJitValue l_Value = p_Context.Locals.GetLocal(l_Instruction.LocalIndex);
         p_Context.Stack.Push(l_Value);
     }
 
@@ -116,7 +117,7 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
     {
         WasmLocalSet l_Instruction = (WasmLocalSet)p_Instruction;
         WebAssemblyJitValue l_Value = p_Context.Stack.Pop();
-        p_Context.Frame.GetLocal(l_Instruction.LocalIndex).CopyValueFrom(l_Value);
+        p_Context.Locals.GetLocal(l_Instruction.LocalIndex).CopyValueFrom(l_Value);
     }
 
     private void HandleI32RemU(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
@@ -178,10 +179,32 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
 
     
 
-    public WebAssemblyJitExecutionContext CreateContext(WasmFuncType p_FuncType, WasmCode p_Code, WebAssemblyJitStackFrame p_Frame)
+    public WebAssemblyJitExecutionContext CreateContext(WasmFuncType p_FuncType, WasmCode p_Code, object[] p_Args)
     {
+        WebAssemblyJitStackLocals l_Locals = CreateStackLocals(p_FuncType, p_Code, p_Args);
         Stack<WebAssemblyJitValue> l_Stack = CreateStack();
-        return new WebAssemblyJitExecutionContext(p_FuncType, p_Code.Instructions.GetEnumerator(), p_Frame, l_Stack);
+        return new WebAssemblyJitExecutionContext(p_FuncType, p_Code.Instructions.GetEnumerator(), l_Locals, l_Stack);
+    }
+    
+    private WebAssemblyJitStackLocals CreateStackLocals(WasmFuncType p_FuncType, WasmCode p_Code, object[] p_Args)
+    {
+        int l_Length = p_FuncType.Parameters.Length + p_Code.Locals.Length;
+        
+        WebAssemblyJitValue[] l_Values = ArrayPool<WebAssemblyJitValue>.Shared.Rent(l_Length);;
+
+        for (int i = 0; i < p_Args.Length; i++)
+        {
+            l_Values[i] = new WebAssemblyJitValue(p_FuncType.Parameters[i], p_Args[i]);
+        }
+
+        for (int i = 0; i < p_Code.Locals.Length; i++)
+        {
+            WasmCodeLocal l_WasmCodeLocal = p_Code.Locals[i];
+
+            l_Values[(int)l_WasmCodeLocal.Number] = new WebAssemblyJitValue(l_WasmCodeLocal.ValueType, null);
+        }
+
+        return new WebAssemblyJitStackLocals(l_Values);
     }
 
 
@@ -200,7 +223,7 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
             WasmInstruction l_Instruction = p_Context.GetNextInstruction();
 
             if (l_Instruction == null)
-                return Task<bool>.FromResult(true);
+                return Task.FromResult(true);
 
             ((ExecuteInstructionDelegate)l_Instruction.VmData)(l_Instruction, p_Context);
 
@@ -209,7 +232,7 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
             if (l_InstcutionCounter >= p_InstructionsToExecute)
             {
                 // Pause the execution
-                return Task<bool>.FromResult(false);
+                return Task.FromResult(false);
             }
         }
     }
@@ -221,7 +244,7 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
             WasmInstruction l_Instruction = p_Context.GetNextInstruction();
 
             if (l_Instruction == null)
-                return Task<bool>.FromResult(true);
+                return Task.FromResult(true);
 
             ((ExecuteInstructionDelegate)l_Instruction.VmData)(l_Instruction, p_Context);
         }
@@ -240,6 +263,8 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
                 $"Invalid Stack Size after execute instructions. Expected {p_Context.FuncType.Results.Length} but got {p_Context.Stack.Count}");
         }
 
+        ArrayPool<WebAssemblyJitValue>.Shared.Return(p_Context.Locals.GetBuffer());
+        
         if (p_Context.FuncType.Results.Length == 0)
         {
             return new Span<WebAssemblyJitValue>();
@@ -247,7 +272,8 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
 
         if (p_Context.FuncType.Results.Length == 1)
         {
-            return p_Context.Stack.ToArray();
+            WebAssemblyJitValue l_JitValue = p_Context.Stack.Pop();
+            return new WebAssemblyJitValue[] { l_JitValue };
         }
 
         return p_Context.Stack.ToArray();

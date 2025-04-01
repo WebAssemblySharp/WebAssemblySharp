@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.Runtime.Utils;
@@ -23,9 +24,7 @@ public class WebAssemblyJitMethod : IWebAssemblyMethod
     {
         ValidateParameters(p_Args);
 
-        WebAssemblyJitStackFrame l_Frame = CreateStackFrame(p_Args);
-
-        WebAssemblyJitExecutionContext l_Context = m_VirtualMachine.CreateContext(m_FuncType, m_Code, l_Frame);
+        WebAssemblyJitExecutionContext l_Context = m_VirtualMachine.CreateContext(m_FuncType, m_Code, p_Args);
         bool l_ExecuteFrame = await m_VirtualMachine.ExecuteFrame(l_Context, 0);
 
         if (!l_ExecuteFrame)
@@ -49,24 +48,7 @@ public class WebAssemblyJitMethod : IWebAssemblyMethod
         return l_Results;
     }
 
-    private WebAssemblyJitStackFrame CreateStackFrame(object[] p_Args)
-    {
-        WebAssemblyJitValue[] l_Values = new WebAssemblyJitValue[m_FuncType.Parameters.Length + m_Code.Locals.Length];
-
-        for (int i = 0; i < p_Args.Length; i++)
-        {
-            l_Values[i] = new WebAssemblyJitValue(m_FuncType.Parameters[i], p_Args[i]);
-        }
-
-        for (int i = 0; i < m_Code.Locals.Length; i++)
-        {
-            WasmCodeLocal l_WasmCodeLocal = m_Code.Locals[i];
-
-            l_Values[(int)l_WasmCodeLocal.Number] = new WebAssemblyJitValue(l_WasmCodeLocal.ValueType, null);
-        }
-
-        return new WebAssemblyJitStackFrame(l_Values);
-    }
+    
 
     private void ValidateParameters(object[] p_Args)
     {

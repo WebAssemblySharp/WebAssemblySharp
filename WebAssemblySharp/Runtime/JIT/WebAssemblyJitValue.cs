@@ -3,9 +3,9 @@ using WebAssemblySharp.MetaData;
 
 namespace WebAssemblySharp.Runtime.JIT;
 
-public class WebAssemblyJitValue
+public struct WebAssemblyJitValue
 {
-    private WasmDataType m_DataType;
+    private readonly WasmDataType m_DataType;
     private object m_Value;
     
     public WebAssemblyJitValue(WasmDataType p_DataType, object p_Value)

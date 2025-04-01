@@ -10,11 +10,11 @@ public class WebAssemblyJitExecutionContext
     private WebAssemblyJitExecutionCallFrame m_CurrentCallFrame;
     public WasmFuncType FuncType { get; }
 
-    public WebAssemblyJitStackFrame Frame { get; }
+    public WebAssemblyJitStackLocals Locals { get; }
     public Stack<WebAssemblyJitValue> Stack { get; }
 
 
-    public WebAssemblyJitExecutionContext(WasmFuncType p_FuncType, IEnumerator<WasmInstruction> p_Instuctions, WebAssemblyJitStackFrame p_Frame,
+    public WebAssemblyJitExecutionContext(WasmFuncType p_FuncType, IEnumerator<WasmInstruction> p_Instuctions, WebAssemblyJitStackLocals p_Locals,
         Stack<WebAssemblyJitValue> p_Stack)
     {
         FuncType = p_FuncType;
@@ -22,7 +22,7 @@ public class WebAssemblyJitExecutionContext
         m_CurrentCallFrame.Instructions = p_Instuctions;
         m_CurrentCallFrame.Parent = null;
         m_CurrentCallFrame.BlockKind = WebAssemblyJitExecutionCallFrameBlockKind.Regular;
-        Frame = p_Frame;
+        Locals = p_Locals;
         Stack = p_Stack;
     }
 
