@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -9,13 +10,12 @@ namespace WebAssemblySharp.Runtime.JIT;
 public class WebAssemblyJitExecutor : IWebAssemblyExecutor
 {
     private WasmMetaData m_WasmMetaData;
-    private Dictionary<String, IWebAssemblyMethod> m_Methods;
-    private ReaderWriterLockSlim m_MethodsLock = new ReaderWriterLockSlim();
+    private ConcurrentDictionary<String, IWebAssemblyMethod> m_Methods;
     private WebAssemblyJitVirtualMaschine m_VirtualMaschine;
 
     public WebAssemblyJitExecutor()
     {
-        m_Methods = new Dictionary<String, IWebAssemblyMethod>();
+        m_Methods = new ConcurrentDictionary<String, IWebAssemblyMethod>();
         m_VirtualMaschine = new WebAssemblyJitVirtualMaschine();
     }
     
@@ -33,35 +33,15 @@ public class WebAssemblyJitExecutor : IWebAssemblyExecutor
 
     private IWebAssemblyMethod GetOrCompileMethod(string p_Name)
     {
-        m_MethodsLock.EnterReadLock();
-        try
-        {
-            if (m_Methods.TryGetValue(p_Name, out IWebAssemblyMethod l_Method))
-                return l_Method;
-        }
-        finally
-        {
-            m_MethodsLock.ExitReadLock();
-        }
+        if (m_Methods.TryGetValue(p_Name, out IWebAssemblyMethod l_Method))
+            return l_Method;
         
         IWebAssemblyMethod l_NewMethod = CompileMethod(p_Name);
         
-        m_MethodsLock.EnterWriteLock();
-        try
-        {
-            // Double check in case another thread added the method while we were compiling
-            if (m_Methods.TryGetValue(p_Name, out IWebAssemblyMethod l_Method))
-                return l_Method;
-            
-            m_Methods.Add(p_Name, l_NewMethod);
+        if (m_Methods.TryAdd(p_Name, l_NewMethod))
             return l_NewMethod;
-        }
-        finally
-        {
-            m_MethodsLock.ExitWriteLock();
-        }
-        
-        
+
+        return m_Methods[p_Name];
     }
 
     private IWebAssemblyMethod CompileMethod(string p_Name)

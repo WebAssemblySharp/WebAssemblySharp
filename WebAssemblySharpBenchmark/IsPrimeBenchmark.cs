@@ -6,7 +6,7 @@ using WebAssemblySharpExampleData;
 
 namespace WebAssemblySharpBenchmark;
 
-[DotTraceDiagnoser]
+//[DotTraceDiagnoser]
 [ShortRunJob]
 [MemoryDiagnoser]
 public class IsPrimeBenchmark {
