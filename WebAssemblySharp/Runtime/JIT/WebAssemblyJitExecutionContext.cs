@@ -8,6 +8,8 @@ namespace WebAssemblySharp.Runtime.JIT;
 public class WebAssemblyJitExecutionContext
 {
     private WebAssemblyJitExecutionCallFrame m_CurrentCallFrame;
+    private WebAssemblyJitExecutionCallFrame m_UnusedCallFrame;
+    
     public WasmFuncType FuncType { get; }
 
     public WebAssemblyJitStackLocals Locals { get; }
@@ -114,7 +116,13 @@ public class WebAssemblyJitExecutionContext
     public void FinishCallFrame()
     {
         m_CurrentCallFrame.Instructions.Dispose();
-        m_CurrentCallFrame = m_CurrentCallFrame.Parent;
+        WebAssemblyJitExecutionCallFrame l_Parent = m_CurrentCallFrame.Parent;
+        
+        m_CurrentCallFrame.Parent = m_UnusedCallFrame;
+        m_UnusedCallFrame = m_CurrentCallFrame;
+        m_UnusedCallFrame.Instructions = null;
+        
+        m_CurrentCallFrame = l_Parent;
     }
 
     public bool HasPendingExecutions()
@@ -137,7 +145,18 @@ public class WebAssemblyJitExecutionContext
 
     public void UpdateCallFrame(IEnumerator<WasmInstruction> p_Executions, int p_CurrentBlockIndex, WebAssemblyJitExecutionCallFrameBlockKind p_Kind)
     {
-        WebAssemblyJitExecutionCallFrame l_NextFrame = new WebAssemblyJitExecutionCallFrame();
+        WebAssemblyJitExecutionCallFrame l_NextFrame;
+
+        if (m_UnusedCallFrame != null)
+        {
+            l_NextFrame = m_UnusedCallFrame;
+            m_UnusedCallFrame = m_UnusedCallFrame.Parent;
+        }
+        else
+        {
+            l_NextFrame = new WebAssemblyJitExecutionCallFrame();
+        }
+        
         l_NextFrame.Instructions = p_Executions;
         l_NextFrame.Parent = m_CurrentCallFrame;
         l_NextFrame.CurrentBlockIndex = p_CurrentBlockIndex;

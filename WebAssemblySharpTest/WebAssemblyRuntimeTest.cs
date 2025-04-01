@@ -41,7 +41,7 @@ public class WebAssemblyRuntimeTest
             await l_Runtime.LoadModule(
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
         
-        for (int i = 0; i < 10_000; i++)
+        for (int i = 0; i < 1_000_000; i++)
         {
             int l_Result = (int) await l_Module.Call("is_prime", 99);    
         }
