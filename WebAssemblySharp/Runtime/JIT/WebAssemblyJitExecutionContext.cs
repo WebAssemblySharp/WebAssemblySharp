@@ -7,17 +7,16 @@ namespace WebAssemblySharp.Runtime.JIT;
 
 public class WebAssemblyJitExecutionContext
 {
+    private Stack<WebAssemblyJitValue> m_Stack;
+    
     private WebAssemblyJitExecutionCallFrame m_CurrentCallFrame;
     private WebAssemblyJitExecutionCallFrame m_UnusedCallFrame;
     
     public WasmFuncType FuncType { get; }
 
     public WebAssemblyJitStackLocals Locals { get; }
-    public Stack<WebAssemblyJitValue> Stack { get; }
-
-
-    public WebAssemblyJitExecutionContext(WasmFuncType p_FuncType, IEnumerator<WasmInstruction> p_Instuctions, WebAssemblyJitStackLocals p_Locals,
-        Stack<WebAssemblyJitValue> p_Stack)
+    
+    public WebAssemblyJitExecutionContext(WasmFuncType p_FuncType, IEnumerator<WasmInstruction> p_Instuctions, WebAssemblyJitStackLocals p_Locals)
     {
         FuncType = p_FuncType;
         m_CurrentCallFrame = new WebAssemblyJitExecutionCallFrame();
@@ -25,7 +24,7 @@ public class WebAssemblyJitExecutionContext
         m_CurrentCallFrame.Parent = null;
         m_CurrentCallFrame.BlockKind = WebAssemblyJitExecutionCallFrameBlockKind.Regular;
         Locals = p_Locals;
-        Stack = p_Stack;
+        m_Stack = new Stack<WebAssemblyJitValue>(8);
     }
 
     public WasmInstruction GetNextInstruction()
@@ -171,6 +170,26 @@ public class WebAssemblyJitExecutionContext
             m_CurrentCallFrame.Instructions.Dispose();
             m_CurrentCallFrame = m_CurrentCallFrame.Parent;
         }
+    }
+
+    public WebAssemblyJitValue PopFromStack()
+    {
+        return m_Stack.Pop();
+    }
+
+    public void PushToStack(WebAssemblyJitValue p_Result)
+    {
+        m_Stack.Push(p_Result);
+    }
+    
+    public int StackCount
+    {
+        get { return m_Stack.Count; }
+    }
+
+    public WebAssemblyJitValue[] StackToArray()
+    {
+        return m_Stack.ToArray();
     }
 }
 
