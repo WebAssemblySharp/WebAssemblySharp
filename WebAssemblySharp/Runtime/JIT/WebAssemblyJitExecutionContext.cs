@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
@@ -7,10 +8,8 @@ namespace WebAssemblySharp.Runtime.JIT;
 
 public class WebAssemblyJitExecutionContext
 {
-    private Stack<WebAssemblyJitValue> m_Stack;
-    
-    private WebAssemblyJitExecutionCallFrame m_CurrentCallFrame;
-    private WebAssemblyJitExecutionCallFrame m_UnusedCallFrame;
+    private Stack<WebAssemblyJitValue> m_ValueStack;
+    private Stack<WebAssemblyJitExecutionCallFrame> m_CallFrameStack;
     
     public WasmFuncType FuncType { get; }
 
@@ -19,19 +18,22 @@ public class WebAssemblyJitExecutionContext
     public WebAssemblyJitExecutionContext(WasmFuncType p_FuncType, IEnumerator<WasmInstruction> p_Instuctions, WebAssemblyJitStackLocals p_Locals)
     {
         FuncType = p_FuncType;
-        m_CurrentCallFrame = new WebAssemblyJitExecutionCallFrame();
-        m_CurrentCallFrame.Instructions = p_Instuctions;
-        m_CurrentCallFrame.Parent = null;
-        m_CurrentCallFrame.BlockKind = WebAssemblyJitExecutionCallFrameBlockKind.Regular;
         Locals = p_Locals;
-        m_Stack = new Stack<WebAssemblyJitValue>(8);
+        m_ValueStack = new Stack<WebAssemblyJitValue>(8);
+        m_CallFrameStack = new Stack<WebAssemblyJitExecutionCallFrame>(8);
+        WebAssemblyJitExecutionCallFrame l_CallFrame = new WebAssemblyJitExecutionCallFrame();
+        l_CallFrame.Instructions = p_Instuctions;
+        l_CallFrame.CurrentBlockIndex = 0;
+        l_CallFrame.BlockKind = WebAssemblyJitExecutionCallFrameBlockKind.Regular;
+        m_CallFrameStack.Push(l_CallFrame);
     }
 
     public WasmInstruction GetNextInstruction()
     {
-        while (m_CurrentCallFrame != null)
+        while (m_CallFrameStack.Count > 0)
         {
-            bool l_MoveNext = m_CurrentCallFrame.Instructions.MoveNext();
+            WebAssemblyJitExecutionCallFrame l_Frame = m_CallFrameStack.Peek();
+            bool l_MoveNext = l_Frame.Instructions.MoveNext();
 
             if (!l_MoveNext)
             {
@@ -39,7 +41,7 @@ public class WebAssemblyJitExecutionContext
                 continue;
             }
 
-            return m_CurrentCallFrame.Instructions.Current;
+            return l_Frame.Instructions.Current;
         }
 
         return null;
@@ -48,7 +50,7 @@ public class WebAssemblyJitExecutionContext
     public void MoveCallFrameToBranchIndex(uint p_BranchIndex)
     {
         
-        while (m_CurrentCallFrame != null)
+        while (m_CallFrameStack.Count > 0)
         {
             WebAssemblyJitExecutionCallFrameBlockKind l_BlockKind = CurrentBlockKind;
             
@@ -109,94 +111,76 @@ public class WebAssemblyJitExecutionContext
 
     public void RestartCallFrame()
     {
-        m_CurrentCallFrame.Instructions.Reset();
+        m_CallFrameStack.Peek().Instructions.Reset();
     }
 
     public void FinishCallFrame()
     {
-        m_CurrentCallFrame.Instructions.Dispose();
-        WebAssemblyJitExecutionCallFrame l_Parent = m_CurrentCallFrame.Parent;
+        WebAssemblyJitExecutionCallFrame l_CallFrame = m_CallFrameStack.Pop();
+        l_CallFrame.Instructions.Dispose();
         
-        m_CurrentCallFrame.Parent = m_UnusedCallFrame;
-        m_UnusedCallFrame = m_CurrentCallFrame;
-        m_UnusedCallFrame.Instructions = null;
-        
-        m_CurrentCallFrame = l_Parent;
     }
 
     public bool HasPendingExecutions()
     {
-        if (m_CurrentCallFrame == null)
+        if (m_CallFrameStack.Count == 0)
             return false;
 
-        return m_CurrentCallFrame.Instructions.MoveNext();
+        return m_CallFrameStack.Peek().Instructions.MoveNext();
     }
 
     public int CurrentBlockIndex
     {
-        get { return m_CurrentCallFrame.CurrentBlockIndex; }
+        get { return m_CallFrameStack.Peek().CurrentBlockIndex; }
     }
 
     public WebAssemblyJitExecutionCallFrameBlockKind CurrentBlockKind
     {
-        get { return m_CurrentCallFrame.BlockKind; }
+        get { return m_CallFrameStack.Peek().BlockKind; }
     }
 
     public void UpdateCallFrame(IEnumerator<WasmInstruction> p_Executions, int p_CurrentBlockIndex, WebAssemblyJitExecutionCallFrameBlockKind p_Kind)
     {
-        WebAssemblyJitExecutionCallFrame l_NextFrame;
-
-        if (m_UnusedCallFrame != null)
-        {
-            l_NextFrame = m_UnusedCallFrame;
-            m_UnusedCallFrame = m_UnusedCallFrame.Parent;
-        }
-        else
-        {
-            l_NextFrame = new WebAssemblyJitExecutionCallFrame();
-        }
-        
+         WebAssemblyJitExecutionCallFrame l_NextFrame = new WebAssemblyJitExecutionCallFrame();
         l_NextFrame.Instructions = p_Executions;
-        l_NextFrame.Parent = m_CurrentCallFrame;
         l_NextFrame.CurrentBlockIndex = p_CurrentBlockIndex;
         l_NextFrame.BlockKind = p_Kind;
-        m_CurrentCallFrame = l_NextFrame;
+        m_CallFrameStack.Push(l_NextFrame);
     }
 
     public void ExitContext()
     {
-        while (m_CurrentCallFrame != null)
+        while (m_CallFrameStack.Count > 0)
         {
-            m_CurrentCallFrame.Instructions.Dispose();
-            m_CurrentCallFrame = m_CurrentCallFrame.Parent;
+            WebAssemblyJitExecutionCallFrame l_Frame = m_CallFrameStack.Pop();
+            l_Frame.Instructions.Dispose();
         }
     }
 
     public WebAssemblyJitValue PopFromStack()
     {
-        return m_Stack.Pop();
+        return m_ValueStack.Pop();
     }
 
     public void PushToStack(WebAssemblyJitValue p_Result)
     {
-        m_Stack.Push(p_Result);
+        m_ValueStack.Push(p_Result);
     }
     
     public int StackCount
     {
-        get { return m_Stack.Count; }
+        get { return m_ValueStack.Count; }
     }
 
     public WebAssemblyJitValue[] StackToArray()
     {
-        return m_Stack.ToArray();
+        return m_ValueStack.ToArray();
     }
 }
 
-class WebAssemblyJitExecutionCallFrame
+struct WebAssemblyJitExecutionCallFrame
 {
     public IEnumerator<WasmInstruction> Instructions;
-    public WebAssemblyJitExecutionCallFrame Parent;
     public int CurrentBlockIndex;
     public WebAssemblyJitExecutionCallFrameBlockKind BlockKind;
 }
