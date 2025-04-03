@@ -1,4 +1,4 @@
-# WebAssemblySharp
+# WebAssemblySharp ![example workflow](https://github.com/WebAssemblySharp/WebAssemblySharp/actions/workflows/dotnet.yml/badge.svg)
 
 **WebAssemblySharp** is an emerging WebAssembly runtime for C#, designed to enable the execution of WebAssembly modules within C# applications. This project is currently under active development.
 
