@@ -262,6 +262,97 @@ public class WasmBinaryReader
         throw new WasmBinaryReaderException("Invalid code count");
     }
 
+    private void ReadImport(ReadOnlySpan<byte> p_Data, ref int p_Index)
+    {
+        if (m_CurrentImport == null)
+        {
+            ulong? l_ModuleLength = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
+
+            if (l_ModuleLength == null)
+                return;
+
+            m_CurrentImport = new WasmImport();
+            m_CurrentImport.Module = new WasmStringInComplete((long)l_ModuleLength.Value);
+            m_CurrentImport.Kind = WasmExternalKind.Unknown;
+            m_CurrentImport.Index = -1;
+        }
+        
+        if (m_CurrentImport.Module is WasmStringInComplete)
+        {
+            WasmStringInComplete l_Module = (WasmStringInComplete)m_CurrentImport.Module;
+            WasmString l_FinalString = ReadString(l_Module, p_Data, ref p_Index, ref m_SectionSize);
+
+            if (l_FinalString == null)
+                return;
+
+            m_CurrentImport.Module = l_FinalString;
+        }
+        
+        if (m_CurrentImport.Name == null)
+        {
+            ulong? l_NameLength = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
+
+            if (l_NameLength == null)
+                return;
+
+            m_CurrentImport.Name = new WasmStringInComplete((long)l_NameLength.Value);
+        }
+        
+        if (m_CurrentImport.Name is WasmStringInComplete)
+        {
+            WasmStringInComplete l_Name = (WasmStringInComplete)m_CurrentImport.Name;
+            WasmString l_FinalString = ReadString(l_Name, p_Data, ref p_Index, ref m_SectionSize);
+
+            if (l_FinalString == null)
+                return;
+
+            m_CurrentImport.Name = l_FinalString;
+        }
+        
+        if (m_CurrentImport.Kind == WasmExternalKind.Unknown)
+        {
+            ReadOnlySpan<byte> l_Bytes = ReaReadBytes(p_Data, ref p_Index, 1, ref m_SectionSize);
+
+            if (l_Bytes.IsEmpty)
+                return;
+
+            m_CurrentImport.Kind = (WasmExternalKind)l_Bytes[0];
+        }
+        
+        if (m_CurrentImport.Kind == WasmExternalKind.Function)
+        {
+            if (m_CurrentImport.Index == -1)
+            {
+                ulong? l_Index = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
+
+                if (l_Index == null)
+                    return;
+
+                m_CurrentImport.Index = (long)l_Index.Value;
+            }
+        }
+        else
+        {
+            // QQQ handle other external kinds
+            throw new WasmBinaryReaderException("Invalid import kind " + m_CurrentImport.Kind + " not implemnted");
+        }
+        
+        
+        for (int i = 0; i < m_MetaData.Import.Length; i++)
+        {
+            if (m_MetaData.Import[i] == null)
+            {
+                m_MetaData.Import[i] = m_CurrentImport;
+                m_CurrentImport = null;
+                m_ReaderPosition = ReaderPosition.SecImport;
+                return;
+            }
+        }
+
+        throw new WasmBinaryReaderException("Invalid import count");
+        
+    }
+    
     private void ReadExport(ReadOnlySpan<byte> p_Data, ref int p_Index)
     {
         if (m_CurrentExport == null)
@@ -348,12 +439,7 @@ public class WasmBinaryReader
         return null;
     }
 
-    private void ReadImport(ReadOnlySpan<byte> p_Data, ref int p_Index)
-    {
-        if (m_CurrentImport == null)
-        {
-        }
-    }
+    
 
     private void ReadType(ReadOnlySpan<byte> p_Data, ref int p_Index)
     {
@@ -665,18 +751,24 @@ public class WasmBinaryReader
     {
         if (!IsSectionSizeValid(p_Data, ref p_Index))
             return;
+        
+        throw new WasmBinaryReaderException("Global section not implemented");
     }
 
     private void ReadMemorySection(ReadOnlySpan<byte> p_Data, ref int p_Index)
     {
         if (!IsSectionSizeValid(p_Data, ref p_Index))
             return;
+        
+        throw new WasmBinaryReaderException("Memory section not implemented");
     }
 
     private void ReadTableSection(ReadOnlySpan<byte> p_Data, ref int p_Index)
     {
         if (!IsSectionSizeValid(p_Data, ref p_Index))
             return;
+        
+        throw new WasmBinaryReaderException("Table section not implemented");
     }
 
     private void ReadFunctionSection(ReadOnlySpan<byte> p_Data, ref int p_Index)
@@ -748,9 +840,56 @@ public class WasmBinaryReader
         if (!IsSectionSizeValid(p_Data, ref p_Index))
             return;
 
-        if (m_CurrentImport == null)
+        if (m_SectionSize > 0)
         {
+            
+            if (m_MetaData.Import == null)
+            {
+                ulong? l_ImportCount = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
+
+                if (l_ImportCount == null)
+                    return;
+
+                m_MetaData.Import = new WasmImport[l_ImportCount.Value];
+            }
+
+            if (m_MetaData.Import.Length == 0)
+            {
+                m_ReaderPosition = ReaderPosition.Section;
+
+                if (m_SectionSize > 0)
+                {
+                    throw new WasmBinaryReaderException("Invalid type section size");
+                }
+
+                m_SectionSize = -1;
+                return;
+            }
+
+            if (m_MetaData.Import[m_MetaData.Import.Length - 1] == null)
+            {
+                m_ReaderPosition = ReaderPosition.ReadImport;
+            }
+            else
+            {
+                m_ReaderPosition = ReaderPosition.Section;
+
+                if (m_SectionSize > 0)
+                {
+                    throw new WasmBinaryReaderException("Invalid type section size");
+                }
+
+                m_SectionSize = -1;
+            }
+            
         }
+        else
+        {
+            // Section is empty
+            m_ReaderPosition = ReaderPosition.Section;
+            m_SectionSize = -1;
+        }
+
     }
 
     private void ReadTypeSection(ReadOnlySpan<byte> p_Data, ref int p_Index)

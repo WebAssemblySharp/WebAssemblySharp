@@ -41,6 +41,7 @@ public static class WasmInstructionFactory
                 l_Result = WasmReturn.Instance;
                 break;
             case WasmOpcode.Call:
+                l_Result = new WasmCall();
                 break;
             case WasmOpcode.CallIndirect:
                 break;

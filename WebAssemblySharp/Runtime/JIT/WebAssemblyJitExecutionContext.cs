@@ -6,7 +6,7 @@ using WebAssemblySharp.MetaData.Instructions;
 
 namespace WebAssemblySharp.Runtime.JIT;
 
-public class WebAssemblyJitExecutionContext
+public class WebAssemblyJitExecutionContext: IWebAssemblyJitInteropStack
 {
     private Stack<WebAssemblyJitValue> m_ValueStack;
     private Stack<WebAssemblyJitExecutionCallFrame> m_CallFrameStack;

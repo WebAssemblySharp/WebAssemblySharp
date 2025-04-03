@@ -7,7 +7,7 @@ using WebAssemblySharp.MetaData;
 
 namespace WebAssemblySharp.Runtime.JIT;
 
-public class WebAssemblyJitExecutor : IWebAssemblyExecutor
+public class WebAssemblyJitExecutor : IWebAssemblyExecutor, IWebAssemblyJitInterop
 {
     private WasmMetaData m_WasmMetaData;
     private ConcurrentDictionary<String, IWebAssemblyMethod> m_Methods;
@@ -16,7 +16,7 @@ public class WebAssemblyJitExecutor : IWebAssemblyExecutor
     public WebAssemblyJitExecutor()
     {
         m_Methods = new ConcurrentDictionary<String, IWebAssemblyMethod>();
-        m_VirtualMaschine = new WebAssemblyJitVirtualMaschine();
+        m_VirtualMaschine = new WebAssemblyJitVirtualMaschine(this);
     }
     
     public IWebAssemblyMethod GetMethod(string p_Name)
@@ -67,5 +67,14 @@ public class WebAssemblyJitExecutor : IWebAssemblyExecutor
             }
         }
         return null;
+    }
+
+    public void CallFunction(uint p_FunctionIndex, IWebAssemblyJitInteropStack p_Stack)
+    {
+        
+        WasmImport l_WasmImport = m_WasmMetaData.Import[p_FunctionIndex];
+        
+        WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_WasmImport.Index];
+        
     }
 }

@@ -10,6 +10,18 @@ namespace WebAssemblySharpTest;
 public class WebAssemblyRuntimeTest
 {
     [TestMethod]
+    public async Task ExecuteImportWasmTest()
+    {
+        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
+        WebAssemblyModule l_Module =
+            await l_Runtime.LoadModule(
+                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"));
+
+        int l_Result = (int) await l_Module.Call("twiceplus5", 3);
+        Assert.AreEqual(11, l_Result);
+    }
+    
+    [TestMethod]
     public async Task ExecuteAddWasmTest()
     {
         WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();

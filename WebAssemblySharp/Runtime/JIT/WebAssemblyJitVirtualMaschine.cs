@@ -10,6 +10,12 @@ namespace WebAssemblySharp.Runtime.JIT;
 
 public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
 {
+    private IWebAssemblyJitInterop m_JitInterop;
+    
+    public WebAssemblyJitVirtualMaschine(IWebAssemblyJitInterop p_JitInterop)
+    {
+        m_JitInterop = p_JitInterop;
+    }
     private delegate void ExecuteInstructionDelegate(WasmInstruction Instruction, WebAssemblyJitExecutionContext Context);
     
     private Dictionary<WasmOpcode, ExecuteInstructionDelegate> m_InstructionHandlers;
@@ -66,6 +72,13 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
         m_InstructionHandlers.Add(WasmOpcode.I32GeU, HandleI32GeU);
         m_InstructionHandlers.Add(WasmOpcode.BrIf, HandleBrIf);
         m_InstructionHandlers.Add(WasmOpcode.Br, HandleBr);
+        m_InstructionHandlers.Add(WasmOpcode.Call, HandleCall);
+    }
+
+    private void HandleCall(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
+    {
+        WasmCall l_Instruction = (WasmCall)p_Instruction;
+        m_JitInterop.CallFunction(l_Instruction.FunctionIndex, p_Context);
     }
 
     private void HandleBr(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)

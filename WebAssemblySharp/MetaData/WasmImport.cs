@@ -2,7 +2,10 @@
 
 public class WasmImport
 {
-    public string Module { get; set; }
-    public string Name { get; set; }
+    public WasmString Module { get; set; }
+    public WasmString Name { get; set; }
+    public WasmExternalKind Kind { get; set; }
+    
+    public long Index { get; set; }
     
 }
