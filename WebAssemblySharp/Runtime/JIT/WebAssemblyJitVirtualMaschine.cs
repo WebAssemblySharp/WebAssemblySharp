@@ -208,8 +208,8 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
     private WebAssemblyJitStackLocals CreateStackLocals(WasmFuncType p_FuncType, WasmCode p_Code, object[] p_Args)
     {
         int l_Length = p_FuncType.Parameters.Length + p_Code.Locals.Length;
-        
-        WebAssemblyJitValue[] l_Values = ArrayPool<WebAssemblyJitValue>.Shared.Rent(l_Length);;
+
+        WebAssemblyJitValue[] l_Values = new WebAssemblyJitValue[l_Length];
 
         for (int i = 0; i < p_Args.Length; i++)
         {
@@ -281,8 +281,6 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
             throw new WebAssemblyJitException(
                 $"Invalid Stack Size after execute instructions. Expected {p_Context.FuncType.Results.Length} but got {p_Context.StackCount}");
         }
-
-        ArrayPool<WebAssemblyJitValue>.Shared.Return(p_Context.Locals.GetBuffer());
         
         if (p_Context.FuncType.Results.Length == 0)
         {
