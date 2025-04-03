@@ -16,6 +16,9 @@ public class WasmTextReaderTest
     [DataTestMethod]
     [DataRow("WebAssemblySharpExampleData.Programms.add.wat", "WebAssemblySharpTest.Data.Result.addReaderResult.txt")]
     [DataRow("WebAssemblySharpExampleData.Programms.isprime.wat", "WebAssemblySharpTest.Data.Result.isprimeReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.itoa.wat", "WebAssemblySharpTest.Data.Result.itoaReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.loops.wasm", "WebAssemblySharpTest.Data.Result.loopsReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.imports.wasm", "WebAssemblySharpTest.Data.Result.importsReaderResult.txt")]
     public async Task ReadTest(string p_SourcePath, string p_ExpectedResultPath)
     {
         using (Stream l_Stream = typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream(p_SourcePath))
@@ -51,6 +54,9 @@ public class WasmTextReaderTest
     [DataTestMethod]
     [DataRow("WebAssemblySharpExampleData.Programms.add.wat", "WebAssemblySharpTest.Data.Result.addReaderResult.txt")]
     [DataRow("WebAssemblySharpExampleData.Programms.isprime.wat", "WebAssemblySharpTest.Data.Result.isprimeReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.itoa.wat", "WebAssemblySharpTest.Data.Result.itoaReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.loops.wasm", "WebAssemblySharpTest.Data.Result.loopsReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.imports.wasm", "WebAssemblySharpTest.Data.Result.importsReaderResult.txt")]
     public async Task ReadTestSlow(string p_SourcePath, string p_ExpectedResultPath)
     {
         using (Stream l_Stream = typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream(p_SourcePath))

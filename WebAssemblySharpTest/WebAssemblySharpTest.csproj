@@ -27,6 +27,12 @@
     <ItemGroup>
       <EmbeddedResource Include="Data\Result\addReaderResult.txt" />
       <EmbeddedResource Include="Data\Result\isprimeReaderResult.txt" />
+      <None Remove="Data\Result\itoaReaderResult.txt" />
+      <EmbeddedResource Include="Data\Result\itoaReaderResult.txt" />
+      <None Remove="Data\Result\importsReaderResult.txt" />
+      <EmbeddedResource Include="Data\Result\importsReaderResult.txt" />
+      <None Remove="Data\Result\loopsReaderResult.txt" />
+      <EmbeddedResource Include="Data\Result\loopsReaderResult.txt" />
     </ItemGroup>
 
   

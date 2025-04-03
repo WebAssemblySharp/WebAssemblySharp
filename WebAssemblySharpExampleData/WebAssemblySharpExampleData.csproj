@@ -21,6 +21,16 @@
       <None Remove="Programms\loops.wat" />
       <EmbeddedResource Include="Programms\loops.wat" />
       <None Remove="Programms\isprimeReaderResult.txt" />
+      <None Remove="Programms\itoa.wasm" />
+      <EmbeddedResource Include="Programms\itoa.wasm" />
+      <None Remove="Programms\itoa.wat" />
+      <EmbeddedResource Include="Programms\itoa.wat" />
+      <None Remove="Programms\imports.wasm" />
+      <EmbeddedResource Include="Programms\imports.wasm" />
+      <None Remove="Programms\imports.wat" />
+      <EmbeddedResource Include="Programms\imports.wat" />
+      <None Remove="Programms\loops.wasm" />
+      <EmbeddedResource Include="Programms\loops.wasm" />
     </ItemGroup>
 
 </Project>
