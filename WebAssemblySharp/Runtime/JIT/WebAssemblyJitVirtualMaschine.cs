@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
@@ -150,9 +151,16 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
         bool l_CompareResult = ((int)l_Value.Value != 0);
 
         if (l_CompareResult)
-            p_Context.UpdateCallFrame(l_Instruction.IfBody.GetEnumerator(), p_Context.CurrentBlockIndex, p_Context.CurrentBlockKind);
+        {
+            if (l_Instruction.IfBody != null)
+                p_Context.UpdateCallFrame(l_Instruction.IfBody.GetEnumerator(), p_Context.CurrentBlockIndex, p_Context.CurrentBlockKind);
+        }
         else
-            p_Context.UpdateCallFrame(l_Instruction.ElseBody.GetEnumerator(), p_Context.CurrentBlockIndex, p_Context.CurrentBlockKind);
+        {
+            if (l_Instruction.ElseBody != null)
+                p_Context.UpdateCallFrame(l_Instruction.ElseBody.GetEnumerator(), p_Context.CurrentBlockIndex, p_Context.CurrentBlockKind);
+        }
+            
     }
 
     private void HandleI32LtU(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
@@ -173,6 +181,24 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
             {
                 WasmBlockInstruction l_BlockInstruction = (WasmBlockInstruction)l_Instruction;
                 OptimizeInstructions(l_BlockInstruction.GetAllInstructions());
+            }
+
+            if (l_Instruction is WasmIf)
+            {
+                
+                // Remove empty if and else bodies
+                WasmIf l_WasmIf = (WasmIf)l_Instruction;
+
+                if (!l_WasmIf.IfBody.Any())
+                {
+                    l_WasmIf.IfBody = null;
+                }
+                
+                if (!l_WasmIf.ElseBody.Any())
+                {
+                    l_WasmIf.ElseBody = null;
+                }
+                
             }
         }
     }
