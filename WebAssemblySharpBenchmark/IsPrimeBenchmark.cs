@@ -15,19 +15,15 @@ public class IsPrimeBenchmark {
     public int N;
 
     private WebAssemblyModule m_Module;
-
-    public IsPrimeBenchmark() {
-
-
-    }
+    
 
     [GlobalSetup]
     public async Task GlobalSetup()
     {
         WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
         m_Module =
-            await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
+            (await l_Runtime.LoadModule(
+                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"))).Build();
 
         await m_Module.Call("is_prime", 1);     
     }

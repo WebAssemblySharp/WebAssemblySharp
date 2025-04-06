@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 
 namespace WebAssemblySharp.Runtime;
@@ -16,4 +17,10 @@ public class WebAssemblyModule
     {
         return m_Executor.GetMethod(p_Name).Invoke(p_Args);
     }
+
+    public IWebAssemblyMethod GetMethod(string p_Name)
+    {
+        return m_Executor.GetMethod(p_Name);
+    }
+    
 }

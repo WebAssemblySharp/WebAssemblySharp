@@ -8,15 +8,11 @@ using WebAssemblySharp.MetaData.Instructions;
 
 namespace WebAssemblySharp.Runtime.JIT;
 
-public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
+public class WebAssemblyJitVirtualMaschine
 {
-    private IWebAssemblyJitInterop m_JitInterop;
     
-    public WebAssemblyJitVirtualMaschine(IWebAssemblyJitInterop p_JitInterop)
-    {
-        m_JitInterop = p_JitInterop;
-    }
-    private delegate void ExecuteInstructionDelegate(WasmInstruction Instruction, WebAssemblyJitExecutionContext Context);
+    public delegate void ExecuteInstructionDelegate(WasmInstruction Instruction, WebAssemblyJitExecutionContext Context);
+    public delegate Task ExecuteInstructionDelegateAsync(WasmInstruction Instruction, WebAssemblyJitExecutionContext Context);
     
     private Dictionary<WasmOpcode, ExecuteInstructionDelegate> m_InstructionHandlers;
 
@@ -42,7 +38,7 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
         p_Context.PushToStack(l_Value);
     }
 
-    public void OptimizeCode(WasmMetaData p_WasmMetaData)
+    public void OptimizeCode(IWebAssemblyJitInteropOptimizer p_ExternalOptimizer, WasmMetaData p_WasmMetaData)
     {
         InitInstructionHandlers();
 
@@ -50,7 +46,7 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
         {
             foreach (WasmCode l_Code in p_WasmMetaData.Code)
             {
-                OptimizeInstructions(l_Code.Instructions);
+                OptimizeInstructions(p_ExternalOptimizer, l_Code.Instructions);
             }
         }
     }
@@ -72,15 +68,8 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
         m_InstructionHandlers.Add(WasmOpcode.I32GeU, HandleI32GeU);
         m_InstructionHandlers.Add(WasmOpcode.BrIf, HandleBrIf);
         m_InstructionHandlers.Add(WasmOpcode.Br, HandleBr);
-        m_InstructionHandlers.Add(WasmOpcode.Call, HandleCall);
     }
-
-    private void HandleCall(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
-    {
-        WasmCall l_Instruction = (WasmCall)p_Instruction;
-        m_JitInterop.CallFunction(l_Instruction.FunctionIndex, p_Context);
-    }
-
+    
     private void HandleBr(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
     {
         WasmBr l_Instruction = (WasmBr)p_Instruction;
@@ -178,16 +167,19 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
         p_Context.PushToStack(l_Result);
     }
 
-    private void OptimizeInstructions(IEnumerable<WasmInstruction> p_Instructions)
+    private void OptimizeInstructions(IWebAssemblyJitInteropOptimizer p_ExternalOptimizer, IEnumerable<WasmInstruction> p_Instructions)
     {
         foreach (WasmInstruction l_Instruction in p_Instructions)
         {
+            if (p_ExternalOptimizer.OptimizeInstruction(l_Instruction))
+                continue;
+            
             l_Instruction.VmData = m_InstructionHandlers[l_Instruction.Opcode];
 
             if (l_Instruction is WasmBlockInstruction)
             {
                 WasmBlockInstruction l_BlockInstruction = (WasmBlockInstruction)l_Instruction;
-                OptimizeInstructions(l_BlockInstruction.GetAllInstructions());
+                OptimizeInstructions(p_ExternalOptimizer, l_BlockInstruction.GetAllInstructions());
             }
 
             if (l_Instruction is WasmIf)
@@ -240,12 +232,12 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
     }
 
 
-    public Task<bool> ExecuteFrame(WebAssemblyJitExecutionContext p_Context, int p_InstructionsToExecute)
+    public async Task<bool> ExecuteFrame(WebAssemblyJitExecutionContext p_Context, int p_InstructionsToExecute)
     {
 
         if (p_InstructionsToExecute <= 0)
         {
-            return ExecuteFrameWithoutInstructionsLimit(p_Context);
+            return await ExecuteFrameWithoutInstructionsLimit(p_Context);
         }
 
         int l_InstcutionCounter = 0; 
@@ -255,30 +247,45 @@ public class WebAssemblyJitVirtualMaschine : IWebAssemblyJitVirtualMaschine
             WasmInstruction l_Instruction = p_Context.GetNextInstruction();
 
             if (l_Instruction == null)
-                return Task.FromResult(true);
+                return true;
 
-            ((ExecuteInstructionDelegate)l_Instruction.VmData)(l_Instruction, p_Context);
 
+            if (l_Instruction.VmData is ExecuteInstructionDelegate)
+            {
+                ((ExecuteInstructionDelegate)l_Instruction.VmData)(l_Instruction, p_Context);    
+            }
+            else
+            {
+                await (((ExecuteInstructionDelegateAsync)l_Instruction.VmData)(l_Instruction, p_Context));
+            }
+            
             l_InstcutionCounter++;
             
             if (l_InstcutionCounter >= p_InstructionsToExecute)
             {
                 // Pause the execution
-                return Task.FromResult(false);
+                return false;
             }
         }
     }
 
-    private Task<bool> ExecuteFrameWithoutInstructionsLimit(WebAssemblyJitExecutionContext p_Context)
+    private async Task<bool> ExecuteFrameWithoutInstructionsLimit(WebAssemblyJitExecutionContext p_Context)
     {
         while (true)
         {
             WasmInstruction l_Instruction = p_Context.GetNextInstruction();
 
             if (l_Instruction == null)
-                return Task.FromResult(true);
+                return true;
 
-            ((ExecuteInstructionDelegate)l_Instruction.VmData)(l_Instruction, p_Context);
+            if (l_Instruction.VmData is ExecuteInstructionDelegate)
+            {
+                ((ExecuteInstructionDelegate)l_Instruction.VmData)(l_Instruction, p_Context);    
+            }
+            else
+            {
+                await (((ExecuteInstructionDelegateAsync)l_Instruction.VmData)(l_Instruction, p_Context));
+            }
         }
 
     }

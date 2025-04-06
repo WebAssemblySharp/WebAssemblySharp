@@ -9,7 +9,7 @@ namespace WebAssemblySharp.Runtime;
 
 public class WebAssemblyRuntime
 {
-    public async Task<WebAssemblyModule> LoadModule(Stream p_Stream)
+    public async Task<WebAssemblyModuleBuilder> LoadModule(Stream p_Stream)
     {
         WasmBinaryReader l_Reader = new WasmBinaryReader();
 
@@ -36,14 +36,14 @@ public class WebAssemblyRuntime
         return CreateModule(typeof(WebAssemblyJitExecutor), l_WasmMetaData);
     }
 
-    private WebAssemblyModule CreateModule(Type p_RuntimeType, WasmMetaData p_WasmMetaData)
+    private WebAssemblyModuleBuilder CreateModule(Type p_RuntimeType, WasmMetaData p_WasmMetaData)
     {
         // Load the code
         IWebAssemblyExecutor l_Executor = (IWebAssemblyExecutor)Activator.CreateInstance(p_RuntimeType);
 
-        // Optimize the code
+        // Load the code
         l_Executor.LoadCode(p_WasmMetaData);
 
-        return new WebAssemblyModule(l_Executor);
+        return new WebAssemblyModuleBuilder(l_Executor);
     }
 }

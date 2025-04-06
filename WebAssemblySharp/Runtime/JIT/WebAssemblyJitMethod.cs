@@ -8,11 +8,11 @@ namespace WebAssemblySharp.Runtime.JIT;
 
 public class WebAssemblyJitMethod : IWebAssemblyMethod
 {
-    private readonly IWebAssemblyJitVirtualMaschine m_VirtualMachine;
+    private readonly WebAssemblyJitVirtualMaschine m_VirtualMachine;
     private readonly WasmFuncType m_FuncType;
     private readonly WasmCode m_Code;
 
-    public WebAssemblyJitMethod(IWebAssemblyJitVirtualMaschine p_VirtualMachine, WasmFuncType p_FuncType,
+    public WebAssemblyJitMethod(WebAssemblyJitVirtualMaschine p_VirtualMachine, WasmFuncType p_FuncType,
         WasmCode p_Code)
     {
         m_FuncType = p_FuncType;

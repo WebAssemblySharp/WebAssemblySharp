@@ -17,4 +17,9 @@ public class WasmString
             return m_RawValue;
         }
     }
+
+    public override string ToString()
+    {
+        return m_RawValue;
+    }
 }

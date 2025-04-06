@@ -10,13 +10,31 @@ namespace WebAssemblySharpTest;
 public class WebAssemblyRuntimeTest
 {
     [TestMethod]
-    public async Task ExecuteImportWasmTest()
+    public async Task ExecuteImportWasmAsyncTest()
     {
         WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        WebAssemblyModule l_Module =
+        WebAssemblyModuleBuilder l_ModuleBuilder =
             await l_Runtime.LoadModule(
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"));
 
+        l_ModuleBuilder.DefineImport("times2", new Func<int, Task<int>>(x => Task.FromResult(x * 2)));
+        WebAssemblyModule l_Module = l_ModuleBuilder.Build();
+
+        int l_Result = (int) await l_Module.Call("twiceplus5", 3);
+        Assert.AreEqual(11, l_Result);
+    }
+    
+    [TestMethod]
+    public async Task ExecuteImportWasmSyncTest()
+    {
+        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
+        WebAssemblyModuleBuilder l_ModuleBuilder =
+            await l_Runtime.LoadModule(
+                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"));
+
+        l_ModuleBuilder.DefineImport("times2", new Func<int, int>(x => x * 2));
+        WebAssemblyModule l_Module = l_ModuleBuilder.Build();
+        
         int l_Result = (int) await l_Module.Call("twiceplus5", 3);
         Assert.AreEqual(11, l_Result);
     }
@@ -26,8 +44,8 @@ public class WebAssemblyRuntimeTest
     {
         WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
         WebAssemblyModule l_Module =
-            await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.add.wasm"));
+            (await l_Runtime.LoadModule(
+                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.add.wasm"))).Build();
 
         int l_Result = (int) await l_Module.Call("add", 1, 2);
         Assert.AreEqual(3, l_Result);
@@ -50,8 +68,8 @@ public class WebAssemblyRuntimeTest
     {
         WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
         WebAssemblyModule l_Module =
-            await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
+            (await l_Runtime.LoadModule(
+                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"))).Build();
         
         for (int i = 0; i < 1_000_000; i++)
         {
@@ -66,8 +84,8 @@ public class WebAssemblyRuntimeTest
     {
         WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
         WebAssemblyModule l_Module =
-            await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
+            (await l_Runtime.LoadModule(
+                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"))).Build();
 
         int l_Result = (int) await l_Module.Call("is_prime", p_Number);
 
