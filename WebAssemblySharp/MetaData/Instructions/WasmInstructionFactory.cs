@@ -11,6 +11,7 @@ public static class WasmInstructionFactory
         switch (p_Opcode)
         {
             case WasmOpcode.Unreachable:
+                l_Result = WasmUnreachable.Instance;
                 break;
             case WasmOpcode.Nop:
                 break;
@@ -58,6 +59,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.LocalTee:
                 break;
             case WasmOpcode.GlobalGet:
+                l_Result = new WasmGlobalGet();
                 break;
             case WasmOpcode.GlobalSet:
                 break;
@@ -72,6 +74,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.I32Load8S:
                 break;
             case WasmOpcode.I32Load8U:
+                l_Result = WasmI32Load8U.Instance;
                 break;
             case WasmOpcode.I32Load16S:
                 break;
@@ -80,22 +83,29 @@ public static class WasmInstructionFactory
             case WasmOpcode.I64Load8S:
                 break;
             case WasmOpcode.I64Load8U:
+                l_Result = WasmI64Load8U.Instance;
                 break;
             case WasmOpcode.I64Load16S:
+                l_Result = WasmI64Load16S.Instance;
                 break;
             case WasmOpcode.I64Load16U:
+                l_Result = WasmI64Load16U.Instance;
                 break;
             case WasmOpcode.I64Load32S:
+                l_Result = WasmI64Load32S.Instance;
                 break;
             case WasmOpcode.I64Load32U:
+                l_Result = WasmI64Load32U.Instance;
                 break;
             case WasmOpcode.I32Store:
+                l_Result = WasmI32Store.Instance;
                 break;
             case WasmOpcode.F32Store:
                 break;
             case WasmOpcode.F64Store:
                 break;
             case WasmOpcode.I32Store8:
+                l_Result = WasmI32Store8.Instance;
                 break;
             case WasmOpcode.I32Store16:
                 break;
@@ -104,6 +114,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.I64Store16:
                 break;
             case WasmOpcode.I64Store32:
+                l_Result = WasmI64Store32.Instance;
                 break;
             case WasmOpcode.MemorySize:
                 break;
@@ -119,6 +130,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.F64Const:
                 break;
             case WasmOpcode.I32Eqz:
+                l_Result = WasmI32Eqz.Instance;
                 break;
             case WasmOpcode.I32Eq:
                 l_Result = WasmI32Eq.Instance;
@@ -126,6 +138,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.I32Ne:
                 break;
             case WasmOpcode.I32LtS:
+                l_Result = WasmI32LtS.Instance;
                 break;
             case WasmOpcode.I32LtU:
                 l_Result = WasmI32LtU.Instance;
@@ -199,12 +212,14 @@ public static class WasmInstructionFactory
                 l_Result = WasmI32Add.Instance;
                 break;
             case WasmOpcode.I32Sub:
+                l_Result = WasmI32Sub.Instance;
                 break;
             case WasmOpcode.I32Mul:
                 break;
             case WasmOpcode.I32DivS:
                 break;
             case WasmOpcode.I32DivU:
+                l_Result = WasmI32DivU.Instance;
                 break;
             case WasmOpcode.I32RemS:
                 break;
@@ -370,6 +385,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.F64ReinterpretI64:
                 break;
             case WasmOpcode.I32Extend8_s:
+                l_Result = WasmI32Extend8S.Instance;
                 break;
             case WasmOpcode.I32Extend16_s:
                 break;

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
 using WebAssemblySharp.Readers.Binary.MetaData;
@@ -22,8 +23,11 @@ public class WasmBinaryReader
     // Section Reader States
     private long m_BytesToSkip = -1;
     private WasmFuncType m_CurrentFuncType;
+    private WasmDataInComplete m_CurrentData;
+    private WasmMemory m_CurrentMemory;
     private WasmImport m_CurrentImport;
     private WasmExport m_CurrentExport;
+    private WasmGlobalInComplete m_CurrentGlobal;
     private WasmCodeInComplete m_CurrentCode;
     private WasmInstruction m_CurrentInstruction;
     private Stack<WasmBlockInstruction> m_InstructionStack;
@@ -76,7 +80,7 @@ public class WasmBinaryReader
                     ReadExportSection(p_Data, ref l_Index);
                     break;
                 case ReaderPosition.SecStart:
-                    ReadStartSection(p_Data, ref l_Index);
+                    ReadSecSection(p_Data, ref l_Index);
                     break;
                 case ReaderPosition.SecElement:
                     ReadElementSection(p_Data, ref l_Index);
@@ -105,6 +109,15 @@ public class WasmBinaryReader
                 case ReaderPosition.ReadInstruction:
                     ReadInstruction(p_Data, ref l_Index);
                     break;
+                case ReaderPosition.ReadMemory:
+                    ReadMemory(p_Data, ref l_Index);
+                    break;
+                case ReaderPosition.ReadGlobal:
+                    ReadGlobal(p_Data, ref l_Index);
+                    break;
+                case ReaderPosition.ReadData:
+                    ReadData(p_Data, ref l_Index);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -119,7 +132,7 @@ public class WasmBinaryReader
         {
             if (m_CurrentInstruction == null)
             {
-                WasmOpcode? l_Opcode = ReadOpCode(p_Data, ref p_Index);
+                WasmOpcode? l_Opcode = ReadOpCode(l_Reader);
 
                 if (l_Opcode == null)
                     return;
@@ -133,7 +146,15 @@ public class WasmBinaryReader
                     }
                     else
                     {
-                        m_ReaderPosition = ReaderPosition.ReadCode;
+                        if (m_CurrentCode != null)
+                            m_ReaderPosition = ReaderPosition.ReadCode;
+                        else if (m_CurrentGlobal != null)
+                            m_ReaderPosition = ReaderPosition.ReadGlobal;
+                        else if (m_CurrentData != null)
+                            m_ReaderPosition = ReaderPosition.ReadData;
+                        else
+                            throw new WasmBinaryReaderException("Invalid end instruction. No Jump back point");
+                        
                         return;    
                     }
                 }
@@ -163,7 +184,12 @@ public class WasmBinaryReader
             }
             else
             {
-                m_CurrentCode.ProcessedInstructions.Add(m_CurrentInstruction);
+                if (m_CurrentCode != null)
+                    m_CurrentCode.ProcessedInstructions.Add(m_CurrentInstruction);
+                else if (m_CurrentGlobal != null)
+                    m_CurrentGlobal.ProcessedInstructions.Add(m_CurrentInstruction);
+                else
+                    m_CurrentData.ProcessedInstructions.Add(m_CurrentInstruction);
             }
 
             if (m_CurrentInstruction is WasmBlockInstruction)
@@ -175,10 +201,10 @@ public class WasmBinaryReader
         }
     }
 
-    private WasmOpcode? ReadOpCode(ReadOnlySpan<byte> p_Data, ref int p_Index)
+    private WasmOpcode? ReadOpCode(InternalInstructionReader p_Reader)
     {
-        ReadOnlySpan<byte> l_Bytes = ReaReadBytes(p_Data, ref p_Index, 1, ref m_CurrentCode.CodeSizeRemaining);
-
+        ReadOnlySpan<byte> l_Bytes = p_Reader.ReadReadBytes(1);
+        
         if (l_Bytes.IsEmpty)
             return null;
 
@@ -262,6 +288,174 @@ public class WasmBinaryReader
         throw new WasmBinaryReaderException("Invalid code count");
     }
 
+    private void ReadGlobal(ReadOnlySpan<byte> p_Data, ref int p_Index)
+    {
+        if (m_CurrentGlobal == null)
+        {
+            WasmDataType? l_DataType = ReadWasmDataType(p_Data, ref  p_Index, ref m_SectionSize);
+            
+            if (l_DataType == null)
+                return;
+            
+            m_CurrentGlobal = new WasmGlobalInComplete();
+            m_CurrentGlobal.Type = l_DataType.Value;
+            
+        }
+
+        if (m_CurrentGlobal.MutableReaded == null)
+        {
+            
+            ReadOnlySpan<byte> l_IsMutable = ReaReadBytes(p_Data, ref p_Index, 1, ref m_SectionSize);
+            
+            if (l_IsMutable.IsEmpty)
+                return;
+
+            m_CurrentGlobal.MutableReaded = l_IsMutable[0] != 0;
+        }
+        
+        if (m_CurrentGlobal.ProcessedInstructions.Count == 0)
+        {
+            // Read Instructions
+            m_ReaderPosition = ReaderPosition.ReadInstruction;
+            return;
+        }
+
+        for (int i = 0; i < m_MetaData.Globals.Length; i++)
+        {
+            if (m_MetaData.Globals[i] == null)
+            {
+                m_MetaData.Globals[i] = m_CurrentGlobal.ToCompleted();
+                m_CurrentGlobal = null;
+                m_ReaderPosition = ReaderPosition.SecGlobal;
+                return;
+            }
+        }
+
+        throw new WasmBinaryReaderException("Invalid code count");
+    }
+    
+    private void ReadData(ReadOnlySpan<byte> p_Data, ref int p_Index)
+    {
+        if (m_CurrentData == null)
+        {
+            
+            ulong? l_MemoryIndex = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
+
+            if (l_MemoryIndex == null)
+                return;
+
+            m_CurrentData = new WasmDataInComplete();
+            m_CurrentData.MemoryIndex = (uint)l_MemoryIndex.Value;
+            
+            if (m_CurrentData.MemoryIndex != 0)
+            {
+                throw new WasmBinaryReaderException("Invalid memory index " + m_CurrentData.MemoryIndex + " should be 0 by specs");
+            }
+            
+        }
+        
+        if (m_CurrentData.ProcessedInstructions.Count == 0)
+        {
+            // Read Instructions
+            m_ReaderPosition = ReaderPosition.ReadInstruction;
+            return;
+        }
+
+        if (m_CurrentData.Data == null)
+        {
+            ulong? l_DataLength = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
+            
+            if (l_DataLength == null)
+                return;
+
+            m_CurrentData.Data = new WasmBinaryDataInComplete((long)l_DataLength);
+        }
+
+        if (m_CurrentData.Data is WasmBinaryDataInComplete)
+        {
+            WasmBinaryData l_Data = ReadBinaryData((WasmBinaryDataInComplete)m_CurrentData.Data, p_Data, ref p_Index, ref m_SectionSize);
+            
+            if (l_Data == null)
+                return;
+            
+            m_CurrentData.Data = l_Data;
+        }
+
+        for (int i = 0; i < m_MetaData.Data.Length; i++)
+        {
+            if (m_MetaData.Data[i] == null)
+            {
+                m_MetaData.Data[i] = m_CurrentData.ToCompleted();
+                m_CurrentData = null;
+                m_ReaderPosition = ReaderPosition.SecData;
+                return;
+            }
+        }
+        
+        throw new WasmBinaryReaderException("Invalid memory count");         
+        
+    }
+    
+    private void ReadMemory(ReadOnlySpan<byte> p_Data, ref int p_Index)
+    {
+        if (m_CurrentMemory == null)
+        {
+            ReadOnlySpan<byte> l_HasMax = ReaReadBytes(p_Data, ref p_Index, 1, ref m_SectionSize);
+
+            if (l_HasMax.IsEmpty)
+                return;
+
+            m_CurrentMemory = new WasmMemory();
+            
+            if (l_HasMax[0] == 0)
+            {
+                // Only Min
+                m_CurrentMemory.Min = -1;
+                m_CurrentMemory.Max = Int64.MaxValue;
+            }
+            else
+            {
+                // Min and Max
+                m_CurrentMemory.Min = -1;
+                m_CurrentMemory.Max = -1;
+            }
+            
+        }
+        
+        if (m_CurrentMemory.Min == -1)
+        {
+            ulong? l_Min = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
+                
+            if (l_Min == null)
+                return;
+                
+            m_CurrentMemory.Min = (long)l_Min.Value;
+        }
+            
+        if (m_CurrentMemory.Max == -1)
+        {
+            ulong? l_Max = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
+                
+            if (l_Max == null)
+                return;
+                
+            m_CurrentMemory.Max = (long)l_Max.Value;
+        }
+            
+        for (int i = 0; i < m_MetaData.Memory.Length; i++)
+        {
+            if (m_MetaData.Memory[i] == null)
+            {
+                m_MetaData.Memory[i] = m_CurrentMemory;
+                m_CurrentMemory = null;
+                m_ReaderPosition = ReaderPosition.SecMemory;
+                return;
+            }
+        }
+        
+        throw new WasmBinaryReaderException("Invalid memory count");
+    }
+    
     private void ReadImport(ReadOnlySpan<byte> p_Data, ref int p_Index)
     {
         if (m_CurrentImport == null)
@@ -439,6 +633,31 @@ public class WasmBinaryReader
         return null;
     }
 
+    private WasmBinaryData ReadBinaryData(WasmBinaryDataInComplete p_BinaryData, ReadOnlySpan<byte> p_Data, ref int p_Index)
+    {
+        return ReadBinaryData(p_BinaryData, p_Data, ref p_Index, ref m_NoLimit);
+    }
+    
+    private WasmBinaryData ReadBinaryData(WasmBinaryDataInComplete p_BinaryData, ReadOnlySpan<byte> p_Data, ref int p_Index,
+        ref long p_SectionSize)
+    {
+        long l_MaxRequestedBytes =
+            Math.Min(Math.Min(p_Data.Length - p_Index, p_BinaryData.BytesRemaining), m_Buffer.Length);
+
+        ReadOnlySpan<byte> l_Bytes = ReaReadBytes(p_Data, ref p_Index, (int)l_MaxRequestedBytes, ref p_SectionSize);
+
+        if (l_Bytes.IsEmpty)
+            return null;
+
+        p_BinaryData.Append(l_Bytes);
+
+        if (p_BinaryData.BytesRemaining == 0)
+        {
+            return p_BinaryData.ToCompleted();
+        }
+
+        return null;
+    }
     
 
     private void ReadType(ReadOnlySpan<byte> p_Data, ref int p_Index)
@@ -596,13 +815,7 @@ public class WasmBinaryReader
             }
         }
     }
-
-    private void ReadDataSection(ReadOnlySpan<byte> p_Data, ref int p_Index)
-    {
-        if (!IsSectionSizeValid(p_Data, ref p_Index))
-            return;
-    }
-
+    
     private bool IsSectionSizeValid(ReadOnlySpan<byte> p_Data, ref int p_Index)
     {
         if (m_SectionSize < 0)
@@ -626,7 +839,7 @@ public class WasmBinaryReader
         // Section size is valid
         return true;
     }
-
+    
     private void ReadCodeSection(ReadOnlySpan<byte> p_Data, ref int p_Index)
     {
         if (!IsSectionSizeValid(p_Data, ref p_Index))
@@ -685,14 +898,72 @@ public class WasmBinaryReader
     {
         if (!IsSectionSizeValid(p_Data, ref p_Index))
             return;
+
+        throw new WasmBinaryReaderException("Elemet section not implemented");
     }
 
-    private void ReadStartSection(ReadOnlySpan<byte> p_Data, ref int p_Index)
+    private void ReadSecSection(ReadOnlySpan<byte> p_Data, ref int p_Index)
     {
         if (!IsSectionSizeValid(p_Data, ref p_Index))
             return;
+        
+        throw new WasmBinaryReaderException("Sec section not implemented");
     }
 
+    private void ReadDataSection(ReadOnlySpan<byte> p_Data, ref int p_Index)
+    {
+        if (!IsSectionSizeValid(p_Data, ref p_Index))
+            return;
+        
+        if (m_SectionSize > 0)
+        {
+            if (m_MetaData.Data == null)
+            {
+                ulong? l_DataCount = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
+
+                if (l_DataCount == null)
+                    return;
+
+                m_MetaData.Data = new WasmData[l_DataCount.Value];
+            }
+
+            if (m_MetaData.Data.Length == 0)
+            {
+                m_ReaderPosition = ReaderPosition.Section;
+
+                if (m_SectionSize > 0)
+                {
+                    throw new WasmBinaryReaderException("Invalid type section size");
+                }
+
+                m_SectionSize = -1;
+                return;
+            }
+
+            if (m_MetaData.Data[m_MetaData.Data.Length - 1] == null)
+            {
+                m_ReaderPosition = ReaderPosition.ReadData;
+            }
+            else
+            {
+                m_ReaderPosition = ReaderPosition.Section;
+
+                if (m_SectionSize > 0)
+                {
+                    throw new WasmBinaryReaderException("Invalid data section size");
+                }
+
+                m_SectionSize = -1;
+            }
+        }
+        else
+        {
+            // Section is empty
+            m_ReaderPosition = ReaderPosition.Section;
+            m_SectionSize = -1;
+        }
+    }
+    
     private void ReadExportSection(ReadOnlySpan<byte> p_Data, ref int p_Index)
     {
         if (!IsSectionSizeValid(p_Data, ref p_Index))
@@ -752,7 +1023,55 @@ public class WasmBinaryReader
         if (!IsSectionSizeValid(p_Data, ref p_Index))
             return;
         
-        throw new WasmBinaryReaderException("Global section not implemented");
+        
+        if (m_SectionSize > 0)
+        {
+            if (m_MetaData.Globals == null)
+            {
+                ulong? l_GlobalCount = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
+
+                if (l_GlobalCount == null)
+                    return;
+
+                m_MetaData.Globals = new WasmGlobal[l_GlobalCount.Value];
+            }
+
+            if (m_MetaData.Globals.Length == 0)
+            {
+                m_ReaderPosition = ReaderPosition.Section;
+
+                if (m_SectionSize > 0)
+                {
+                    throw new WasmBinaryReaderException("Invalid type section size");
+                }
+
+                m_SectionSize = -1;
+                return;
+            }
+
+            if (m_MetaData.Globals[m_MetaData.Globals.Length - 1] == null)
+            {
+                m_ReaderPosition = ReaderPosition.ReadGlobal;
+            }
+            else
+            {
+                m_ReaderPosition = ReaderPosition.Section;
+
+                if (m_SectionSize > 0)
+                {
+                    throw new WasmBinaryReaderException("Invalid type section size");
+                }
+
+                m_SectionSize = -1;
+            }
+        }
+        else
+        {
+            // Section is empty
+            m_ReaderPosition = ReaderPosition.Section;
+            m_SectionSize = -1;
+        }
+        
     }
 
     private void ReadMemorySection(ReadOnlySpan<byte> p_Data, ref int p_Index)
@@ -760,7 +1079,53 @@ public class WasmBinaryReader
         if (!IsSectionSizeValid(p_Data, ref p_Index))
             return;
         
-        throw new WasmBinaryReaderException("Memory section not implemented");
+        if (m_SectionSize > 0)
+        {
+            if (m_MetaData.Memory == null)
+            {
+                ulong? l_MemoryCount = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
+
+                if (l_MemoryCount == null)
+                    return;
+
+                m_MetaData.Memory = new WasmMemory[l_MemoryCount.Value];
+            }
+
+            if (m_MetaData.Memory.Length == 0)
+            {
+                m_ReaderPosition = ReaderPosition.Section;
+
+                if (m_SectionSize > 0)
+                {
+                    throw new WasmBinaryReaderException("Invalid type section size");
+                }
+
+                m_SectionSize = -1;
+                return;
+            }
+
+            if (m_MetaData.Memory[m_MetaData.Memory.Length - 1] == null)
+            {
+                m_ReaderPosition = ReaderPosition.ReadMemory;
+            }
+            else
+            {
+                m_ReaderPosition = ReaderPosition.Section;
+
+                if (m_SectionSize > 0)
+                {
+                    throw new WasmBinaryReaderException("Invalid type section size");
+                }
+
+                m_SectionSize = -1;
+            }
+        }
+        else
+        {
+            // Section is empty
+            m_ReaderPosition = ReaderPosition.Section;
+            m_SectionSize = -1;
+        }
     }
 
     private void ReadTableSection(ReadOnlySpan<byte> p_Data, ref int p_Index)
@@ -1217,7 +1582,10 @@ public class WasmBinaryReader
         ReadImport,
         ReadExport,
         ReadCode,
-        ReadInstruction
+        ReadInstruction,
+        ReadMemory,
+        ReadGlobal,
+        ReadData
     }
 
     private ref struct InternalInstructionReader : IWasmBinaryInstructionReader
@@ -1235,17 +1603,26 @@ public class WasmBinaryReader
 
         public ulong? ReadLEB128UInt()
         {
-            return m_Parent.ReadLEB128UInt(m_Data, ref m_Index, ref m_Parent.m_CurrentCode.CodeSizeRemaining);
+            if (m_Parent.m_CurrentCode != null) 
+                return m_Parent.ReadLEB128UInt(m_Data, ref m_Index, ref m_Parent.m_CurrentCode.CodeSizeRemaining);
+            
+            return m_Parent.ReadLEB128UInt(m_Data, ref m_Index, ref m_Parent.m_SectionSize);
         }
 
         public long? ReadLEB128Int()
         {
-            return m_Parent.ReadLEB128Int(m_Data, ref m_Index, ref m_Parent.m_CurrentCode.CodeSizeRemaining);
+            if (m_Parent.m_CurrentCode != null)
+                return m_Parent.ReadLEB128Int(m_Data, ref m_Index, ref m_Parent.m_CurrentCode.CodeSizeRemaining);
+            
+            return m_Parent.ReadLEB128Int(m_Data, ref m_Index, ref m_Parent.m_SectionSize);
         }
 
         public ReadOnlySpan<byte> ReadReadBytes(int p_Length)
         {
-            return m_Parent.ReadReadBytes(m_Data, ref m_Index, p_Length, ref m_Parent.m_CurrentCode.CodeSizeRemaining, true);
+            if (m_Parent.m_CurrentCode != null)
+                return m_Parent.ReadReadBytes(m_Data, ref m_Index, p_Length, ref m_Parent.m_CurrentCode.CodeSizeRemaining, true);
+            
+            return m_Parent.ReadReadBytes(m_Data, ref m_Index, p_Length, ref m_Parent.m_SectionSize, true);
         }
     }
 }

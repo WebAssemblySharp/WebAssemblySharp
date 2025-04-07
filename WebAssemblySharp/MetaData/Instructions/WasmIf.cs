@@ -46,6 +46,7 @@ public class WasmIf: WasmBlockInstruction
         if (p_Opcode == WasmOpcode.Else)
         {
             ElseBody = new List<WasmInstruction>();
+            return;
         }
         
         base.HandleBlockOpCode(p_Opcode);

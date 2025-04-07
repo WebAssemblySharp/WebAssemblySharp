@@ -10,10 +10,10 @@ namespace WebAssemblySharp.Runtime.JIT;
 
 public class WebAssemblyJitVirtualMaschine
 {
-    
     public delegate void ExecuteInstructionDelegate(WasmInstruction Instruction, WebAssemblyJitExecutionContext Context);
+
     public delegate Task ExecuteInstructionDelegateAsync(WasmInstruction Instruction, WebAssemblyJitExecutionContext Context);
-    
+
     private Dictionary<WasmOpcode, ExecuteInstructionDelegate> m_InstructionHandlers;
 
     private void HandleI32Const(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
@@ -58,9 +58,11 @@ public class WebAssemblyJitVirtualMaschine
         m_InstructionHandlers.Add(WasmOpcode.I32Add, HandleI32Add);
         m_InstructionHandlers.Add(WasmOpcode.I32Const, HandleI32Const);
         m_InstructionHandlers.Add(WasmOpcode.I32LtU, HandleI32LtU);
+        m_InstructionHandlers.Add(WasmOpcode.I32LtS, HandleI32LtS);
         m_InstructionHandlers.Add(WasmOpcode.If, HandleIf);
         m_InstructionHandlers.Add(WasmOpcode.Return, HandleReturn);
         m_InstructionHandlers.Add(WasmOpcode.I32Eq, HandleI32Eq);
+        m_InstructionHandlers.Add(WasmOpcode.I32Eqz, HandleI32Eqz);
         m_InstructionHandlers.Add(WasmOpcode.I32RemU, HandleI32RemU);
         m_InstructionHandlers.Add(WasmOpcode.LocalSet, HandleLocalSet);
         m_InstructionHandlers.Add(WasmOpcode.Loop, HandleLoop);
@@ -68,8 +70,37 @@ public class WebAssemblyJitVirtualMaschine
         m_InstructionHandlers.Add(WasmOpcode.I32GeU, HandleI32GeU);
         m_InstructionHandlers.Add(WasmOpcode.BrIf, HandleBrIf);
         m_InstructionHandlers.Add(WasmOpcode.Br, HandleBr);
+        m_InstructionHandlers.Add(WasmOpcode.I32DivU, HandleI32DivU);
+        m_InstructionHandlers.Add(WasmOpcode.GlobalGet, HandleGlobalGet);
+        m_InstructionHandlers.Add(WasmOpcode.I32Sub, HandleI32Sub);
     }
-    
+
+    private void HandleI32Sub(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
+    {
+        WebAssemblyJitValue l_Value1 = p_Context.PopFromStack();
+        WebAssemblyJitValue l_Value2 = p_Context.PopFromStack();
+
+        int l_Value = (int)l_Value2.Value - (int)l_Value1.Value;
+        WebAssemblyJitValue l_Result = new WebAssemblyJitValue(WasmDataType.I32, l_Value);
+        p_Context.PushToStack(l_Result);    
+    }
+
+    private void HandleGlobalGet(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
+    {
+        throw new NotImplementedException();
+    }
+
+    private void HandleI32DivU(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
+    {
+        WebAssemblyJitValue l_Value1 = p_Context.PopFromStack();
+        WebAssemblyJitValue l_Value2 = p_Context.PopFromStack();
+
+        int l_Value = (int)l_Value2.Value / (int)l_Value1.Value;
+        WebAssemblyJitValue l_Result = new WebAssemblyJitValue(WasmDataType.I32, l_Value);
+        p_Context.PushToStack(l_Result);
+    }
+
+
     private void HandleBr(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
     {
         WasmBr l_Instruction = (WasmBr)p_Instruction;
@@ -85,9 +116,8 @@ public class WebAssemblyJitVirtualMaschine
         {
             p_Context.MoveCallFrameToBranchIndex(l_Instruction.LabelIndex);
         }
-
     }
-    
+
 
     private void HandleI32GeU(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
     {
@@ -100,14 +130,15 @@ public class WebAssemblyJitVirtualMaschine
     private void HandleBlock(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
     {
         WasmBlock l_Instruction = (WasmBlock)p_Instruction;
-        p_Context.UpdateCallFrame(l_Instruction.Body.GetEnumerator(), p_Context.CurrentBlockIndex + 1, WebAssemblyJitExecutionCallFrameBlockKind.Exit);
-        
+        p_Context.UpdateCallFrame(l_Instruction.Body.GetEnumerator(), p_Context.CurrentBlockIndex + 1,
+            WebAssemblyJitExecutionCallFrameBlockKind.Exit);
     }
 
     private void HandleLoop(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
     {
         WasmLoop l_Instruction = (WasmLoop)p_Instruction;
-        p_Context.UpdateCallFrame(l_Instruction.Body.GetEnumerator(), p_Context.CurrentBlockIndex + 1, WebAssemblyJitExecutionCallFrameBlockKind.Restart);
+        p_Context.UpdateCallFrame(l_Instruction.Body.GetEnumerator(), p_Context.CurrentBlockIndex + 1,
+            WebAssemblyJitExecutionCallFrameBlockKind.Restart);
     }
 
     private void HandleLocalSet(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
@@ -130,6 +161,13 @@ public class WebAssemblyJitVirtualMaschine
         WebAssemblyJitValue l_Value1 = p_Context.PopFromStack();
         WebAssemblyJitValue l_Value2 = p_Context.PopFromStack();
         WebAssemblyJitValue l_Result = new WebAssemblyJitValue(WasmDataType.I32, (int)l_Value2.Value == (int)l_Value1.Value ? 1 : 0);
+        p_Context.PushToStack(l_Result);
+    }
+    
+    private void HandleI32Eqz(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
+    {
+        WebAssemblyJitValue l_Value = p_Context.PopFromStack();
+        WebAssemblyJitValue l_Result = new WebAssemblyJitValue(WasmDataType.I32, (int)l_Value.Value == 0 ? 1 : 0);
         p_Context.PushToStack(l_Result);
     }
 
@@ -156,7 +194,6 @@ public class WebAssemblyJitVirtualMaschine
             if (l_Instruction.ElseBody != null)
                 p_Context.UpdateCallFrame(l_Instruction.ElseBody.GetEnumerator(), p_Context.CurrentBlockIndex, p_Context.CurrentBlockKind);
         }
-            
     }
 
     private void HandleI32LtU(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
@@ -166,6 +203,14 @@ public class WebAssemblyJitVirtualMaschine
         WebAssemblyJitValue l_Result = new WebAssemblyJitValue(WasmDataType.I32, (int)l_Value2.Value < (int)l_Value1.Value ? 1 : 0);
         p_Context.PushToStack(l_Result);
     }
+    
+    private void HandleI32LtS(WasmInstruction p_Instruction, WebAssemblyJitExecutionContext p_Context)
+    {
+        WebAssemblyJitValue l_Value1 = p_Context.PopFromStack();
+        WebAssemblyJitValue l_Value2 = p_Context.PopFromStack();
+        WebAssemblyJitValue l_Result = new WebAssemblyJitValue(WasmDataType.I32, (int)l_Value2.Value < (int)l_Value1.Value ? 1 : 0);
+        p_Context.PushToStack(l_Result);    
+    }
 
     private void OptimizeInstructions(IWebAssemblyJitInteropOptimizer p_ExternalOptimizer, IEnumerable<WasmInstruction> p_Instructions)
     {
@@ -173,7 +218,7 @@ public class WebAssemblyJitVirtualMaschine
         {
             if (p_ExternalOptimizer.OptimizeInstruction(l_Instruction))
                 continue;
-            
+
             l_Instruction.VmData = m_InstructionHandlers[l_Instruction.Opcode];
 
             if (l_Instruction is WasmBlockInstruction)
@@ -184,7 +229,6 @@ public class WebAssemblyJitVirtualMaschine
 
             if (l_Instruction is WasmIf)
             {
-                
                 // Remove empty if and else bodies
                 WasmIf l_WasmIf = (WasmIf)l_Instruction;
 
@@ -192,24 +236,22 @@ public class WebAssemblyJitVirtualMaschine
                 {
                     l_WasmIf.IfBody = null;
                 }
-                
+
                 if (!l_WasmIf.ElseBody.Any())
                 {
                     l_WasmIf.ElseBody = null;
                 }
-                
             }
         }
     }
 
-    
 
     public WebAssemblyJitExecutionContext CreateContext(WasmFuncType p_FuncType, WasmCode p_Code, object[] p_Args)
     {
         WebAssemblyJitStackLocals l_Locals = CreateStackLocals(p_FuncType, p_Code, p_Args);
         return new WebAssemblyJitExecutionContext(p_FuncType, p_Code.Instructions.GetEnumerator(), l_Locals);
     }
-    
+
     private WebAssemblyJitStackLocals CreateStackLocals(WasmFuncType p_FuncType, WasmCode p_Code, object[] p_Args)
     {
         int l_Length = p_FuncType.Parameters.Length + p_Code.Locals.Length;
@@ -234,14 +276,13 @@ public class WebAssemblyJitVirtualMaschine
 
     public async Task<bool> ExecuteFrame(WebAssemblyJitExecutionContext p_Context, int p_InstructionsToExecute)
     {
-
         if (p_InstructionsToExecute <= 0)
         {
             return await ExecuteFrameWithoutInstructionsLimit(p_Context);
         }
 
-        int l_InstcutionCounter = 0; 
-        
+        int l_InstcutionCounter = 0;
+
         while (true)
         {
             WasmInstruction l_Instruction = p_Context.GetNextInstruction();
@@ -252,15 +293,15 @@ public class WebAssemblyJitVirtualMaschine
 
             if (l_Instruction.VmData is ExecuteInstructionDelegate)
             {
-                ((ExecuteInstructionDelegate)l_Instruction.VmData)(l_Instruction, p_Context);    
+                ((ExecuteInstructionDelegate)l_Instruction.VmData)(l_Instruction, p_Context);
             }
             else
             {
                 await (((ExecuteInstructionDelegateAsync)l_Instruction.VmData)(l_Instruction, p_Context));
             }
-            
+
             l_InstcutionCounter++;
-            
+
             if (l_InstcutionCounter >= p_InstructionsToExecute)
             {
                 // Pause the execution
@@ -280,14 +321,13 @@ public class WebAssemblyJitVirtualMaschine
 
             if (l_Instruction.VmData is ExecuteInstructionDelegate)
             {
-                ((ExecuteInstructionDelegate)l_Instruction.VmData)(l_Instruction, p_Context);    
+                ((ExecuteInstructionDelegate)l_Instruction.VmData)(l_Instruction, p_Context);
             }
             else
             {
                 await (((ExecuteInstructionDelegateAsync)l_Instruction.VmData)(l_Instruction, p_Context));
             }
         }
-
     }
 
     public Span<WebAssemblyJitValue> FinishContext(WebAssemblyJitExecutionContext p_Context)
@@ -301,7 +341,7 @@ public class WebAssemblyJitVirtualMaschine
             throw new WebAssemblyJitException(
                 $"Invalid Stack Size after execute instructions. Expected {p_Context.FuncType.Results.Length} but got {p_Context.StackCount}");
         }
-        
+
         if (p_Context.FuncType.Results.Length == 0)
         {
             return new Span<WebAssemblyJitValue>();
