@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace WebAssemblySharp.Runtime.JIT;
+namespace WebAssemblySharp.Runtime.Interpreter;
 
-public class WebAssemblyJitMethodNotFound: IWebAssemblyMethod
+public class WebAssemblyInterpreterMethodNotFound: IWebAssemblyMethod
 {
     private readonly String m_Name;
 
-    public WebAssemblyJitMethodNotFound(string p_Name)
+    public WebAssemblyInterpreterMethodNotFound(string p_Name)
     {
         m_Name = p_Name;
     }

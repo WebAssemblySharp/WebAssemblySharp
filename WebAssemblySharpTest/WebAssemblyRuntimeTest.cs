@@ -39,6 +39,19 @@ public class WebAssemblyRuntimeTest
         Assert.AreEqual(11, l_Result);
     }
     
+    //[TestMethod]
+    public async Task ExecuteItoaTest()
+    {
+        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
+        WebAssemblyModuleBuilder l_ModuleBuilder =
+            await l_Runtime.LoadModule(
+                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));
+        WebAssemblyModule l_Module = l_ModuleBuilder.Build();
+        
+        int l_Result = (int) await l_Module.Call("itoa", 42);
+        Assert.AreEqual(11, l_Result);
+    }
+    
     [TestMethod]
     public async Task ExecuteAddWasmTest()
     {
@@ -102,9 +115,10 @@ public class WebAssemblyRuntimeTest
         if (p_Number == 2) return true;
         if (p_Number % 2 == 0) return false;
 
-        var boundary = (int)Math.Floor(Math.Sqrt(p_Number));
+        
+        var l_Boundary = (int)Math.Floor(Math.Sqrt(p_Number));
 
-        for (int i = 3; i <= boundary; i += 2)
+        for (int i = 3; i <= l_Boundary; i += 2)
             if (p_Number % i == 0)
                 return false;
 

@@ -1,25 +1,37 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
 
-namespace WebAssemblySharp.Runtime.JIT;
+namespace WebAssemblySharp.Runtime.Interpreter;
 
-public class WebAssemblyJitExecutionContext: IWebAssemblyJitInteropStack
+/*
+ * Provides execution context for the WebAssembly interpreter.
+ *
+ * This class manages the execution state of WebAssembly functions, including:
+ * - Value stack for operands and results
+ * - Call frame stack for tracking execution flow
+ * - Local variables
+ * - Instruction pointer management
+ *
+ * It handles control flow instructions (blocks, loops, branches) by manipulating
+ * call frames and implements IWebAssemblyInterpreterInteropStack for interop
+ * operations that require stack access.
+ */
+public class WebAssemblyInterpreterExecutionContext: IWebAssemblyInterpreterInteropStack
 {
-    private Stack<WebAssemblyJitValue> m_ValueStack;
+    private Stack<WebAssemblyInterpreterValue> m_ValueStack;
     private Stack<WebAssemblyJitExecutionCallFrame> m_CallFrameStack;
     
     public WasmFuncType FuncType { get; }
 
-    public WebAssemblyJitStackLocals Locals { get; }
+    public WebAssemblyInterpreterStackLocals Locals { get; }
     
-    public WebAssemblyJitExecutionContext(WasmFuncType p_FuncType, IEnumerator<WasmInstruction> p_Instuctions, WebAssemblyJitStackLocals p_Locals)
+    public WebAssemblyInterpreterExecutionContext(WasmFuncType p_FuncType, IEnumerator<WasmInstruction> p_Instuctions, WebAssemblyInterpreterStackLocals p_Locals)
     {
         FuncType = p_FuncType;
         Locals = p_Locals;
-        m_ValueStack = new Stack<WebAssemblyJitValue>(8);
+        m_ValueStack = new Stack<WebAssemblyInterpreterValue>(8);
         m_CallFrameStack = new Stack<WebAssemblyJitExecutionCallFrame>(8);
         WebAssemblyJitExecutionCallFrame l_CallFrame = new WebAssemblyJitExecutionCallFrame();
         l_CallFrame.Instructions = p_Instuctions;
@@ -64,7 +76,7 @@ public class WebAssemblyJitExecutionContext: IWebAssemblyJitInteropStack
                         return;
                     }
 
-                    throw new WebAssemblyJitException($"Invalid Branch Index {p_BranchIndex} in Regular Block");
+                    throw new WebAssemblyInterpreterException($"Invalid Branch Index {p_BranchIndex} in Regular Block");
 
                 case WebAssemblyJitExecutionCallFrameBlockKind.Restart:
 
@@ -157,12 +169,12 @@ public class WebAssemblyJitExecutionContext: IWebAssemblyJitInteropStack
         }
     }
 
-    public WebAssemblyJitValue PopFromStack()
+    public WebAssemblyInterpreterValue PopFromStack()
     {
         return m_ValueStack.Pop();
     }
 
-    public void PushToStack(WebAssemblyJitValue p_Result)
+    public void PushToStack(WebAssemblyInterpreterValue p_Result)
     {
         m_ValueStack.Push(p_Result);
     }
@@ -172,9 +184,15 @@ public class WebAssemblyJitExecutionContext: IWebAssemblyJitInteropStack
         get { return m_ValueStack.Count; }
     }
 
-    public WebAssemblyJitValue[] StackToArray()
+    public WebAssemblyInterpreterValue[] StackToArray()
     {
         return m_ValueStack.ToArray();
+    }
+
+    public Span<byte> GetMemoryAccess(int p_Address, int p_Length)
+    {
+        throw new NotImplementedException();
+
     }
 }
 

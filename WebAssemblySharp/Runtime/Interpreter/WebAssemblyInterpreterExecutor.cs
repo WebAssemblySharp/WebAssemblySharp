@@ -1,27 +1,44 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Reflection;
-using System.Runtime.InteropServices.JavaScript;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
-using WebAssemblySharp.Readers.Binary;
 using WebAssemblySharp.Runtime.Utils;
 
-namespace WebAssemblySharp.Runtime.JIT;
+namespace WebAssemblySharp.Runtime.Interpreter;
 
-public class WebAssemblyJitExecutor : IWebAssemblyExecutor, IWebAssemblyJitInteropOptimizer
+/*
+ * Implements the WebAssembly interpreter execution strategy.
+ *
+ * This class is responsible for:
+ * - Loading and executing WebAssembly modules through an interpreter approach
+ * - Managing exports and providing access to exported WebAssembly functions
+ * - Handling imports by mapping .NET delegates to WebAssembly import functions
+ * - Optimizing code execution through specialized delegate compilation
+ * - Initializing memory, data sections, and global variables
+ *
+ * The executor works with a virtual machine instance to handle the actual instruction
+ * execution and maintains caches of compiled methods to improve performance for
+ * repeated function calls. It supports various parameter/return value patterns and
+ * offers optimized paths for common scenarios.
+ *
+ * This implementation focuses on correctness and flexibility rather than maximum
+ * performance, making it suitable for development and testing scenarios where
+ * runtime compilation (JIT) might be impractical.
+ */
+public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssemblyInterpreterInteropOptimizer
 {
     private WasmMetaData m_WasmMetaData;
     private ConcurrentDictionary<String, IWebAssemblyMethod> m_ExportMethods;
-    private ConcurrentDictionary<WasmImport, WebAssemblyJitImportMethod> m_ImportMethods;
-    private WebAssemblyJitVirtualMaschine m_VirtualMaschine;
+    private ConcurrentDictionary<WasmImport, WebAssemblyInterpreterImportMethod> m_ImportMethods;
+    private WebAssemblyInterpreterVirtualMaschine m_VirtualMaschine;
 
-    public WebAssemblyJitExecutor()
+    public WebAssemblyInterpreterExecutor()
     {
         m_ExportMethods = new ConcurrentDictionary<String, IWebAssemblyMethod>();
-        m_ImportMethods = new ConcurrentDictionary<WasmImport, WebAssemblyJitImportMethod>();
-        m_VirtualMaschine = new WebAssemblyJitVirtualMaschine();
+        m_ImportMethods = new ConcurrentDictionary<WasmImport, WebAssemblyInterpreterImportMethod>();
+        m_VirtualMaschine = new WebAssemblyInterpreterVirtualMaschine();
     }
 
     public IWebAssemblyMethod GetMethod(string p_Name)
@@ -49,10 +66,28 @@ public class WebAssemblyJitExecutor : IWebAssemblyExecutor, IWebAssemblyJitInter
         WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_Import.Index];
 
         Delegate l_Delegate = CompileImport(l_FuncType, p_Delegate);
-        WebAssemblyJitImportMethod l_ImportMethod = new WebAssemblyJitImportMethod(l_Import, l_FuncType, l_Delegate);
+        WebAssemblyInterpreterImportMethod l_ImportMethod = new WebAssemblyInterpreterImportMethod(l_Import, l_FuncType, l_Delegate);
 
         if (!m_ImportMethods.TryAdd(l_Import, l_ImportMethod))
             throw new Exception("Import already defined: " + p_Name);
+    }
+
+    public void Init()
+    {
+        if (m_WasmMetaData.Memory != null)
+        {
+            m_VirtualMaschine.SetupMemory(m_WasmMetaData.Memory);
+        }
+
+        if (m_WasmMetaData.Data != null)
+        {
+            m_VirtualMaschine.PreloadData(m_WasmMetaData.Data);     
+        }
+        
+        if (m_WasmMetaData.Globals != null)
+        {
+            m_VirtualMaschine.InitGlobals(m_WasmMetaData.Globals);
+        }
     }
 
     private Delegate CompileImport(WasmFuncType p_FuncType, Delegate p_Delegate)
@@ -116,7 +151,7 @@ public class WebAssemblyJitExecutor : IWebAssemblyExecutor, IWebAssemblyJitInter
             // Optimize for 0-3 parameters and Task<void> return value
             if (p_FuncType.Parameters.Length == 0)
             {
-                return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegateAsync((p_Instruction, p_Context) =>
+                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync((p_Instruction, p_Context) =>
                 {
                     return (Task)p_Delegate.DynamicInvoke();
                 });
@@ -124,41 +159,41 @@ public class WebAssemblyJitExecutor : IWebAssemblyExecutor, IWebAssemblyJitInter
 
             if (p_FuncType.Parameters.Length == 1)
             {
-                return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegateAsync((p_Instruction, p_Context) =>
+                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync((p_Instruction, p_Context) =>
                 {
-                    WebAssemblyJitValue l_Value = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
                     return (Task)p_Delegate.DynamicInvoke(l_Value.Value);
                 });
             }
 
             if (p_FuncType.Parameters.Length == 2)
             {
-                return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegateAsync((p_Instruction, p_Context) =>
+                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync((p_Instruction, p_Context) =>
                 {
-                    WebAssemblyJitValue l_Value1 = p_Context.PopFromStack();
-                    WebAssemblyJitValue l_Value2 = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
                     return (Task)p_Delegate.DynamicInvoke(l_Value1.Value, l_Value2.Value);
                 });
             }
 
             if (p_FuncType.Parameters.Length == 3)
             {
-                return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegateAsync((p_Instruction, p_Context) =>
+                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync((p_Instruction, p_Context) =>
                 {
-                    WebAssemblyJitValue l_Value1 = p_Context.PopFromStack();
-                    WebAssemblyJitValue l_Value2 = p_Context.PopFromStack();
-                    WebAssemblyJitValue l_Value3 = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value3 = p_Context.PopFromStack();
                     return (Task)p_Delegate.DynamicInvoke(l_Value1.Value, l_Value2.Value, l_Value3.Value);
                 });
             }
 
             // Dynamic Fallbacks
-            return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegateAsync((p_Instruction, p_Context) =>
+            return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync((p_Instruction, p_Context) =>
             {
                 Object[] l_Args = new Object[p_FuncType.Parameters.Length];
                 for (int i = 0; i < l_Args.Length; i++)
                 {
-                    WebAssemblyJitValue l_Value = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
                     l_Args[i] = l_Value.Value;
                 }
 
@@ -171,46 +206,46 @@ public class WebAssemblyJitExecutor : IWebAssemblyExecutor, IWebAssemblyJitInter
             // Optimize for 0-3 parameters and no return value
             if (p_FuncType.Parameters.Length == 0)
             {
-                return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) => { p_Delegate.DynamicInvoke(); });
+                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) => { p_Delegate.DynamicInvoke(); });
             }
 
             if (p_FuncType.Parameters.Length == 1)
             {
-                return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
+                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
                 {
-                    WebAssemblyJitValue l_Value = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
                     p_Delegate.DynamicInvoke(l_Value.Value);
                 });
             }
 
             if (p_FuncType.Parameters.Length == 2)
             {
-                return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
+                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
                 {
-                    WebAssemblyJitValue l_Value1 = p_Context.PopFromStack();
-                    WebAssemblyJitValue l_Value2 = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
                     p_Delegate.DynamicInvoke(l_Value1.Value, l_Value2.Value);
                 });
             }
 
             if (p_FuncType.Parameters.Length == 3)
             {
-                return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
+                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
                 {
-                    WebAssemblyJitValue l_Value1 = p_Context.PopFromStack();
-                    WebAssemblyJitValue l_Value2 = p_Context.PopFromStack();
-                    WebAssemblyJitValue l_Value3 = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value3 = p_Context.PopFromStack();
                     p_Delegate.DynamicInvoke(l_Value1.Value, l_Value2.Value, l_Value3.Value);
                 });
             }
 
             // Dynamic Fallbacks
-            return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
+            return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
             {
                 Object[] l_Args = new Object[p_FuncType.Parameters.Length];
                 for (int i = 0; i < l_Args.Length; i++)
                 {
-                    WebAssemblyJitValue l_Value = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
                     l_Args[i] = l_Value.Value;
                 }
 
@@ -230,58 +265,58 @@ public class WebAssemblyJitExecutor : IWebAssemblyExecutor, IWebAssemblyJitInter
         // Optimize for 0-3 parameters and 1 return value
         if (p_FuncType.Parameters.Length == 0)
         {
-            return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
+            return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
             {
                 Object l_Result = p_Delegate.DynamicInvoke();
-                p_Context.PushToStack(new WebAssemblyJitValue(p_FuncType.Results[0], l_Result));
+                p_Context.PushToStack(new WebAssemblyInterpreterValue(p_FuncType.Results[0], l_Result));
             });
         }
 
         if (p_FuncType.Parameters.Length == 1)
         {
-            return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
+            return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
             {
-                WebAssemblyJitValue l_Value = p_Context.PopFromStack();
+                WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
                 Object l_Result = p_Delegate.DynamicInvoke(l_Value.Value);
-                p_Context.PushToStack(new WebAssemblyJitValue(p_FuncType.Results[0], l_Result));
+                p_Context.PushToStack(new WebAssemblyInterpreterValue(p_FuncType.Results[0], l_Result));
             });
         }
 
         if (p_FuncType.Parameters.Length == 2)
         {
-            return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
+            return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
             {
-                WebAssemblyJitValue l_Value1 = p_Context.PopFromStack();
-                WebAssemblyJitValue l_Value2 = p_Context.PopFromStack();
+                WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
+                WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
                 Object l_Result = p_Delegate.DynamicInvoke(l_Value1.Value, l_Value2.Value);
-                p_Context.PushToStack(new WebAssemblyJitValue(p_FuncType.Results[0], l_Result));
+                p_Context.PushToStack(new WebAssemblyInterpreterValue(p_FuncType.Results[0], l_Result));
             });
         }
 
         if (p_FuncType.Parameters.Length == 3)
         {
-            return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
+            return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
             {
-                WebAssemblyJitValue l_Value1 = p_Context.PopFromStack();
-                WebAssemblyJitValue l_Value2 = p_Context.PopFromStack();
-                WebAssemblyJitValue l_Value3 = p_Context.PopFromStack();
+                WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
+                WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
+                WebAssemblyInterpreterValue l_Value3 = p_Context.PopFromStack();
                 Object l_Result = p_Delegate.DynamicInvoke(l_Value1.Value, l_Value2.Value, l_Value3.Value);
-                p_Context.PushToStack(new WebAssemblyJitValue(p_FuncType.Results[0], l_Result));
+                p_Context.PushToStack(new WebAssemblyInterpreterValue(p_FuncType.Results[0], l_Result));
             });
         }
 
         // Dnyamic Fallbacks
-        return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
+        return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
         {
             Object[] l_Args = new Object[p_FuncType.Parameters.Length];
             for (int i = 0; i < l_Args.Length; i++)
             {
-                WebAssemblyJitValue l_Value = p_Context.PopFromStack();
+                WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
                 l_Args[i] = l_Value.Value;
             }
 
             Object l_Result = p_Delegate.DynamicInvoke(l_Args);
-            p_Context.PushToStack(new WebAssemblyJitValue(p_FuncType.Results[0], l_Result));
+            p_Context.PushToStack(new WebAssemblyInterpreterValue(p_FuncType.Results[0], l_Result));
         });
     }
 
@@ -291,63 +326,63 @@ public class WebAssemblyJitExecutor : IWebAssemblyExecutor, IWebAssemblyJitInter
         // Optimize for 0-3 parameters and Task<T> return value
         if (p_FuncType.Parameters.Length == 0)
         {
-            return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
+            return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
             {
                 Task<T> l_Task = (Task<T>)p_Delegate.DynamicInvoke();
                 object l_TaskValue = await l_Task;
-                p_Context.PushToStack(new WebAssemblyJitValue(p_FuncType.Results[0], l_TaskValue));
+                p_Context.PushToStack(new WebAssemblyInterpreterValue(p_FuncType.Results[0], l_TaskValue));
             });
         }
 
         if (p_FuncType.Parameters.Length == 1)
         {
-            return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
+            return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
             {
-                WebAssemblyJitValue l_Value = p_Context.PopFromStack();
+                WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
                 Task<T> l_Task = (Task<T>)p_Delegate.DynamicInvoke(l_Value.Value);
                 object l_TaskValue = await l_Task;
-                p_Context.PushToStack(new WebAssemblyJitValue(p_FuncType.Results[0], l_TaskValue));
+                p_Context.PushToStack(new WebAssemblyInterpreterValue(p_FuncType.Results[0], l_TaskValue));
             });
         }
 
         if (p_FuncType.Parameters.Length == 2)
         {
-            return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
+            return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
             {
-                WebAssemblyJitValue l_Value1 = p_Context.PopFromStack();
-                WebAssemblyJitValue l_Value2 = p_Context.PopFromStack();
+                WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
+                WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
                 Task<T> l_Task = (Task<T>)p_Delegate.DynamicInvoke(l_Value1.Value, l_Value2.Value);
                 object l_TaskValue = await l_Task;
-                p_Context.PushToStack(new WebAssemblyJitValue(p_FuncType.Results[0], l_TaskValue));
+                p_Context.PushToStack(new WebAssemblyInterpreterValue(p_FuncType.Results[0], l_TaskValue));
             });
         }
 
         if (p_FuncType.Parameters.Length == 3)
         {
-            return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
+            return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
             {
-                WebAssemblyJitValue l_Value1 = p_Context.PopFromStack();
-                WebAssemblyJitValue l_Value2 = p_Context.PopFromStack();
-                WebAssemblyJitValue l_Value3 = p_Context.PopFromStack();
+                WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
+                WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
+                WebAssemblyInterpreterValue l_Value3 = p_Context.PopFromStack();
                 Task<T> l_Task = (Task<T>)p_Delegate.DynamicInvoke(l_Value1.Value, l_Value2.Value, l_Value3.Value);
                 object l_TaskValue = await l_Task;
-                p_Context.PushToStack(new WebAssemblyJitValue(p_FuncType.Results[0], l_TaskValue));
+                p_Context.PushToStack(new WebAssemblyInterpreterValue(p_FuncType.Results[0], l_TaskValue));
             });
         }
 
         // Dnyamic Fallbacks
-        return new WebAssemblyJitVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
+        return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
         {
             Object[] l_Args = new Object[p_FuncType.Parameters.Length];
             for (int i = 0; i < l_Args.Length; i++)
             {
-                WebAssemblyJitValue l_Value = p_Context.PopFromStack();
+                WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
                 l_Args[i] = l_Value.Value;
             }
 
             Task<T> l_Task = (Task<T>)p_Delegate.DynamicInvoke(l_Args);
             object l_TaskValue = await l_Task;
-            p_Context.PushToStack(new WebAssemblyJitValue(p_FuncType.Results[0], l_TaskValue));
+            p_Context.PushToStack(new WebAssemblyInterpreterValue(p_FuncType.Results[0], l_TaskValue));
         });
     }
 
@@ -382,12 +417,12 @@ public class WebAssemblyJitExecutor : IWebAssemblyExecutor, IWebAssemblyJitInter
         int? l_Index = FindExportIndex(p_Name, WasmExternalKind.Function);
 
         if (l_Index == null)
-            return new WebAssemblyJitMethodNotFound(p_Name);
+            return new WebAssemblyInterpreterMethodNotFound(p_Name);
 
         WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_Index.Value];
         WasmCode l_Code = m_WasmMetaData.Code[l_Index.Value];
 
-        return new WebAssemblyJitMethod(m_VirtualMaschine, l_FuncType, l_Code);
+        return new WebAssemblyInterpreterMethod(m_VirtualMaschine, l_FuncType, l_Code);
     }
 
     private int? FindExportIndex(string p_Name, WasmExternalKind p_ExternalKind)
@@ -412,7 +447,7 @@ public class WebAssemblyJitExecutor : IWebAssemblyExecutor, IWebAssemblyJitInter
             WasmCall l_Call = (WasmCall)p_Instruction;
             WasmImport l_WasmImport = m_WasmMetaData.Import[l_Call.FunctionIndex];
 
-            WebAssemblyJitImportMethod l_ImportMethod;
+            WebAssemblyInterpreterImportMethod l_ImportMethod;
 
             if (!m_ImportMethods.TryGetValue(l_WasmImport, out l_ImportMethod))
                 throw new Exception("Import method not found: " + l_WasmImport.Name.Value);

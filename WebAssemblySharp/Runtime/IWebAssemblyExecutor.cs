@@ -12,4 +12,5 @@ public interface IWebAssemblyExecutor
     void OptimizeCode();
     
     void DefineImport(string p_Name, Delegate p_Delegate);
+    void Init();
 }

@@ -7,6 +7,24 @@ using WebAssemblySharp.Readers.Binary.MetaData;
 
 namespace WebAssemblySharp.Readers.Binary;
 
+/*
+ * Reads and parses WebAssembly binary format (.wasm files) into a structured WasmMetaData object.
+ *
+ * This class implements a state machine that processes WebAssembly binary data in chunks,
+ * maintaining internal state between calls. It supports incremental reading of WASM binary
+ * sections including:
+ * - Type definitions (function signatures)
+ * - Import declarations
+ * - Function tables
+ * - Memory definitions
+ * - Global variables
+ * - Export declarations
+ * - Code sections with instructions
+ * - Data segments
+ *
+ * The reader handles LEB128 variable-length encoding for integers and properly
+ * processes WebAssembly control flow instructions and function bodies.
+ */
 public class WasmBinaryReader
 {
     private static uint CONST_WASM_MAGIC = 0x6d736100;

@@ -1,14 +1,14 @@
 ﻿using System;
 using WebAssemblySharp.MetaData;
 
-namespace WebAssemblySharp.Runtime.JIT;
+namespace WebAssemblySharp.Runtime.Interpreter;
 
-public struct WebAssemblyJitValue
+public struct WebAssemblyInterpreterValue
 {
     private readonly WasmDataType m_DataType;
     private object m_Value;
     
-    public WebAssemblyJitValue(WasmDataType p_DataType, object p_Value)
+    public WebAssemblyInterpreterValue(WasmDataType p_DataType, object p_Value)
     {
         m_DataType = p_DataType;
         m_Value = p_Value;
@@ -26,7 +26,7 @@ public struct WebAssemblyJitValue
     }
 
 
-    public void CopyValueFrom(WebAssemblyJitValue p_Value)
+    public void CopyValueFrom(WebAssemblyInterpreterValue p_Value)
     {
         if (DataType != p_Value.DataType)
             throw new Exception($"Invalid data type. Expected {DataType} but got {p_Value.DataType}");

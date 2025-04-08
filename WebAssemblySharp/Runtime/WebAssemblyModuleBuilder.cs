@@ -24,6 +24,7 @@ public class WebAssemblyModuleBuilder
     public WebAssemblyModule Build()
     {
         m_Executor.OptimizeCode();
+        m_Executor.Init();
         return new  WebAssemblyModule(m_Executor);
     }
     

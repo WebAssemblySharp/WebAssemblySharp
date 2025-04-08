@@ -1,8 +1,8 @@
 ﻿using WebAssemblySharp.MetaData.Instructions;
 
-namespace WebAssemblySharp.Runtime.JIT;
+namespace WebAssemblySharp.Runtime.Interpreter;
 
-public interface IWebAssemblyJitInteropOptimizer
+public interface IWebAssemblyInterpreterInteropOptimizer
 {
     bool OptimizeInstruction(WasmInstruction p_Instruction);
 }

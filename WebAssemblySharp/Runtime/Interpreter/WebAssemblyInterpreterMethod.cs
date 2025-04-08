@@ -1,18 +1,17 @@
 ﻿using System;
-using System.Buffers;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.Runtime.Utils;
 
-namespace WebAssemblySharp.Runtime.JIT;
+namespace WebAssemblySharp.Runtime.Interpreter;
 
-public class WebAssemblyJitMethod : IWebAssemblyMethod
+public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
 {
-    private readonly WebAssemblyJitVirtualMaschine m_VirtualMachine;
+    private readonly WebAssemblyInterpreterVirtualMaschine m_VirtualMachine;
     private readonly WasmFuncType m_FuncType;
     private readonly WasmCode m_Code;
 
-    public WebAssemblyJitMethod(WebAssemblyJitVirtualMaschine p_VirtualMachine, WasmFuncType p_FuncType,
+    public WebAssemblyInterpreterMethod(WebAssemblyInterpreterVirtualMaschine p_VirtualMachine, WasmFuncType p_FuncType,
         WasmCode p_Code)
     {
         m_FuncType = p_FuncType;
@@ -24,13 +23,13 @@ public class WebAssemblyJitMethod : IWebAssemblyMethod
     {
         ValidateParameters(p_Args);
 
-        WebAssemblyJitExecutionContext l_Context = m_VirtualMachine.CreateContext(m_FuncType, m_Code, p_Args);
+        WebAssemblyInterpreterExecutionContext l_Context = m_VirtualMachine.CreateContext(m_FuncType, m_Code, p_Args);
         bool l_ExecuteFrame = await m_VirtualMachine.ExecuteFrame(l_Context, 0);
 
         if (!l_ExecuteFrame)
-            throw new WebAssemblyJitException("Unexpected abort of the frame execution");
+            throw new WebAssemblyInterpreterException("Unexpected abort of the frame execution");
 
-        Span<WebAssemblyJitValue> l_JitValues = m_VirtualMachine.FinishContext(l_Context);
+        Span<WebAssemblyInterpreterValue> l_JitValues = m_VirtualMachine.FinishContext(l_Context);
 
         if (l_JitValues.Length == 0)
             return null;
