@@ -52,12 +52,12 @@ jobs:
         run: dotnet build --configuration Release
 
       - name: Run benchmarks
-        run: dotnet run --project ./WebAssemblySharpBenchmark/WebAssemblySharpBenchmark.csproj --configuration Release -- --artifactsPath ./BenchmarkResults
+        run: dotnet run --project ./WebAssemblySharpBenchmark/WebAssemblySharpBenchmark.csproj --configuration Release
 
       - name: Parse Benchmark Results and Update History
         run: |
           mkdir -p ./benchmark-history
-          ARTIFACT=$(find ./benchmarks -name "*.json" | head -n 1)
+          ARTIFACT=$(find ./BenchmarkDotNet.Artifacts/results -name "*.json" | head -n 1)
 
           echo "Parsing benchmark result from: $ARTIFACT"
 
