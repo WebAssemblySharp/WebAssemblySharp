@@ -7,10 +7,11 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        List<Type> types = new List<Type>();
-        types.Add(typeof(ImportsBenchmark));
-        types.Add(typeof(IsPrimeBenchmark));
+        List<Type> l_Types = new List<Type>();
+        l_Types.Add(typeof(ImportsBenchmark));
+        l_Types.Add(typeof(IsPrimeBenchmark));
+        l_Types.Add(typeof(ItoaBenchmark));
         
-        var summary = BenchmarkRunner.Run(types.ToArray(), null, args);
+        var summary = BenchmarkRunner.Run(l_Types.ToArray(), null, args);
     }
 }

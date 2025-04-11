@@ -6,7 +6,7 @@ using WebAssemblySharp.MetaData;
 using WebAssemblySharp.Readers.Binary;
 using WebAssemblySharpExampleData;
 
-namespace WebAssemblySharpTest;
+namespace WebAssemblySharpTest.Readers;
 
 [TestClass]
 public class WasmBinaryReaderTest
