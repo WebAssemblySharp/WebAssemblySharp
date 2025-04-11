@@ -73,38 +73,56 @@ jobs:
 
       - name: Parse Benchmark Results and Update History
         run: |
-          ARTIFACT=$(find ./build/BenchmarkDotNet.Artifacts/results -name "*.json" | head -n 1)
+          # Find all JSON artifact files
+          ARTIFACTS=$(find ./build/BenchmarkDotNet.Artifacts/results -name "*.json")
 
-          echo "Parsing benchmark result from: $ARTIFACT"
+          if [ -z "$ARTIFACTS" ]; then
+            echo "No benchmark result files found"
+            exit 1
+          fi
 
+          echo "Parsing benchmark results from the following files:"
+          echo "$ARTIFACTS"
+
+          # Process each artifact file
           python3 <<EOF
           import json
           import os
           from datetime import datetime
 
-          # Load benchmark output
-          with open("$ARTIFACT") as f:
-              data = json.load(f)
-
-          benchmarks = data.get("Benchmarks", [])
-
+          # Initialize list to collect entries
           entry_list = []
-          for b in benchmarks:
-              stats = b.get("Statistics", {})
-              memory = b.get("Memory", {})
 
-              entry = {
-                  "commit": os.environ.get("GITHUB_SHA"),
-                  "date": datetime.utcnow().isoformat(),
-                  "method": b.get("FullName", "Unknown"),
-                  "meanNs": stats.get("Mean", None),
-                  "stdDevNs": stats.get("StandardDeviation", None),
-                  "allocBytes": memory.get("AllocatedBytes", None),
-                  "gen0": memory.get("Gen0Collections", None),
-                  "gen1": memory.get("Gen1Collections", None),
-                  "gen2": memory.get("Gen2Collections", None)
-              }
-              entry_list.append(entry)
+          # Loop through each artifact file
+          artifact_files = "$ARTIFACTS".split("\n")
+          for artifact in artifact_files:
+              if not artifact:
+                  continue
+              print(f"Parsing benchmark result from: {artifact}")
+
+              # Load benchmark output
+              with open(artifact) as f:
+                  data = json.load(f)
+
+              benchmarks = data.get("Benchmarks", [])
+
+              # Extract data from each benchmark
+              for b in benchmarks:
+                  stats = b.get("Statistics", {})
+                  memory = b.get("Memory", {})
+
+                  entry = {
+                      "commit": os.environ.get("GITHUB_SHA"),
+                      "date": datetime.utcnow().isoformat(),
+                      "method": b.get("FullName", "Unknown"),
+                      "meanNs": stats.get("Mean", None),
+                      "stdDevNs": stats.get("StandardDeviation", None),
+                      "allocBytes": memory.get("AllocatedBytes", None),
+                      "gen0": memory.get("Gen0Collections", None),
+                      "gen1": memory.get("Gen1Collections", None),
+                      "gen2": memory.get("Gen2Collections", None)
+                  }
+                  entry_list.append(entry)
 
           # Load or initialize history
           history_file = "gh-pages/Pages/Benchmark/history.json"
@@ -114,6 +132,7 @@ jobs:
           else:
               history = []
 
+          # Append new entries to the history
           history.extend(entry_list)
 
           # Save updated history
