@@ -94,7 +94,7 @@ jobs:
           entry_list = []
 
           # Loop through each artifact file
-          artifact_files = "$ARTIFACTS".split("\n")
+          artifact_files = """$ARTIFACTS""".split("\n")
           for artifact in artifact_files:
               if not artifact:
                   continue
