@@ -1,0 +1,112 @@
+[
+  {
+    "commit": "3eb44c3116d71578a4be1b7b74b75ea6b35c1144",
+    "date": "2025-04-11T15:43:56.334556",
+    "method": "WebAssemblySharpBenchmark.IsPrimeBenchmark.Native(N: 2)",
+    "meanNs": 1.2462571188807487,
+    "stdDevNs": 0.0020379640026947916,
+    "allocBytes": null,
+    "gen0": 0,
+    "gen1": 0,
+    "gen2": 0
+  },
+  {
+    "commit": "3eb44c3116d71578a4be1b7b74b75ea6b35c1144",
+    "date": "2025-04-11T15:43:56.334574",
+    "method": "WebAssemblySharpBenchmark.IsPrimeBenchmark.JIT(N: 2)",
+    "meanNs": 295.6219274202983,
+    "stdDevNs": 2.596328839880918,
+    "allocBytes": null,
+    "gen0": 103,
+    "gen1": 0,
+    "gen2": 0
+  },
+  {
+    "commit": "3eb44c3116d71578a4be1b7b74b75ea6b35c1144",
+    "date": "2025-04-11T15:43:56.334580",
+    "method": "WebAssemblySharpBenchmark.IsPrimeBenchmark.Native(N: 3)",
+    "meanNs": 1.2523739896714687,
+    "stdDevNs": 0.0052117961396669415,
+    "allocBytes": null,
+    "gen0": 0,
+    "gen1": 0,
+    "gen2": 0
+  },
+  {
+    "commit": "3eb44c3116d71578a4be1b7b74b75ea6b35c1144",
+    "date": "2025-04-11T15:43:56.334587",
+    "method": "WebAssemblySharpBenchmark.IsPrimeBenchmark.JIT(N: 3)",
+    "meanNs": 477.6781708399455,
+    "stdDevNs": 2.361525878076511,
+    "allocBytes": null,
+    "gen0": 62,
+    "gen1": 0,
+    "gen2": 0
+  },
+  {
+    "commit": "3eb44c3116d71578a4be1b7b74b75ea6b35c1144",
+    "date": "2025-04-11T15:43:56.334594",
+    "method": "WebAssemblySharpBenchmark.IsPrimeBenchmark.Native(N: 99)",
+    "meanNs": 1.2505499670902889,
+    "stdDevNs": 0.0060886634056094594,
+    "allocBytes": null,
+    "gen0": 0,
+    "gen1": 0,
+    "gen2": 0
+  },
+  {
+    "commit": "3eb44c3116d71578a4be1b7b74b75ea6b35c1144",
+    "date": "2025-04-11T15:43:56.334604",
+    "method": "WebAssemblySharpBenchmark.IsPrimeBenchmark.JIT(N: 99)",
+    "meanNs": 575.7896070480347,
+    "stdDevNs": 3.6599564407746383,
+    "allocBytes": null,
+    "gen0": 69,
+    "gen1": 0,
+    "gen2": 0
+  },
+  {
+    "commit": "3eb44c3116d71578a4be1b7b74b75ea6b35c1144",
+    "date": "2025-04-11T15:43:56.334610",
+    "method": "WebAssemblySharpBenchmark.IsPrimeBenchmark.Native(N: 512)",
+    "meanNs": 1.2912650667130947,
+    "stdDevNs": 0.04581199666634844,
+    "allocBytes": null,
+    "gen0": 0,
+    "gen1": 0,
+    "gen2": 0
+  },
+  {
+    "commit": "3eb44c3116d71578a4be1b7b74b75ea6b35c1144",
+    "date": "2025-04-11T15:43:56.334615",
+    "method": "WebAssemblySharpBenchmark.IsPrimeBenchmark.JIT(N: 512)",
+    "meanNs": 390.77682304382324,
+    "stdDevNs": 1.8229107259592832,
+    "allocBytes": null,
+    "gen0": 115,
+    "gen1": 0,
+    "gen2": 0
+  },
+  {
+    "commit": "3eb44c3116d71578a4be1b7b74b75ea6b35c1144",
+    "date": "2025-04-11T15:43:56.334621",
+    "method": "WebAssemblySharpBenchmark.IsPrimeBenchmark.Native(N: 9999)",
+    "meanNs": 1.2523078136146069,
+    "stdDevNs": 0.004981155319496574,
+    "allocBytes": null,
+    "gen0": 0,
+    "gen1": 0,
+    "gen2": 0
+  },
+  {
+    "commit": "3eb44c3116d71578a4be1b7b74b75ea6b35c1144",
+    "date": "2025-04-11T15:43:56.334629",
+    "method": "WebAssemblySharpBenchmark.IsPrimeBenchmark.JIT(N: 9999)",
+    "meanNs": 570.4936091105143,
+    "stdDevNs": 2.1522765661484797,
+    "allocBytes": null,
+    "gen0": 69,
+    "gen1": 0,
+    "gen2": 0
+  }
+]
