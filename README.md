@@ -55,6 +55,13 @@ To run the test project:
 
 This command executes the test suite, demonstrating the current capabilities of WebAssemblySharp.
 
+
+### Nightly Performance Tests
+
+We execute performance tests every night to monitor the ongoing performance improvements of WebAssemblySharp. The results of these tests are publicly available for review. You can check the latest performance metrics, including memory and execution time benchmarks, at the following URL:
+
+[WebAssemblySharp Performance Results](https://webassemblysharp.github.io/WebAssemblySharp/Pages/Benchmark/)
+
 ## Contributing
 
 Contributions to WebAssemblySharp are welcome. To get involved:
