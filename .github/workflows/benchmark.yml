@@ -62,46 +62,48 @@ jobs:
           echo "Parsing benchmark result from: $ARTIFACT"
 
           python3 <<EOF
-          import json, os
+          import json
+          import os
           from datetime import datetime
 
           # Load benchmark output
           with open("$ARTIFACT") as f:
-          data = json.load(f)
+              data = json.load(f)
 
           benchmarks = data.get("Benchmarks", [])
 
           entry_list = []
           for b in benchmarks:
-            stats = b.get("Statistics", {})
-            memory = b.get("Memory", {})
+              stats = b.get("Statistics", {})
+              memory = b.get("Memory", {})
 
-            entry = {
-                "commit": os.environ.get("GITHUB_SHA"),
-                "date": datetime.utcnow().isoformat(),
-                "method": b.get("FullName", "Unknown"),
-                "meanNs": stats.get("Mean", None),
-                "stdDevNs": stats.get("StandardDeviation", None),
-                "allocBytes": memory.get("AllocatedBytes", None),
-                "gen0": memory.get("Gen0Collections", None),
-                "gen1": memory.get("Gen1Collections", None),
-                "gen2": memory.get("Gen2Collections", None)
-            }
-            entry_list.append(entry)
+              entry = {
+                  "commit": os.environ.get("GITHUB_SHA"),
+                  "date": datetime.utcnow().isoformat(),
+                  "method": b.get("FullName", "Unknown"),
+                  "meanNs": stats.get("Mean", None),
+                  "stdDevNs": stats.get("StandardDeviation", None),
+                  "allocBytes": memory.get("AllocatedBytes", None),
+                  "gen0": memory.get("Gen0Collections", None),
+                  "gen1": memory.get("Gen1Collections", None),
+                  "gen2": memory.get("Gen2Collections", None)
+              }
+              entry_list.append(entry)
 
           # Load or initialize history
           history_file = "benchmark-history/history.json"
           if os.path.exists(history_file):
-            with open(history_file) as f:
-              history = json.load(f)
+              with open(history_file) as f:
+                  history = json.load(f)
           else:
-            history = []
+              history = []
 
           history.extend(entry_list)
 
           # Save updated history
           with open(history_file, "w") as f:
-            json.dump(history, f, indent=2)
+              json.dump(history, f, indent=2)
+
           EOF
 
       - name: Upload History
