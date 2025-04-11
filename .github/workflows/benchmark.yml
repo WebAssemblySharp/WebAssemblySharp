@@ -3,6 +3,7 @@ name: Run Benchmarks
 on:
   schedule:
     - cron: '0 2 * * *'  # Every night at 2 AM UTC
+  workflow_dispatch:
 
 jobs:
   benchmark:
@@ -36,7 +37,7 @@ jobs:
           fi
 
       - name: Stop if no new commits
-        if: steps.commit-check.outputs.should_run == 'false'
+        if: steps.commit-check.outputs.should_run == 'false' || github.event_name == 'workflow_dispatch'
         run: exit 0
 
       - name: Setup .NET
