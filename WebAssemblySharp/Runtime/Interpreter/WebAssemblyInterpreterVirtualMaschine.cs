@@ -350,7 +350,7 @@ public class WebAssemblyInterpreterVirtualMaschine
         for (int i = 0; i < p_Code.Locals.Length; i++)
         {
             WasmDataType l_CodeLocal = p_Code.Locals[i];
-            l_Values[i] = new WebAssemblyInterpreterValue(l_CodeLocal, WebAssemblyDataTypeUtils.GetDefaultValue(l_CodeLocal));
+            l_Values[p_Args.Length + i] = new WebAssemblyInterpreterValue(l_CodeLocal, WebAssemblyDataTypeUtils.GetDefaultValue(l_CodeLocal));
         }
 
         return new WebAssemblyInterpreterStackLocals(l_Values);
