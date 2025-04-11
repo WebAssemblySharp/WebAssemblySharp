@@ -16,10 +16,12 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0  # Needed to check commit history
+          path: build
 
       - name: Check for new commits since last run
         id: commit-check
         run: |
+          cd build
           echo "Checking for new commits in last 24 hours..."
           NOW=$(date -u +%s)
           YESTERDAY=$(($NOW - 86400))
@@ -48,13 +50,19 @@ jobs:
           dotnet-version: '9.0.x' # or your target version
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: |
+          cd build
+          dotnet restore
 
       - name: Build solution
-        run: dotnet build --configuration Release
+        run: |
+          cd build
+          dotnet build --configuration Release
 
       - name: Run benchmarks
-        run: dotnet run --project ./WebAssemblySharpBenchmark/WebAssemblySharpBenchmark.csproj --configuration Release
+        run: |
+          cd build
+          dotnet run --project ./WebAssemblySharpBenchmark/WebAssemblySharpBenchmark.csproj --configuration Release
 
       # Checkout the gh-pages branch where you want to push the history
       - name: Checkout gh-pages branch
@@ -65,8 +73,7 @@ jobs:
 
       - name: Parse Benchmark Results and Update History
         run: |
-          mkdir -p ./benchmark-history
-          ARTIFACT=$(find ./BenchmarkDotNet.Artifacts/results -name "*.json" | head -n 1)
+          ARTIFACT=$(find ./build/BenchmarkDotNet.Artifacts/results -name "*.json" | head -n 1)
 
           echo "Parsing benchmark result from: $ARTIFACT"
 
@@ -118,6 +125,7 @@ jobs:
       # Commit and push the changes to the gh-pages branch
       - name: Commit and push to gh-pages
         run: |
+          cd gh-pages
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           git add .
