@@ -8,5 +8,5 @@ namespace WebAssemblySharp.Runtime.Interpreter;
  */
 public interface IWebAssemblyInterpreterMemoryArea
 {
-    Span<byte> GetMemoryAccess(int p_Address, int p_Length);
+    Span<byte> GetMemoryAccess(long p_Address, int p_Length);
 }

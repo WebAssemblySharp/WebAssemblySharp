@@ -39,7 +39,7 @@ public class WebAssemblyRuntimeTest
         Assert.AreEqual(11, l_Result);
     }
     
-    //[TestMethod]
+    [TestMethod]
     public async Task ExecuteItoaTest()
     {
         WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
@@ -47,9 +47,15 @@ public class WebAssemblyRuntimeTest
             await l_Runtime.LoadModule(
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));
         WebAssemblyModule l_Module = await l_ModuleBuilder.Build();
-        
-        int l_Result = (int) await l_Module.Call("itoa", 42);
-        Assert.AreEqual(11, l_Result);
+
+        object[] l_Objects = (Object[]) await l_Module.Call("itoa", 42);
+        Assert.AreEqual(2, l_Objects.Length);
+        Assert.AreEqual(2, l_Objects[0]);
+        Assert.AreEqual(8010, l_Objects[1]);
+
+        Span<byte> l_Access = l_Module.GetMemoryAccess((int)l_Objects[1], (int)l_Objects[0]);
+        string l_Result = System.Text.Encoding.UTF8.GetString(l_Access);
+        Assert.AreEqual("42", l_Result);
     }
     
     [TestMethod]

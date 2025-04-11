@@ -14,4 +14,5 @@ public interface IWebAssemblyExecutor
     
     void DefineImport(string p_Name, Delegate p_Delegate);
     Task Init();
+    Span<byte> GetMemoryAccess(long p_Address, int p_Length);
 }

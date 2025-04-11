@@ -74,7 +74,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.I32Load8S:
                 break;
             case WasmOpcode.I32Load8U:
-                l_Result = WasmI32Load8U.Instance;
+                l_Result = new WasmI32Load8U();
                 break;
             case WasmOpcode.I32Load16S:
                 break;
@@ -83,29 +83,29 @@ public static class WasmInstructionFactory
             case WasmOpcode.I64Load8S:
                 break;
             case WasmOpcode.I64Load8U:
-                l_Result = WasmI64Load8U.Instance;
+                l_Result = new WasmI64Load8U();
                 break;
             case WasmOpcode.I64Load16S:
-                l_Result = WasmI64Load16S.Instance;
+                l_Result = new WasmI64Load16S();
                 break;
             case WasmOpcode.I64Load16U:
-                l_Result = WasmI64Load16U.Instance;
+                l_Result = new WasmI64Load16U();
                 break;
             case WasmOpcode.I64Load32S:
-                l_Result = WasmI64Load32S.Instance;
+                l_Result = new WasmI64Load32S();
                 break;
             case WasmOpcode.I64Load32U:
-                l_Result = WasmI64Load32U.Instance;
+                l_Result = new WasmI64Load32U();
                 break;
             case WasmOpcode.I32Store:
-                l_Result = WasmI32Store.Instance;
+                l_Result = new WasmI32Store();
                 break;
             case WasmOpcode.F32Store:
                 break;
             case WasmOpcode.F64Store:
                 break;
             case WasmOpcode.I32Store8:
-                l_Result = WasmI32Store8.Instance;
+                l_Result = new WasmI32Store8();
                 break;
             case WasmOpcode.I32Store16:
                 break;
@@ -114,7 +114,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.I64Store16:
                 break;
             case WasmOpcode.I64Store32:
-                l_Result = WasmI64Store32.Instance;
+                l_Result = new WasmI64Store32();
                 break;
             case WasmOpcode.MemorySize:
                 break;

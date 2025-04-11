@@ -38,5 +38,9 @@ public class WebAssemblyModule
     {
         return m_Executor.GetMethod(p_Name);
     }
-    
+
+    public Span<byte> GetMemoryAccess(long p_Address, int p_Length)
+    {
+        return m_Executor.GetMemoryAccess(p_Address, p_Length);
+    }
 }

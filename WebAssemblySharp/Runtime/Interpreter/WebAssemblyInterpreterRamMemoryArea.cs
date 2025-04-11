@@ -15,8 +15,8 @@ public class WebAssemblyInterpreterRamMemoryArea: IWebAssemblyInterpreterMemoryA
         m_Memory = new byte[m_CurrentPages * WebAssemblyConst.WASM_MEMORY_PAGE_SIZE];
     }
 
-    public Span<byte> GetMemoryAccess(int p_Address, int p_Length)
+    public Span<byte> GetMemoryAccess(long p_Address, int p_Length)
     {
-        return m_Memory.AsSpan(p_Address, p_Length);
+        return m_Memory.AsSpan((int)p_Address, p_Length);
     }
 }

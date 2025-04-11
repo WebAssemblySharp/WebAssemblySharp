@@ -80,6 +80,11 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
         await m_VirtualMaschine.InitGlobals(m_WasmMetaData.Globals);
     }
 
+    public Span<byte> GetMemoryAccess(long p_Address, int p_Length)
+    {
+        return m_VirtualMaschine.GetMemoryAccess(p_Address, p_Length);
+    }
+
     private Delegate CompileImport(WasmFuncType p_FuncType, Delegate p_Delegate)
     {
         
@@ -409,7 +414,8 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
         if (l_Index == null)
             return new WebAssemblyInterpreterMethodNotFound(p_Name);
 
-        WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_Index.Value];
+        long l_FinalIndex = m_WasmMetaData.FuncIndex[l_Index.Value];
+        WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_FinalIndex];
         WasmCode l_Code = m_WasmMetaData.Code[l_Index.Value];
 
         return new WebAssemblyInterpreterMethod(m_VirtualMaschine, l_FuncType, l_Code);
