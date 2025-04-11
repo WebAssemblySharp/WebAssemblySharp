@@ -245,33 +245,33 @@ public class WasmBinaryReader
             m_CurrentCode.CodeSizeRemaining = m_CurrentCode.CodeSize;
         }
 
-        if (m_CurrentCode.Locals == null)
+        if (m_CurrentCode.ProcessedLocals == null)
         {
             ulong? l_LocalSize = ReadLEB128UInt(p_Data, ref p_Index, ref m_CurrentCode.CodeSizeRemaining);
 
             if (l_LocalSize == null)
                 return;
 
-            m_CurrentCode.Locals = new WasmCodeLocal[l_LocalSize.Value];
+            m_CurrentCode.ProcessedLocals = new WasmCodeLocalInComplete[l_LocalSize.Value];
         }
 
 
-        if (m_CurrentCode.Locals.Length > 0)
+        if (m_CurrentCode.ProcessedLocals.Length > 0)
         {
-            for (int i = 0; i < m_CurrentCode.Locals.Length; i++)
+            for (int i = 0; i < m_CurrentCode.ProcessedLocals.Length; i++)
             {
-                if (m_CurrentCode.Locals[i] == null)
+                if (m_CurrentCode.ProcessedLocals[i] == null)
                 {
                     ulong? l_LocalCount = ReadLEB128UInt(p_Data, ref p_Index, ref m_CurrentCode.CodeSizeRemaining);
 
                     if (l_LocalCount == null)
                         return;
 
-                    m_CurrentCode.Locals[i] = new WasmCodeLocal();
-                    m_CurrentCode.Locals[i].Number = (long)l_LocalCount.Value;
+                    m_CurrentCode.ProcessedLocals[i] = new WasmCodeLocalInComplete();
+                    m_CurrentCode.ProcessedLocals[i].Number = (long)l_LocalCount.Value;
                 }
 
-                if (m_CurrentCode.Locals[i].ValueType == WasmDataType.Unkown)
+                if (m_CurrentCode.ProcessedLocals[i].ValueType == WasmDataType.Unkown)
                 {
                     WasmDataType? l_DataType =
                         ReadWasmDataType(p_Data, ref p_Index, ref m_CurrentCode.CodeSizeRemaining);
@@ -279,11 +279,13 @@ public class WasmBinaryReader
                     if (l_DataType == null)
                         return;
 
-                    m_CurrentCode.Locals[i].ValueType = l_DataType.Value;
+                    m_CurrentCode.ProcessedLocals[i].ValueType = l_DataType.Value;
                 }
             }
+            
+            
         }
-
+        
         if (m_CurrentCode.CodeSizeRemaining > 0)
         {
             // Read Instructions

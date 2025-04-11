@@ -23,7 +23,7 @@ public class IsPrimeBenchmark {
     {
         WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
         m_Module =
-            (await l_Runtime.LoadModule(
+            await (await l_Runtime.LoadModule(
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"))).Build();
 
         await m_Module.Call("is_prime", 1);     

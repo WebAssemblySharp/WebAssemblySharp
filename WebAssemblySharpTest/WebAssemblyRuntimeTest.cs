@@ -18,7 +18,7 @@ public class WebAssemblyRuntimeTest
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"));
 
         l_ModuleBuilder.DefineImport("times2", new Func<int, Task<int>>(x => Task.FromResult(x * 2)));
-        WebAssemblyModule l_Module = l_ModuleBuilder.Build();
+        WebAssemblyModule l_Module = await l_ModuleBuilder.Build();
 
         int l_Result = (int) await l_Module.Call("twiceplus5", 3);
         Assert.AreEqual(11, l_Result);
@@ -33,7 +33,7 @@ public class WebAssemblyRuntimeTest
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"));
 
         l_ModuleBuilder.DefineImport("times2", new Func<int, int>(x => x * 2));
-        WebAssemblyModule l_Module = l_ModuleBuilder.Build();
+        WebAssemblyModule l_Module = await l_ModuleBuilder.Build();
         
         int l_Result = (int) await l_Module.Call("twiceplus5", 3);
         Assert.AreEqual(11, l_Result);
@@ -46,7 +46,7 @@ public class WebAssemblyRuntimeTest
         WebAssemblyModuleBuilder l_ModuleBuilder =
             await l_Runtime.LoadModule(
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));
-        WebAssemblyModule l_Module = l_ModuleBuilder.Build();
+        WebAssemblyModule l_Module = await l_ModuleBuilder.Build();
         
         int l_Result = (int) await l_Module.Call("itoa", 42);
         Assert.AreEqual(11, l_Result);
@@ -57,7 +57,7 @@ public class WebAssemblyRuntimeTest
     {
         WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
         WebAssemblyModule l_Module =
-            (await l_Runtime.LoadModule(
+            await (await l_Runtime.LoadModule(
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.add.wasm"))).Build();
 
         int l_Result = (int) await l_Module.Call("add", 1, 2);
@@ -77,11 +77,11 @@ public class WebAssemblyRuntimeTest
 
     [TestMethod]
     
-    public async Task ExecuteIsprimeWasmTest1()
+    public async Task ExecuteIsprimeWasmTest_1_000_000()
     {
         WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
         WebAssemblyModule l_Module =
-            (await l_Runtime.LoadModule(
+            await (await l_Runtime.LoadModule(
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"))).Build();
         
         for (int i = 0; i < 1_000_000; i++)
@@ -97,7 +97,7 @@ public class WebAssemblyRuntimeTest
     {
         WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
         WebAssemblyModule l_Module =
-            (await l_Runtime.LoadModule(
+            await (await l_Runtime.LoadModule(
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"))).Build();
 
         int l_Result = (int) await l_Module.Call("is_prime", p_Number);

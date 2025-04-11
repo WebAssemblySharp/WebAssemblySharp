@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 
 namespace WebAssemblySharp.Runtime;
@@ -12,5 +13,5 @@ public interface IWebAssemblyExecutor
     void OptimizeCode();
     
     void DefineImport(string p_Name, Delegate p_Delegate);
-    void Init();
+    Task Init();
 }

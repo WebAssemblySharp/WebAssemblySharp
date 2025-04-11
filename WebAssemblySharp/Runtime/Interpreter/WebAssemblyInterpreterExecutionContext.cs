@@ -188,12 +188,6 @@ public class WebAssemblyInterpreterExecutionContext: IWebAssemblyInterpreterInte
     {
         return m_ValueStack.ToArray();
     }
-
-    public Span<byte> GetMemoryAccess(int p_Address, int p_Length)
-    {
-        throw new NotImplementedException();
-
-    }
 }
 
 struct WebAssemblyJitExecutionCallFrame

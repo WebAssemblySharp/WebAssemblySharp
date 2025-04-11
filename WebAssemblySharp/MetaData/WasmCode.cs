@@ -6,6 +6,6 @@ namespace WebAssemblySharp.MetaData;
 public class WasmCode
 {
     public long CodeSize { get; set; }
-    public WasmCodeLocal[] Locals { get; set; }
+    public WasmDataType[] Locals { get; set; }
     public IEnumerable<WasmInstruction> Instructions { get; set; }
 }

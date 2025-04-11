@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
@@ -72,22 +73,11 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
             throw new Exception("Import already defined: " + p_Name);
     }
 
-    public void Init()
+    public async Task Init()
     {
-        if (m_WasmMetaData.Memory != null)
-        {
-            m_VirtualMaschine.SetupMemory(m_WasmMetaData.Memory);
-        }
-
-        if (m_WasmMetaData.Data != null)
-        {
-            m_VirtualMaschine.PreloadData(m_WasmMetaData.Data);     
-        }
-        
-        if (m_WasmMetaData.Globals != null)
-        {
-            m_VirtualMaschine.InitGlobals(m_WasmMetaData.Globals);
-        }
+        m_VirtualMaschine.SetupMemory(m_WasmMetaData.Memory);
+        await m_VirtualMaschine.PreloadData(m_WasmMetaData.Data);
+        await m_VirtualMaschine.InitGlobals(m_WasmMetaData.Globals);
     }
 
     private Delegate CompileImport(WasmFuncType p_FuncType, Delegate p_Delegate)
@@ -433,7 +423,11 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
 
             if (l_WasmExport.Name.Value == p_Name && l_WasmExport.Kind == p_ExternalKind)
             {
-                return i;
+                // To Get the correct index we need to subtract the number of imports
+                if (m_WasmMetaData.Import != null)
+                    return (int)l_WasmExport.Index - m_WasmMetaData.Import.Count(x => x.Kind == p_ExternalKind);
+
+                return (int)l_WasmExport.Index;
             }
         }
 

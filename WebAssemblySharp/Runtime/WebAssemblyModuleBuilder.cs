@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace WebAssemblySharp.Runtime;
 
@@ -21,10 +22,10 @@ public class WebAssemblyModuleBuilder
         m_Executor.DefineImport(p_Name, p_Delegate);
     }
 
-    public WebAssemblyModule Build()
+    public async Task<WebAssemblyModule> Build()
     {
         m_Executor.OptimizeCode();
-        m_Executor.Init();
+        await m_Executor.Init();
         return new  WebAssemblyModule(m_Executor);
     }
     

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
+using WebAssemblySharp.Runtime.Utils;
 
 namespace WebAssemblySharp.Runtime.Interpreter;
 
@@ -22,7 +23,8 @@ public class WebAssemblyInterpreterVirtualMaschine
 
     public delegate Task ExecuteInstructionDelegateAsync(WasmInstruction Instruction, WebAssemblyInterpreterExecutionContext Context);
 
-
+    private WebAssemblyInterpreterValue[] m_Globals;
+    private IWebAssemblyInterpreterMemoryArea[] m_MemoryAreas;
     private Dictionary<WasmOpcode, ExecuteInstructionDelegate> m_InstructionHandlers;
 
     private void HandleI32Const(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
@@ -110,7 +112,7 @@ public class WebAssemblyInterpreterVirtualMaschine
         WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
         WebAssemblyInterpreterValue l_Address = p_Context.PopFromStack();
 
-        Span<byte> l_Memory = p_Context.GetMemoryAccess((int)l_Address.Value, 1);
+        Span<byte> l_Memory = GetPrimaryMemoryArea().GetMemoryAccess((int)l_Address.Value, 1);
         byte l_ByteVal = (byte)(((int)l_Value.Value) & 0xFF);
         l_Memory[0] = l_ByteVal;
     }
@@ -120,13 +122,18 @@ public class WebAssemblyInterpreterVirtualMaschine
         WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
         WebAssemblyInterpreterValue l_Address = p_Context.PopFromStack();
 
-        Span<byte> l_Memory = p_Context.GetMemoryAccess((int)l_Address.Value, 4);
+        Span<byte> l_Memory = GetPrimaryMemoryArea().GetMemoryAccess((int)l_Address.Value, 4);
 
         uint l_Lower32 = (uint)((long)l_Value.Value & 0xFFFFFFFF);
         l_Memory[0] = (byte)(l_Lower32 & 0xFF);
         l_Memory[1] = (byte)((l_Lower32 >> 8) & 0xFF);
         l_Memory[2] = (byte)((l_Lower32 >> 16) & 0xFF);
         l_Memory[3] = (byte)((l_Lower32 >> 24) & 0xFF);
+    }
+
+    private IWebAssemblyInterpreterMemoryArea GetPrimaryMemoryArea()
+    {
+        return m_MemoryAreas[0];
     }
 
     private void HandleI32Extend8_s(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
@@ -147,7 +154,7 @@ public class WebAssemblyInterpreterVirtualMaschine
     {
         WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
         int l_Address = (int)l_Value.Value;
-        Span<byte> l_Span = p_Context.GetMemoryAccess(l_Address, 1);
+        Span<byte> l_Span = GetPrimaryMemoryArea().GetMemoryAccess(l_Address, 1);
         int l_Value8 = l_Span[0];
         WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue(WasmDataType.I32, l_Value8);
         p_Context.PushToStack(l_Result);
@@ -165,7 +172,8 @@ public class WebAssemblyInterpreterVirtualMaschine
 
     private void HandleGlobalGet(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
     {
-        throw new NotImplementedException();
+        WasmGlobalGet l_Instruction = ((WasmGlobalGet)p_Instruction);
+        p_Context.PushToStack(m_Globals[l_Instruction.GlobalIndex]);
     }
 
     private void HandleI32DivU(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
@@ -341,9 +349,8 @@ public class WebAssemblyInterpreterVirtualMaschine
 
         for (int i = 0; i < p_Code.Locals.Length; i++)
         {
-            WasmCodeLocal l_WasmCodeLocal = p_Code.Locals[i];
-
-            l_Values[(int)l_WasmCodeLocal.Number] = new WebAssemblyInterpreterValue(l_WasmCodeLocal.ValueType, null);
+            WasmDataType l_CodeLocal = p_Code.Locals[i];
+            l_Values[i] = new WebAssemblyInterpreterValue(l_CodeLocal, WebAssemblyDataTypeUtils.GetDefaultValue(l_CodeLocal));
         }
 
         return new WebAssemblyInterpreterStackLocals(l_Values);
@@ -449,13 +456,101 @@ public class WebAssemblyInterpreterVirtualMaschine
 
     public void SetupMemory(WasmMemory[] p_Memory)
     {
+        if (p_Memory == null)
+        {
+            m_MemoryAreas = Array.Empty<IWebAssemblyInterpreterMemoryArea>();
+            return;
+        }
+        
+        m_MemoryAreas = new IWebAssemblyInterpreterMemoryArea[p_Memory.Length];
+
+        for (int i = 0; i < p_Memory.Length; i++)
+        {
+            WasmMemory l_Memory = p_Memory[i];
+            IWebAssemblyInterpreterMemoryArea l_MemoryArea = new WebAssemblyInterpreterRamMemoryArea((int)l_Memory.Min, (int)l_Memory.Max);
+            m_MemoryAreas[i] = l_MemoryArea;
+        }
+        
     }
 
-    public void PreloadData(WasmData[] p_Data)
+    public async Task PreloadData(WasmData[] p_Data)
     {
+        if (p_Data == null)
+            return;
+
+        WasmFuncType l_FuncType = new WasmFuncType();
+        l_FuncType.Parameters = Array.Empty<WasmDataType>();
+        l_FuncType.Results = new[] { WasmDataType.I32 };
+        
+        foreach (WasmData l_WasmData in p_Data)
+        {
+            byte[] l_InitContent = l_WasmData.Data.Data;
+            
+            if (l_InitContent == null)
+                continue;
+            
+            if (l_InitContent.Length == 0)
+                continue;
+            
+            WebAssemblyInterpreterExecutionContext l_Context =
+                new WebAssemblyInterpreterExecutionContext(l_FuncType, l_WasmData.OffsetInstructions.GetEnumerator(), new WebAssemblyInterpreterStackLocals());
+
+            await ExecuteFrameWithoutInstructionsLimit(l_Context);
+            
+            if (l_Context.StackCount != 1)
+            {
+                throw new WebAssemblyInterpreterException(
+                    $"Invalid Stack Size after execute instructions. Expected 1 but got {l_Context.StackCount}");
+            }
+            
+            WebAssemblyInterpreterValue l_OffsetValue = l_Context.PopFromStack();
+            
+            Span<byte> l_Memory = GetPrimaryMemoryArea().GetMemoryAccess((int)l_OffsetValue.Value, l_InitContent.Length);
+            l_InitContent.CopyTo(l_Memory);
+        }
+        
     }
 
-    public void InitGlobals(WasmGlobal[] p_Globals)
+    public async Task InitGlobals(WasmGlobal[] p_Globals)
     {
+        if (p_Globals == null)
+        {
+            m_Globals = Array.Empty<WebAssemblyInterpreterValue>();
+            return;
+        }   
+        
+        m_Globals = new WebAssemblyInterpreterValue[p_Globals.Length];
+        
+        for (int i = 0; i < p_Globals.Length; i++)
+        {
+            WasmGlobal l_Global = p_Globals[i];
+
+            WasmFuncType l_FuncType = new WasmFuncType();
+            l_FuncType.Parameters = Array.Empty<WasmDataType>();
+            l_FuncType.Results = new[] { l_Global.Type };
+            
+            WebAssemblyInterpreterExecutionContext l_Context =
+                new WebAssemblyInterpreterExecutionContext(l_FuncType, l_Global.InitInstructions.GetEnumerator(), new WebAssemblyInterpreterStackLocals());
+            
+            await ExecuteFrameWithoutInstructionsLimit(l_Context);
+            
+            if (l_Context.StackCount != 1)
+            {
+                throw new WebAssemblyInterpreterException(
+                    $"Invalid Stack Size after execute instructions. Expected 1 but got {l_Context.StackCount}");
+            }
+            
+            WebAssemblyInterpreterValue l_InitValue = l_Context.PopFromStack();
+            
+            if (l_InitValue.DataType != l_Global.Type)
+            {
+                throw new WebAssemblyInterpreterException(
+                    $"Invalid Global Value Type. Expected {l_Global.Type} but got {l_InitValue.DataType}");
+            }
+            
+            WebAssemblyInterpreterValue l_Value = new WebAssemblyInterpreterValue(l_Global.Type, l_InitValue.Value, l_Global.Mutable);
+            m_Globals[i] = l_Value;
+        }
+        
     }
 }

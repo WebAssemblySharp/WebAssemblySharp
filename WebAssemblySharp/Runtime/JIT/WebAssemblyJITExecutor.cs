@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 
 namespace WebAssemblySharp.Runtime.JIT;
@@ -26,7 +27,7 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor
         
     }
 
-    public void Init()
+    public async Task Init()
     {
         // Best Case load the precompiled assembly
     }
