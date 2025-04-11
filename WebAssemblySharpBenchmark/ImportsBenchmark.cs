@@ -7,6 +7,7 @@ namespace WebAssemblySharpBenchmark;
 //[DotTraceDiagnoser]
 [ShortRunJob]
 [MemoryDiagnoser]
+[JsonExporter("-custom", indentJson: true, excludeMeasurements: true)]
 public class ImportsBenchmark
 {
     [Params(2, 3, 99, 512, 9999)]

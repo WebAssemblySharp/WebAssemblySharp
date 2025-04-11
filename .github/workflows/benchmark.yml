@@ -1,0 +1,111 @@
+name: Run Benchmarks
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Every night at 2 AM UTC
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Needed to check commit history
+
+      - name: Check for new commits since last run
+        id: commit-check
+        run: |
+          echo "Checking for new commits in last 24 hours..."
+          NOW=$(date -u +%s)
+          YESTERDAY=$(($NOW - 86400))
+          SINCE=$(date -u -d "@$YESTERDAY" --iso-8601=seconds)
+
+          echo "Looking for commits since $SINCE"
+
+          COMMITS=$(git log --since="$SINCE" --oneline)
+          echo "$COMMITS"
+
+          if [ -z "$COMMITS" ]; then
+            echo "No new commits in last 24 hours. Skipping benchmark."
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          else
+            echo "New commits found. Proceeding with benchmark."
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Stop if no new commits
+        if: steps.commit-check.outputs.should_run == 'false'
+        run: exit 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x' # or your target version
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build solution
+        run: dotnet build --configuration Release
+
+      - name: Run benchmarks
+        run: dotnet run --project ./WebAssemblySharpBenchmark/WebAssemblySharpBenchmark.csproj --configuration Release -- --artifactsPath ./BenchmarkResults
+
+      - name: Parse Benchmark Results and Update History
+        run: |
+          mkdir -p ./benchmark-history
+          ARTIFACT=$(find ./benchmarks -name "*.json" | head -n 1)
+
+          echo "Parsing benchmark result from: $ARTIFACT"
+
+          python3 <<EOF
+          import json, os
+          from datetime import datetime
+
+          # Load benchmark output
+          with open("$ARTIFACT") as f:
+          data = json.load(f)
+
+          benchmarks = data.get("Benchmarks", [])
+
+          entry_list = []
+          for b in benchmarks:
+            stats = b.get("Statistics", {})
+            memory = b.get("Memory", {})
+
+            entry = {
+                "commit": os.environ.get("GITHUB_SHA"),
+                "date": datetime.utcnow().isoformat(),
+                "method": b.get("FullName", "Unknown"),
+                "meanNs": stats.get("Mean", None),
+                "stdDevNs": stats.get("StandardDeviation", None),
+                "allocBytes": memory.get("AllocatedBytes", None),
+                "gen0": memory.get("Gen0Collections", None),
+                "gen1": memory.get("Gen1Collections", None),
+                "gen2": memory.get("Gen2Collections", None)
+            }
+            entry_list.append(entry)
+
+          # Load or initialize history
+          history_file = "benchmark-history/history.json"
+          if os.path.exists(history_file):
+            with open(history_file) as f:
+              history = json.load(f)
+          else:
+            history = []
+
+          history.extend(entry_list)
+
+          # Save updated history
+          with open(history_file, "w") as f:
+            json.dump(history, f, indent=2)
+          EOF
+
+      - name: Upload History
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-history
+          path: ./benchmark-history
+

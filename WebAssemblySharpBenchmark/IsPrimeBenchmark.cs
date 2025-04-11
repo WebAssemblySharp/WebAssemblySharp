@@ -9,6 +9,7 @@ namespace WebAssemblySharpBenchmark;
 //[DotTraceDiagnoser]
 [ShortRunJob]
 [MemoryDiagnoser]
+[JsonExporter("-custom", indentJson: true, excludeMeasurements: true)]
 public class IsPrimeBenchmark {
 
     [Params(2, 3, 99, 512, 9999)]
