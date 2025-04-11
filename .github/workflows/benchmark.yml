@@ -8,6 +8,8 @@ on:
 jobs:
   benchmark:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required to push to gh-pages
 
     steps:
       - name: Checkout code
@@ -111,4 +113,28 @@ jobs:
         with:
           name: benchmark-history
           path: ./benchmark-history
+
+      # Checkout the gh-pages branch where you want to push the history
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      # Copy the history.json from the artifact to Pages/Benchmark
+      - name: Copy History JSON to Benchmark folder
+        run: |
+          mkdir -p gh-pages/Pages/Benchmark
+          cp ./benchmark-history/history.json gh-pages/Pages/Benchmark/history.json
+
+      # Commit and push the changes to the gh-pages branch
+      - name: Commit and push to gh-pages
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add .
+          git commit -m "Update benchmark history"
+          git push origin gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

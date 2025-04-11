@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Benchmark History Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #f9f9f9; }
+    .chart-container { margin-bottom: 4rem; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    canvas { width: 100% !important; max-width: 1000px; height: 400px !important; }
+  </style>
+</head>
+<body>
+  <h1>📊 Benchmark History Dashboard</h1>
+  <div id="charts"></div>
+
+  <script>
+    async function loadData() {
+      const res = await fetch('history.json');
+      const data = await res.json();
+      return data;
+    }
+
+    function groupByMethod(data) {
+      const grouped = {};
+      data.forEach(entry => {
+        if (!grouped[entry.method]) grouped[entry.method] = [];
+        grouped[entry.method].push(entry);
+      });
+      return grouped;
+    }
+
+    function createChart(id, label, datasets) {
+      const ctx = document.getElementById(id).getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: { labels: datasets.labels, datasets: datasets.data },
+        options: {
+          responsive: true,
+          plugins: { title: { display: true, text: label } },
+          interaction: { mode: 'index', intersect: false },
+          stacked: false,
+          scales: {
+            y: { title: { display: true, text: 'Value' } },
+            x: { title: { display: true, text: 'Date' } }
+          }
+        }
+      });
+    }
+
+    function prepareDatasets(entries) {
+      const labels = entries.map(e => new Date(e.date).toLocaleString());
+
+      const getData = key => entries.map(e => e[key]);
+
+      return {
+        labels,
+        data: [
+          {
+            label: 'Mean (ns)',
+            data: getData('meanNs'),
+            borderColor: '#007bff',
+            yAxisID: 'y'
+          },
+          {
+            label: 'Alloc (bytes)',
+            data: getData('allocBytes'),
+            borderColor: '#28a745',
+            yAxisID: 'y'
+          },
+          {
+            label: 'Gen0',
+            data: getData('gen0'),
+            borderColor: '#ffc107',
+            yAxisID: 'y'
+          },
+          {
+            label: 'Gen1',
+            data: getData('gen1'),
+            borderColor: '#fd7e14',
+            yAxisID: 'y'
+          },
+          {
+            label: 'Gen2',
+            data: getData('gen2'),
+            borderColor: '#dc3545',
+            yAxisID: 'y'
+          }
+        ]
+      };
+    }
+
+    async function main() {
+      const rawData = await loadData();
+      const grouped = groupByMethod(rawData);
+      const chartsDiv = document.getElementById('charts');
+
+      Object.entries(grouped).forEach(([method, entries], idx) => {
+        const chartId = `chart-${idx}`;
+        const container = document.createElement('div');
+        container.className = 'chart-container';
+        container.innerHTML = `<h3>${method}</h3><canvas id="${chartId}"></canvas>`;
+        chartsDiv.appendChild(container);
+
+        const datasets = prepareDatasets(entries);
+        createChart(chartId, method, datasets);
+      });
+    }
+
+    main();
+  </script>
+</body>
+</html>
