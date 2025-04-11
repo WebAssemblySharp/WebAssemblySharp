@@ -56,6 +56,13 @@ jobs:
       - name: Run benchmarks
         run: dotnet run --project ./WebAssemblySharpBenchmark/WebAssemblySharpBenchmark.csproj --configuration Release
 
+      # Checkout the gh-pages branch where you want to push the history
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+
       - name: Parse Benchmark Results and Update History
         run: |
           mkdir -p ./benchmark-history
@@ -93,7 +100,7 @@ jobs:
               entry_list.append(entry)
 
           # Load or initialize history
-          history_file = "benchmark-history/history.json"
+          history_file = "gh-pages/Pages/Benchmark/history.json"
           if os.path.exists(history_file):
               with open(history_file) as f:
                   history = json.load(f)
@@ -107,25 +114,6 @@ jobs:
               json.dump(history, f, indent=2)
 
           EOF
-
-      - name: Upload History
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-history
-          path: ./benchmark-history
-
-      # Checkout the gh-pages branch where you want to push the history
-      - name: Checkout gh-pages branch
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: gh-pages
-
-      # Copy the history.json from the artifact to Pages/Benchmark
-      - name: Copy History JSON to Benchmark folder
-        run: |
-          mkdir -p gh-pages/Pages/Benchmark
-          cp ./benchmark-history/history.json gh-pages/Pages/Benchmark/history.json
 
       # Commit and push the changes to the gh-pages branch
       - name: Commit and push to gh-pages
