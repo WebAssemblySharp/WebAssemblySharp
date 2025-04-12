@@ -120,7 +120,7 @@ jobs:
                       "method": b.get("Method", "Unknown"),
                       "meanNs": stats.get("Mean", None),
                       "stdDevNs": stats.get("StandardDeviation", None),
-                      "allocBytes": memory.get("AllocatedBytes", None),
+                      "allocBytes": memory.get("BytesAllocatedPerOperation", None),
                       "gen0": memory.get("Gen0Collections", None),
                       "gen1": memory.get("Gen1Collections", None),
                       "gen2": memory.get("Gen2Collections", None)

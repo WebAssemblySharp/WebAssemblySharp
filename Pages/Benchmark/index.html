@@ -1,126 +1,208 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Benchmark History Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      margin: 20px;
-      background-color: #f4f4f4;
-    }
-    .chart-container {
-      margin-bottom: 40px;
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    h2 {
-      font-size: 1.2em;
-      margin-bottom: 10px;
-    }
-    canvas {
-      max-width: 100%;
-    }
-  </style>
-</head>
-<body>
-  <h1>Benchmark History Dashboard</h1>
-  <div id="charts"></div>
+  <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Benchmark History Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 20px;
+        background-color: #f4f4f4;
+      }
+      .chart-container {
+        margin-bottom: 40px;
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        font-size: 1.2em;
+        margin-bottom: 10px;
+      }
+      canvas {
+        max-width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Benchmark History Dashboard</h1>
+    <div id="charts"></div>
 
-  <script>
-    async function fetchData() {
-      const response = await fetch("benchmark-history.json");
-      const data = await response.json();
-      return data;
-    }
+    <script>
+      async function fetchData() {
+        //const response = await fetch("https://webassemblysharp.github.io/WebAssemblySharp/Pages/Benchmark/history.json");
+        const response = await fetch("history.json");
+        const data = await response.json();
+        return data;
+      }
 
-    function groupByFullName(data) {
-      const grouped = {};
-      data.forEach(entry => {
-        if (!grouped[entry.fullName]) {
-          grouped[entry.fullName] = [];
+      function groupByFullName(data) {
+        const grouped = {};
+        data.forEach(entry => {
+
+          const key = entry.namespace + '__' + entry.type
+
+          if (!grouped[key]) {
+            grouped[key] = [];
+          }
+          grouped[key].push(entry);
+        });
+        return grouped;
+      }
+
+      function nameToColor(name) {
+        // DJB2 hash - better distribution for strings
+        let hash = 5381;
+        for (let i = 0; i < name.length; i++) {
+          hash = ((hash << 5) + hash) ^ name.charCodeAt(i); // hash * 33 ^ char
         }
-        grouped[entry.fullName].push(entry);
-      });
-      return grouped;
-    }
 
-    function createChart(id, title, labels, values) {
-      const canvas = document.createElement("canvas");
-      const container = document.createElement("div");
-      container.className = "chart-container";
-      container.innerHTML = `<h2>${title}</h2>`;
-      container.appendChild(canvas);
-      document.getElementById("charts").appendChild(container);
+        // Ensure positive value
+        hash = Math.abs(hash);
 
-      new Chart(canvas, {
-        type: "line",
-        data: {
-          labels: labels,
-          datasets: [{
-            label: "Mean (ns)",
-            data: values,
-            fill: false,
-            borderColor: "rgb(75, 192, 192)",
-            tension: 0.1
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: {
-              display: false
-            },
-            tooltip: {
-              mode: "index",
-              intersect: false
-            }
+        // Map to HSL for nice color control
+        const h = hash % 360;                 // Hue: 0-359
+        const s = 65 + (hash % 20);           // Saturation: 65–85%
+        const l = 50 + (hash % 10);           // Lightness: 50–60%
+
+        return hslToRgbString(h, s, l);
+      }
+
+      function hslToRgbString(h, s, l) {
+        s /= 100;
+        l /= 100;
+
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        const m = l - c / 2;
+        let r = 0, g = 0, b = 0;
+
+        if (h < 60)      [r, g, b] = [c, x, 0];
+        else if (h < 120)[r, g, b] = [x, c, 0];
+        else if (h < 180)[r, g, b] = [0, c, x];
+        else if (h < 240)[r, g, b] = [0, x, c];
+        else if (h < 300)[r, g, b] = [x, 0, c];
+        else             [r, g, b] = [c, 0, x];
+
+        r = Math.round((r + m) * 255);
+        g = Math.round((g + m) * 255);
+        b = Math.round((b + m) * 255);
+
+        return `rgb(${r}, ${g}, ${b})`;
+      }
+
+      function createChart(id, title, valueName, labels, datasets) {
+        const canvas = document.createElement("canvas");
+        const container = document.createElement("div");
+        container.className = "chart-container";
+        container.innerHTML = `<h2>${title} - ${valueName}</h2>`;
+        container.appendChild(canvas);
+        document.getElementById("charts").appendChild(container);
+
+        const finalDataSets = [];
+
+        datasets.forEach((x) => {
+          finalDataSets.push({
+              label: x.name,
+              data: x.values,
+              fill: false,
+              color: nameToColor(x.name),
+              tension: 0.1
+            })
+        });
+
+        new Chart(canvas, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: finalDataSets
           },
-          interaction: {
-            mode: "nearest",
-            axis: "x",
-            intersect: false
-          },
-          scales: {
-            y: {
-              beginAtZero: false,
-              title: {
-                display: true,
-                text: "Mean (ns)"
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                mode: "index",
+                intersect: false
               }
             },
-            x: {
-              title: {
-                display: true,
-                text: "Timestamp"
+            interaction: {
+              mode: "nearest",
+              axis: "x",
+              intersect: false
+            },
+            scales: {
+              y: {
+                beginAtZero: false,
+                title: {
+                  display: true,
+                  text: valueName
+                }
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: "Time"
+                }
               }
             }
           }
+        });
+      }
+
+      function createChartForGroups(groups, labels, title, valueName, entries, valueProvider) {
+
+        const dataSet = [];
+
+        groups.forEach(group => {
+
+          const groupEntries = entries.filter(x => x.fullName === group);
+          const values = groupEntries.map((x) => valueProvider(x));
+          dataSet.push({
+            name: group,
+            values: values,
+          });
+        });
+
+        let hasValues = false;
+
+        dataSet.forEach((x) => {
+            hasValues = hasValues || x.values.some(y => y !== 0 && y !== null)
+        })
+
+        if (hasValues) {
+          createChart('chart-' + title, title, valueName, labels, dataSet);
         }
-      });
-    }
 
-    async function main() {
-      const rawData = await fetchData();
+      }
 
-      // Sort data by timestamp (optional, in case the order is inconsistent)
-      rawData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      async function main() {
+        const rawData = await fetchData();
 
-      const grouped = groupByFullName(rawData);
+        // Sort data by timestamp (optional, in case the order is inconsistent)
+        rawData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-      Object.entries(grouped).forEach(([fullName, entries], index) => {
-        const title = fullName.replace("WebAssemblySharpBenchmark.", "");
-        const labels = entries.map(e => new Date(e.timestamp).toLocaleString());
-        const values = entries.map(e => e.mean);
-        createChart(`chart-${index}`, title, labels, values);
-      });
-    }
+        const grouped = groupByFullName(rawData);
 
-    main();
-  </script>
-</body>
+        Object.entries(grouped).forEach(([fullName, entries]) => {
+          const title = fullName.replace("WebAssemblySharpBenchmark__", "");
+          const labels = Array.from(new Set(entries.map(e => new Date(e.date + 'Z').toLocaleString())));
+          const groups = Array.from(new Set(entries.map(x => x.fullName)));
+
+          createChartForGroups(groups, labels, title, 'Mean', entries, e => e.meanNs);
+          createChartForGroups(groups, labels, title, 'Alloc Bytes', entries, e => e.allocBytes);
+          createChartForGroups(groups, labels, title, 'Gen0', entries, e => e.gen0);
+          createChartForGroups(groups, labels, title, 'Gen1', entries, e => e.gen1);
+          createChartForGroups(groups, labels, title, 'Gen2', entries, e => e.gen2);
+        });
+      }
+
+      main();
+    </script>
+  </body>
 </html>
