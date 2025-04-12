@@ -8,7 +8,7 @@ using WebAssemblySharp.Readers.Text;
 using WebAssemblySharp.Readers.Text.Model;
 using WebAssemblySharpExampleData;
 
-namespace WebAssemblySharpTest;
+namespace WebAssemblySharpTest.Readers;
 
 [TestClass]
 public class WasmTextReaderTest

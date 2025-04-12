@@ -1,6 +1,4 @@
-using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Diagnostics.dotTrace;
-using BenchmarkDotNet.Running;
+﻿using BenchmarkDotNet.Attributes;
 using WebAssemblySharp.Runtime;
 using WebAssemblySharpExampleData;
 
@@ -10,8 +8,8 @@ namespace WebAssemblySharpBenchmark;
 [ShortRunJob]
 [MemoryDiagnoser]
 [JsonExporter("-custom", indentJson: true, excludeMeasurements: true)]
-public class IsPrimeBenchmark {
-
+public class ItoaBenchmark
+{
     [Params(2, 3, 99, 512, 9999)]
     public int N;
 
@@ -24,9 +22,9 @@ public class IsPrimeBenchmark {
         WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
         m_Module =
             await (await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"))).Build();
+                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"))).Build();
 
-        await m_Module.Call("is_prime", 1);     
+        await m_Module.Call("itoa", 1);     
     }
 
     [GlobalCleanup]
@@ -38,35 +36,15 @@ public class IsPrimeBenchmark {
     [Benchmark(Baseline = true)]
     public void Native() {
 
-        NativeIsPrime(N);
+        Convert.ToString(N);
 
     }
 
     [Benchmark]
     public async Task Interpreter() {
 
-        await m_Module.Call("is_prime", N); 
+        await m_Module.Call("itoa", N); 
 
     }
-
     
-    private bool NativeIsPrime(int n)
-    {
-        
-        if (n < 2)
-            return false;
-        if (n == 2)
-            return true;
-        if (n % 2 == 0)
-            return false;
-
-        for (int i = 3; i < n; i += 2)
-        {
-            if (n % i == 0)
-                return false;
-        }
-
-        return true;
-    }
-
 }

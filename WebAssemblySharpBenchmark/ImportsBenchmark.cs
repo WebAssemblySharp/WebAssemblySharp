@@ -26,14 +26,14 @@ public class ImportsBenchmark
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"));
         
         l_ModuleBuilder.DefineImport("times2", new Func<int, Task<int>>(x => Task.FromResult(x * 2)));
-        m_AsyncModule = l_ModuleBuilder.Build();
+        m_AsyncModule = await l_ModuleBuilder.Build();
         await m_AsyncModule.Call("twiceplus5", 3);
         
         l_ModuleBuilder = await l_Runtime.LoadModule(
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"));
         
         l_ModuleBuilder.DefineImport("times2", new Func<int, int>(x => x * 2));
-        m_SyncModule = l_ModuleBuilder.Build();
+        m_SyncModule = await l_ModuleBuilder.Build();
         await m_SyncModule.Call("twiceplus5", 3);
      
     }

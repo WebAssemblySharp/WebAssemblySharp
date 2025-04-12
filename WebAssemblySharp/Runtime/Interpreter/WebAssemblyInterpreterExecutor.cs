@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
@@ -72,22 +73,16 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
             throw new Exception("Import already defined: " + p_Name);
     }
 
-    public void Init()
+    public async Task Init()
     {
-        if (m_WasmMetaData.Memory != null)
-        {
-            m_VirtualMaschine.SetupMemory(m_WasmMetaData.Memory);
-        }
+        m_VirtualMaschine.SetupMemory(m_WasmMetaData.Memory);
+        await m_VirtualMaschine.PreloadData(m_WasmMetaData.Data);
+        await m_VirtualMaschine.InitGlobals(m_WasmMetaData.Globals);
+    }
 
-        if (m_WasmMetaData.Data != null)
-        {
-            m_VirtualMaschine.PreloadData(m_WasmMetaData.Data);     
-        }
-        
-        if (m_WasmMetaData.Globals != null)
-        {
-            m_VirtualMaschine.InitGlobals(m_WasmMetaData.Globals);
-        }
+    public Span<byte> GetMemoryAccess(long p_Address, int p_Length)
+    {
+        return m_VirtualMaschine.GetMemoryAccess(p_Address, p_Length);
     }
 
     private Delegate CompileImport(WasmFuncType p_FuncType, Delegate p_Delegate)
@@ -419,7 +414,8 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
         if (l_Index == null)
             return new WebAssemblyInterpreterMethodNotFound(p_Name);
 
-        WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_Index.Value];
+        long l_FinalIndex = m_WasmMetaData.FuncIndex[l_Index.Value];
+        WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_FinalIndex];
         WasmCode l_Code = m_WasmMetaData.Code[l_Index.Value];
 
         return new WebAssemblyInterpreterMethod(m_VirtualMaschine, l_FuncType, l_Code);
@@ -433,7 +429,11 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
 
             if (l_WasmExport.Name.Value == p_Name && l_WasmExport.Kind == p_ExternalKind)
             {
-                return i;
+                // To Get the correct index we need to subtract the number of imports
+                if (m_WasmMetaData.Import != null)
+                    return (int)l_WasmExport.Index - m_WasmMetaData.Import.Count(x => x.Kind == p_ExternalKind);
+
+                return (int)l_WasmExport.Index;
             }
         }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 
 namespace WebAssemblySharp.Runtime.JIT;
@@ -26,8 +27,13 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor
         
     }
 
-    public void Init()
+    public async Task Init()
     {
         // Best Case load the precompiled assembly
+    }
+
+    public Span<byte> GetMemoryAccess(long p_Address, int p_Length)
+    {
+        throw new NotImplementedException();
     }
 }

@@ -1,109 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Benchmark History Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 2rem; background: #f9f9f9; }
-    .chart-container { margin-bottom: 4rem; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    canvas { width: 100% !important; max-width: 1000px; height: 400px !important; }
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      background-color: #f4f4f4;
+    }
+    .chart-container {
+      margin-bottom: 40px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    h2 {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+    }
+    canvas {
+      max-width: 100%;
+    }
   </style>
 </head>
 <body>
-  <h1>📊 Benchmark History Dashboard</h1>
+  <h1>Benchmark History Dashboard</h1>
   <div id="charts"></div>
 
   <script>
-    async function loadData() {
-      const res = await fetch('history.json');
-      const data = await res.json();
+    async function fetchData() {
+      const response = await fetch("benchmark-history.json");
+      const data = await response.json();
       return data;
     }
 
-    function groupByMethod(data) {
+    function groupByFullName(data) {
       const grouped = {};
       data.forEach(entry => {
-        if (!grouped[entry.method]) grouped[entry.method] = [];
-        grouped[entry.method].push(entry);
+        if (!grouped[entry.fullName]) {
+          grouped[entry.fullName] = [];
+        }
+        grouped[entry.fullName].push(entry);
       });
       return grouped;
     }
 
-    function createChart(id, label, datasets) {
-      const ctx = document.getElementById(id).getContext('2d');
-      new Chart(ctx, {
-        type: 'line',
-        data: { labels: datasets.labels, datasets: datasets.data },
+    function createChart(id, title, labels, values) {
+      const canvas = document.createElement("canvas");
+      const container = document.createElement("div");
+      container.className = "chart-container";
+      container.innerHTML = `<h2>${title}</h2>`;
+      container.appendChild(canvas);
+      document.getElementById("charts").appendChild(container);
+
+      new Chart(canvas, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "Mean (ns)",
+            data: values,
+            fill: false,
+            borderColor: "rgb(75, 192, 192)",
+            tension: 0.1
+          }]
+        },
         options: {
           responsive: true,
-          plugins: { title: { display: true, text: label } },
-          interaction: { mode: 'index', intersect: false },
-          stacked: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              mode: "index",
+              intersect: false
+            }
+          },
+          interaction: {
+            mode: "nearest",
+            axis: "x",
+            intersect: false
+          },
           scales: {
-            y: { title: { display: true, text: 'Value' } },
-            x: { title: { display: true, text: 'Date' } }
+            y: {
+              beginAtZero: false,
+              title: {
+                display: true,
+                text: "Mean (ns)"
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: "Timestamp"
+              }
+            }
           }
         }
       });
     }
 
-    function prepareDatasets(entries) {
-      const labels = entries.map(e => new Date(e.date).toLocaleString());
-
-      const getData = key => entries.map(e => e[key]);
-
-      return {
-        labels,
-        data: [
-          {
-            label: 'Mean (ns)',
-            data: getData('meanNs'),
-            borderColor: '#007bff',
-            yAxisID: 'y'
-          },
-          {
-            label: 'Alloc (bytes)',
-            data: getData('allocBytes'),
-            borderColor: '#28a745',
-            yAxisID: 'y'
-          },
-          {
-            label: 'Gen0',
-            data: getData('gen0'),
-            borderColor: '#ffc107',
-            yAxisID: 'y'
-          },
-          {
-            label: 'Gen1',
-            data: getData('gen1'),
-            borderColor: '#fd7e14',
-            yAxisID: 'y'
-          },
-          {
-            label: 'Gen2',
-            data: getData('gen2'),
-            borderColor: '#dc3545',
-            yAxisID: 'y'
-          }
-        ]
-      };
-    }
-
     async function main() {
-      const rawData = await loadData();
-      const grouped = groupByMethod(rawData);
-      const chartsDiv = document.getElementById('charts');
+      const rawData = await fetchData();
 
-      Object.entries(grouped).forEach(([method, entries], idx) => {
-        const chartId = `chart-${idx}`;
-        const container = document.createElement('div');
-        container.className = 'chart-container';
-        container.innerHTML = `<h3>${method}</h3><canvas id="${chartId}"></canvas>`;
-        chartsDiv.appendChild(container);
+      // Sort data by timestamp (optional, in case the order is inconsistent)
+      rawData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-        const datasets = prepareDatasets(entries);
-        createChart(chartId, method, datasets);
+      const grouped = groupByFullName(rawData);
+
+      Object.entries(grouped).forEach(([fullName, entries], index) => {
+        const title = fullName.replace("WebAssemblySharpBenchmark.", "");
+        const labels = entries.map(e => new Date(e.timestamp).toLocaleString());
+        const values = entries.map(e => e.mean);
+        createChart(`chart-${index}`, title, labels, values);
       });
     }
 
