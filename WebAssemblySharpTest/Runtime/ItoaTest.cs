@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WebAssemblySharp.Runtime;
+using WebAssemblySharp.Runtime.Values;
 using WebAssemblySharpExampleData;
 
 namespace WebAssemblySharpTest.Runtime;
@@ -31,11 +32,7 @@ public class ItoaTest
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));
         WebAssemblyModule l_Module = await l_ModuleBuilder.Build();
 
-        object[] l_Objects = (Object[]) await l_Module.Call("itoa", p_Number);
-        Assert.AreEqual(2, l_Objects.Length);
-
-        Span<byte> l_Access = l_Module.GetMemoryAccess((int)l_Objects[1], (int)l_Objects[0]);
-        string l_Result = System.Text.Encoding.UTF8.GetString(l_Access);
-        Assert.AreEqual(Convert.ToString(p_Number), l_Result);
+        WebAssemblyUTF8String l_StringValue = await l_Module.Call<WebAssemblyUTF8String>("itoa", p_Number);
+        Assert.AreEqual(Convert.ToString(p_Number), l_StringValue);
     }
 }

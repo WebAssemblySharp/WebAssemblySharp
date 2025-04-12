@@ -33,6 +33,22 @@ public class WebAssemblyModule
     {
         return m_Executor.GetMethod(p_Name).Invoke(p_Args);
     }
+    
+    public async Task<T> Call<T>(string p_Name, params object[] p_Args)
+    {
+        object l_Result = await m_Executor.GetMethod(p_Name).Invoke(p_Args);
+
+        if (typeof(T).IsAssignableTo(typeof(IWebAssemblyValue)))
+        {
+            IWebAssemblyValue l_Instance = (IWebAssemblyValue)Activator.CreateInstance<T>();
+            l_Instance.Load(l_Result, m_Executor);
+            return (T)l_Instance;
+        }
+        else
+        {
+            return (T) l_Result;   
+        }
+    }
 
     public IWebAssemblyMethod GetMethod(string p_Name)
     {

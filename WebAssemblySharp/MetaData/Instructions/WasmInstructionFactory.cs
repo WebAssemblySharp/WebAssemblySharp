@@ -64,6 +64,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.GlobalSet:
                 break;
             case WasmOpcode.I32Load:
+                l_Result = new  WasmI32Load();
                 break;
             case WasmOpcode.I64Load:
                 break;
@@ -136,6 +137,7 @@ public static class WasmInstructionFactory
                 l_Result = WasmI32Eq.Instance;
                 break;
             case WasmOpcode.I32Ne:
+                l_Result = WasmI32Ne.Instance;
                 break;
             case WasmOpcode.I32LtS:
                 l_Result = WasmI32LtS.Instance;
@@ -144,6 +146,7 @@ public static class WasmInstructionFactory
                 l_Result = WasmI32LtU.Instance;
                 break;
             case WasmOpcode.I32GtS:
+                l_Result = WasmI32GtS.Instance;
                 break;
             case WasmOpcode.I32GtU:
                 break;
@@ -152,6 +155,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.I32LeU:
                 break;
             case WasmOpcode.I32GeS:
+                l_Result = WasmI32GeS.Instance;
                 break;
             case WasmOpcode.I32GeU:
                 l_Result = WasmI32GeU.Instance;
@@ -215,6 +219,7 @@ public static class WasmInstructionFactory
                 l_Result = WasmI32Sub.Instance;
                 break;
             case WasmOpcode.I32Mul:
+                l_Result = WasmI32Mul.Instance;
                 break;
             case WasmOpcode.I32DivS:
                 break;

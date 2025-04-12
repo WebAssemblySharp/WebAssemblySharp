@@ -59,12 +59,12 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
 
     public void DefineImport(string p_Name, Delegate p_Delegate)
     {
-        WasmImport l_Import = FindImportByName(p_Name);
+        WasmImportFunction l_Import = FindImportByName<WasmImportFunction>(p_Name);
 
         if (l_Import == null)
             throw new Exception("Import not found: " + p_Name);
 
-        WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_Import.Index];
+        WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_Import.FunctionIndex];
 
         Delegate l_Delegate = CompileImport(l_FuncType, p_Delegate);
         WebAssemblyInterpreterImportMethod l_ImportMethod = new WebAssemblyInterpreterImportMethod(l_Import, l_FuncType, l_Delegate);
@@ -381,13 +381,16 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
         });
     }
 
-    private WasmImport FindImportByName(string p_Name)
+    private T FindImportByName<T>(string p_Name) where T: WasmImport
     {
         foreach (WasmImport l_Import in m_WasmMetaData.Import)
         {
+            if (!(l_Import is T))
+                continue;
+            
             if (l_Import.Name.Value == p_Name)
             {
-                return l_Import;
+                return (T)l_Import;
             }
         }
 

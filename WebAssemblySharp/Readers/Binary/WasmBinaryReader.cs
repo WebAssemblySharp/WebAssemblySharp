@@ -485,10 +485,8 @@ public class WasmBinaryReader
             if (l_ModuleLength == null)
                 return;
 
-            m_CurrentImport = new WasmImport();
+            m_CurrentImport = new WasmUnkownImport();
             m_CurrentImport.Module = new WasmStringInComplete((long)l_ModuleLength.Value);
-            m_CurrentImport.Kind = WasmExternalKind.Unknown;
-            m_CurrentImport.Index = -1;
         }
         
         if (m_CurrentImport.Module is WasmStringInComplete)
@@ -530,27 +528,91 @@ public class WasmBinaryReader
             if (l_Bytes.IsEmpty)
                 return;
 
-            m_CurrentImport.Kind = (WasmExternalKind)l_Bytes[0];
+            WasmExternalKind l_Kind = (WasmExternalKind)l_Bytes[0];
+
+            WasmImport l_Unkown = m_CurrentImport;
+
+            switch (l_Kind)
+            {
+                case WasmExternalKind.Function:
+                    m_CurrentImport = new WasmImportFunction() { FunctionIndex = -1 };
+                    break;
+                case WasmExternalKind.Table:
+                    break;
+                case WasmExternalKind.Memory:
+                    m_CurrentImport = new WasmImportMemory() {Min = -1, Max = -2};
+                    break;
+                case WasmExternalKind.Global:
+                    break;
+                default:
+                    // QQQ handle other external kinds
+                    throw new WasmBinaryReaderException("Invalid import kind " + m_CurrentImport.Kind + " not implemnted");
+            }
+            
+            m_CurrentImport.Name = l_Unkown.Name;
+            m_CurrentImport.Module = l_Unkown.Module;
         }
         
-        if (m_CurrentImport.Kind == WasmExternalKind.Function)
+        if (m_CurrentImport is WasmImportFunction)
         {
-            if (m_CurrentImport.Index == -1)
+            WasmImportFunction l_ImportFunction = (WasmImportFunction)m_CurrentImport;
+            
+            if (l_ImportFunction.FunctionIndex == -1)
             {
                 ulong? l_Index = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
 
                 if (l_Index == null)
                     return;
 
-                m_CurrentImport.Index = (long)l_Index.Value;
+                l_ImportFunction.FunctionIndex = (long)l_Index.Value;
+            }
+        }
+        else if (m_CurrentImport is WasmImportMemory)
+        {
+            WasmImportMemory l_ImportMemory = (WasmImportMemory)m_CurrentImport;
+
+            if (l_ImportMemory.Max == -2)
+            {
+                ReadOnlySpan<byte> l_HasMax = ReaReadBytes(p_Data, ref p_Index, 1, ref m_SectionSize);
+
+                if (l_HasMax.IsEmpty)
+                    return;
+
+                if (l_HasMax[0] == 0)
+                {
+                    l_ImportMemory.Max = Int64.MaxValue;
+                }
+                else
+                {
+                    l_ImportMemory.Max = -1;
+                }
+            }
+            
+            if (l_ImportMemory.Min == -1)
+            {
+                ulong? l_Min = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
+                
+                if (l_Min == null)
+                    return;
+                
+                l_ImportMemory.Min = (long)l_Min.Value;        
+            }
+            
+            if (l_ImportMemory.Max == -1)
+            {
+                ulong? l_Max = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
+                
+                if (l_Max == null)
+                    return;
+                
+                l_ImportMemory.Max = (long)l_Max.Value;   
             }
         }
         else
         {
             // QQQ handle other external kinds
-            throw new WasmBinaryReaderException("Invalid import kind " + m_CurrentImport.Kind + " not implemnted");
+            throw new WasmBinaryReaderException("Invalid import kind " + m_CurrentImport.Kind + " not implemnted");    
         }
-        
         
         for (int i = 0; i < m_MetaData.Import.Length; i++)
         {
