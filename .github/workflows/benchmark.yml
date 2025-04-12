@@ -114,7 +114,10 @@ jobs:
                   entry = {
                       "commit": os.environ.get("GITHUB_SHA"),
                       "date": datetime.utcnow().isoformat(),
-                      "method": b.get("FullName", "Unknown"),
+                      "fullName": b.get("FullName", "Unknown"),
+                      "namespace": b.get("Namespace", "Unknown"),
+                      "type": b.get("Type", "Unknown"),
+                      "method": b.get("Method", "Unknown"),
                       "meanNs": stats.get("Mean", None),
                       "stdDevNs": stats.get("StandardDeviation", None),
                       "allocBytes": memory.get("AllocatedBytes", None),
