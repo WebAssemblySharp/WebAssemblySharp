@@ -35,13 +35,13 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
             return null;
 
         if (l_JitValues.Length == 1)
-            return l_JitValues[0].Value;
+            return l_JitValues[0].GetRawValue();
         
         object[] l_Results = new object[l_JitValues.Length];
         
         for (int i = 0; i < l_JitValues.Length; i++)
         {
-            l_Results[i] = l_JitValues[i].Value;
+            l_Results[i] = l_JitValues[i].GetRawValue();
         }
 
         return l_Results;
