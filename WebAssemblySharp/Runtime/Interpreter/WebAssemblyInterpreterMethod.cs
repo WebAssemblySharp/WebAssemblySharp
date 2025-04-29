@@ -38,12 +38,13 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
             return l_JitValues[0].GetRawValue();
         
         object[] l_Results = new object[l_JitValues.Length];
-        
-        for (int i = 0; i < l_JitValues.Length; i++)
-        {
-            l_Results[i] = l_JitValues[i].GetRawValue();
-        }
 
+        // Reverse the order of the results because the stack is LIFO
+        for (int i = l_JitValues.Length - 1; i >= 0; i--)
+        {
+            l_Results[l_JitValues.Length - 1 - i] = l_JitValues[i].GetRawValue();
+        }
+        
         return l_Results;
     }
 

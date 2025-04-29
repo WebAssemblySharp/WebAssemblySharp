@@ -79,10 +79,10 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
         await m_VirtualMaschine.PreloadData(m_WasmMetaData.Data);
         await m_VirtualMaschine.InitGlobals(m_WasmMetaData.Globals);
     }
-
-    public Span<byte> GetMemoryAccess(long p_Address, int p_Length)
+    
+    public IWebAssemblyMemoryArea GetMemoryArea(int p_Index)
     {
-        return m_VirtualMaschine.GetMemoryAccess(p_Address, p_Length);
+        return m_VirtualMaschine.GetMemoryArea(p_Index);
     }
 
     private Delegate CompileImport(WasmFuncType p_FuncType, Delegate p_Delegate)

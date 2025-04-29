@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnostics.dotTrace;
+using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using WebAssemblySharp.Runtime;
 using WebAssemblySharpExampleData;
@@ -7,7 +8,7 @@ using WebAssemblySharpExampleData;
 namespace WebAssemblySharpBenchmark;
 
 //[DotTraceDiagnoser]
-[ShortRunJob]
+[ShortRunJob(RuntimeMoniker.Net90)]
 [MemoryDiagnoser]
 [JsonExporter("-custom", indentJson: true, excludeMeasurements: true)]
 public class IsPrimeBenchmark {

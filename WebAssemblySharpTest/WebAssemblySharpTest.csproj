@@ -33,6 +33,12 @@
       <EmbeddedResource Include="Data\Result\importsReaderResult.txt" />
       <None Remove="Data\Result\loopsReaderResult.txt" />
       <EmbeddedResource Include="Data\Result\loopsReaderResult.txt" />
+      <None Remove="Data\Result\ifexprReaderResult.txt" />
+      <EmbeddedResource Include="Data\Result\ifexprReaderResult.txt" />
+      <None Remove="Data\Result\localsReaderResult.txt" />
+      <EmbeddedResource Include="Data\Result\localsReaderResult.txt" />
+      <None Remove="Data\Result\memory-basicsReaderResult.txt" />
+      <EmbeddedResource Include="Data\Result\memory-basicsReaderResult.txt" />
     </ItemGroup>
 
   

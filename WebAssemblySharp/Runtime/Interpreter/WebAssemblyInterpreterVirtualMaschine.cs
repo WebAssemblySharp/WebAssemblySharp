@@ -108,8 +108,62 @@ public class WebAssemblyInterpreterVirtualMaschine
         m_InstructionHandlers.Add(WasmOpcode.I32GeS, HandleI32GeS);
         m_InstructionHandlers.Add(WasmOpcode.I32Mul, HandleI32Mul);
         m_InstructionHandlers.Add(WasmOpcode.I32Load, HandleI32Load);
+        m_InstructionHandlers.Add(WasmOpcode.MemoryGrow, HandleMemoryGrow);
+        m_InstructionHandlers.Add(WasmOpcode.MemorySize, HandleMemorySize);
+        m_InstructionHandlers.Add(WasmOpcode.MemoryFill, HandleMemoryFill);
     }
-    
+
+    private void HandleMemoryFill(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
+    {
+        WasmMemoryFill l_Instruction = (WasmMemoryFill)p_Instruction;
+        
+        WebAssemblyInterpreterValue l_Length = p_Context.PopFromStack();
+        WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
+        WebAssemblyInterpreterValue l_Offset = p_Context.PopFromStack();
+        
+        Span<byte> l_Memory = m_MemoryAreas[l_Instruction.MemoryIndex].GetMemoryAccess(l_Offset.IntValue, l_Length.IntValue);
+        byte l_ByteVal = (byte)(l_Value.IntValue & 0xFF);
+        l_Memory.Fill(l_ByteVal);
+    }
+
+    private void HandleMemorySize(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
+    {
+        WasmMemorySize l_Instruction = (WasmMemorySize)p_Instruction;
+        
+        IWebAssemblyInterpreterMemoryArea l_Area = m_MemoryAreas[l_Instruction.MemoryIndex];
+        int l_Pages = l_Area.GetCurrentPages();
+        p_Context.PushToStack(new WebAssemblyInterpreterValue(l_Pages));
+    }
+
+    private void HandleMemoryGrow(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
+    {
+        WasmMemoryGrow l_Instruction = (WasmMemoryGrow)p_Instruction;
+        
+        WebAssemblyInterpreterValue l_PagesToAddValue = p_Context.PopFromStack();
+        int l_PagesToAdd = l_PagesToAddValue.IntValue;
+        
+        if (l_PagesToAdd < 0)
+        {
+            throw new WebAssemblyInterpreterException("Memory grow negative");
+        }
+        
+        IWebAssemblyInterpreterMemoryArea l_InterpreterMemoryArea = m_MemoryAreas[l_Instruction.MemoryIndex];
+        int l_CurrentPages = l_InterpreterMemoryArea.GetCurrentPages();
+        int l_NewSize = l_InterpreterMemoryArea.GrowMemory(l_PagesToAdd);
+        
+        if (l_NewSize < 0)
+        {
+            // Memory grow failed
+            p_Context.PushToStack(new WebAssemblyInterpreterValue(l_NewSize));
+        }
+        else
+        {
+            // Memory grow succeeded
+            p_Context.PushToStack(new WebAssemblyInterpreterValue(l_CurrentPages));
+        }
+        
+    }
+
     private void HandleI32Store8(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
     {
         WasmI32Store8 l_Instruction = (WasmI32Store8)p_Instruction;
@@ -121,7 +175,7 @@ public class WebAssemblyInterpreterVirtualMaschine
         
         WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
         WebAssemblyInterpreterValue l_Address = p_Context.PopFromStack();
-        Span<byte> l_Memory = GetPrimaryMemoryArea().GetMemoryAccess(l_Instruction.Offset + l_Address.IntValue, 1);
+        Span<byte> l_Memory = m_MemoryAreas[0].GetMemoryAccess(l_Instruction.Offset + l_Address.IntValue, 1);
         byte l_ByteVal = (byte)(l_Value.IntValue & 0xFF);
         l_Memory[0] = l_ByteVal;
     }
@@ -138,7 +192,7 @@ public class WebAssemblyInterpreterVirtualMaschine
         WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
         WebAssemblyInterpreterValue l_Address = p_Context.PopFromStack();
 
-        Span<byte> l_Memory = GetPrimaryMemoryArea().GetMemoryAccess(l_Instruction.Offset + l_Address.IntValue, 4);
+        Span<byte> l_Memory = m_MemoryAreas[0].GetMemoryAccess(l_Instruction.Offset + l_Address.IntValue, 4);
 
         uint l_Lower32 = (uint)(l_Value.LongValue & 0xFFFFFFFF);
         l_Memory[0] = (byte)(l_Lower32 & 0xFF);
@@ -146,12 +200,7 @@ public class WebAssemblyInterpreterVirtualMaschine
         l_Memory[2] = (byte)((l_Lower32 >> 16) & 0xFF);
         l_Memory[3] = (byte)((l_Lower32 >> 24) & 0xFF);
     }
-
-    private IWebAssemblyInterpreterMemoryArea GetPrimaryMemoryArea()
-    {
-        return m_MemoryAreas[0];
-    }
-
+    
     private void HandleI32Extend8_s(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
     {
         WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
@@ -177,7 +226,7 @@ public class WebAssemblyInterpreterVirtualMaschine
         
         WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
         long l_Address = l_Instruction.Offset + l_Value.IntValue;
-        Span<byte> l_Span = GetPrimaryMemoryArea().GetMemoryAccess(l_Address, 4);
+        Span<byte> l_Span = m_MemoryAreas[0].GetMemoryAccess(l_Address, 4);
         
         uint l_Value32 = (uint)(l_Span[0] | (l_Span[1] << 8) | (l_Span[2] << 16) | (l_Span[3] << 24));
         
@@ -196,7 +245,7 @@ public class WebAssemblyInterpreterVirtualMaschine
         
         WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
         long l_Address = l_Instruction.Offset + l_Value.IntValue;
-        Span<byte> l_Span = GetPrimaryMemoryArea().GetMemoryAccess(l_Address, 1);
+        Span<byte> l_Span = m_MemoryAreas[0].GetMemoryAccess(l_Address, 1);
         uint l_Value8 = l_Span[0];
         WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue((int)l_Value8);
         p_Context.PushToStack(l_Result);
@@ -568,8 +617,8 @@ public class WebAssemblyInterpreterVirtualMaschine
         for (int i = 0; i < p_Memory.Length; i++)
         {
             WasmMemory l_Memory = p_Memory[i];
-            IWebAssemblyInterpreterMemoryArea l_MemoryArea = new WebAssemblyInterpreterRamMemoryArea((int)l_Memory.Min, (int)l_Memory.Max);
-            m_MemoryAreas[i] = l_MemoryArea;
+            IWebAssemblyInterpreterMemoryArea l_InterpreterMemoryArea = new WebAssemblyInterpreterRamMemoryArea((int)l_Memory.Min, (int)l_Memory.Max);
+            m_MemoryAreas[i] = l_InterpreterMemoryArea;
         }
         
     }
@@ -606,7 +655,7 @@ public class WebAssemblyInterpreterVirtualMaschine
             
             WebAssemblyInterpreterValue l_OffsetValue = l_Context.PopFromStack();
             
-            Span<byte> l_Memory = GetPrimaryMemoryArea().GetMemoryAccess(l_OffsetValue.IntValue, l_InitContent.Length);
+            Span<byte> l_Memory = m_MemoryAreas[0].GetMemoryAccess(l_OffsetValue.IntValue, l_InitContent.Length);
             l_InitContent.CopyTo(l_Memory);
         }
         
@@ -654,9 +703,11 @@ public class WebAssemblyInterpreterVirtualMaschine
         }
         
     }
-
-    public Span<byte> GetMemoryAccess(long p_Address, int p_Length)
+    
+    public IWebAssemblyMemoryArea GetMemoryArea(int p_Index)
     {
-        return GetPrimaryMemoryArea().GetMemoryAccess(p_Address, p_Length);
+        return m_MemoryAreas[p_Index];
     }
+    
+    
 }

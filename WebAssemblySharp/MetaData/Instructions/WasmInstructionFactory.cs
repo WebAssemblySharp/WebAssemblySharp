@@ -118,8 +118,10 @@ public static class WasmInstructionFactory
                 l_Result = new WasmI64Store32();
                 break;
             case WasmOpcode.MemorySize:
+                l_Result = new WasmMemorySize();
                 break;
             case WasmOpcode.MemoryGrow:
+                l_Result = new WasmMemoryGrow();
                 break;
             case WasmOpcode.I32Const:
                 l_Result = new WasmI32Const();
@@ -399,6 +401,43 @@ public static class WasmInstructionFactory
             case WasmOpcode.I64Extend16_s:
                 break;
             case WasmOpcode.I64Extend32_s:
+                break;
+            case WasmOpcode.I32TruncSatF32S:
+                break;
+            case WasmOpcode.I32TruncSatF32U:
+                break;
+            case WasmOpcode.I32TruncSatF64S:
+                break;
+            case WasmOpcode.I32TruncSatF64U:
+                break;
+            case WasmOpcode.I64TruncSatF32S:
+                break;
+            case WasmOpcode.I64TruncSatF32U:
+                break;
+            case WasmOpcode.I64TruncSatF64S:
+                break;
+            case WasmOpcode.I64TruncSatF64U:
+                break;
+            case WasmOpcode.MemoryInit:
+                break;
+            case WasmOpcode.DataDrop:
+                break;
+            case WasmOpcode.MemoryCopy:
+                break;
+            case WasmOpcode.MemoryFill:
+                l_Result = new WasmMemoryFill();
+                break;
+            case WasmOpcode.TableInit:
+                break;
+            case WasmOpcode.ElemDrop:
+                break;
+            case WasmOpcode.TableCopy:
+                break;
+            case WasmOpcode.TableGrow:
+                break;
+            case WasmOpcode.TableSize:
+                break;
+            case WasmOpcode.TableFill:
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(p_Opcode), p_Opcode, "Invalid opcode");

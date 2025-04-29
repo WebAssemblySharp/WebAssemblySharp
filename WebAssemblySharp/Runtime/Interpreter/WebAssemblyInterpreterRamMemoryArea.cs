@@ -19,4 +19,40 @@ public class WebAssemblyInterpreterRamMemoryArea: IWebAssemblyInterpreterMemoryA
     {
         return m_Memory.AsSpan((int)p_Address, p_Length);
     }
+
+    public int GetSize()
+    {
+        return m_Memory.Length;
+    }
+
+    public int GetCurrentPages()
+    {
+        return m_CurrentPages;
+    }
+
+    public int GrowMemory(int p_Pages)
+    {
+        if (p_Pages < 0)
+        {
+            return -1;
+        }
+        
+        if (p_Pages == 0)
+        {
+            return m_CurrentPages;
+        }
+        
+        int l_TargetPages = m_CurrentPages + p_Pages;
+        
+        if (l_TargetPages > m_MaxPages)
+        {
+            return -1;
+        }
+        
+        byte[] l_OldMemory = m_Memory;
+        m_CurrentPages = l_TargetPages;
+        m_Memory = new byte[m_CurrentPages * WebAssemblyConst.WASM_MEMORY_PAGE_SIZE];
+        Array.Copy(l_OldMemory, m_Memory, l_OldMemory.Length);
+        return m_CurrentPages;
+    }
 }

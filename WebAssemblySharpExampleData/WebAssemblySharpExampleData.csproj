@@ -31,6 +31,16 @@
       <EmbeddedResource Include="Programms\imports.wat" />
       <None Remove="Programms\loops.wasm" />
       <EmbeddedResource Include="Programms\loops.wasm" />
+      <None Remove="Programms\ifexpr.wasm" />
+      <EmbeddedResource Include="Programms\ifexpr.wasm" />
+      <None Remove="Programms\locals.wasm" />
+      <EmbeddedResource Include="Programms\locals.wasm" />
+      <None Remove="Programms\locals.wat" />
+      <EmbeddedResource Include="Programms\locals.wat" />
+      <None Remove="Programms\memory-basics.wasm" />
+      <EmbeddedResource Include="Programms\memory-basics.wasm" />
+      <None Remove="Programms\memory-basics.wat" />
+      <EmbeddedResource Include="Programms\memory-basics.wat" />
     </ItemGroup>
 
 </Project>

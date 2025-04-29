@@ -10,7 +10,7 @@ public struct WebAssemblyUTF32String: IWebAssemblyValue
     public void Load(object p_Result, IWebAssemblyExecutor p_Executor)
     {
         object[] l_Objects = (Object[])p_Result;
-        Span<byte> l_Access = p_Executor.GetMemoryAccess((int)l_Objects[1], (int)l_Objects[0]);
+        Span<byte> l_Access = p_Executor.GetMemoryArea().GetMemoryAccess((int)l_Objects[1], (int)l_Objects[0]);
         m_Value = Encoding.UTF32.GetString(l_Access);
     }
 

@@ -17,8 +17,11 @@ public class WasmTextReaderTest
     [DataRow("WebAssemblySharpExampleData.Programms.add.wat", "WebAssemblySharpTest.Data.Result.addReaderResult.txt")]
     [DataRow("WebAssemblySharpExampleData.Programms.isprime.wat", "WebAssemblySharpTest.Data.Result.isprimeReaderResult.txt")]
     [DataRow("WebAssemblySharpExampleData.Programms.itoa.wat", "WebAssemblySharpTest.Data.Result.itoaReaderResult.txt")]
-    [DataRow("WebAssemblySharpExampleData.Programms.loops.wasm", "WebAssemblySharpTest.Data.Result.loopsReaderResult.txt")]
-    [DataRow("WebAssemblySharpExampleData.Programms.imports.wasm", "WebAssemblySharpTest.Data.Result.importsReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.loops.wat", "WebAssemblySharpTest.Data.Result.loopsReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.imports.wat", "WebAssemblySharpTest.Data.Result.importsReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.ifexpr.wat", "WebAssemblySharpTest.Data.Result.ifexprReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.locals.wat", "WebAssemblySharpTest.Data.Result.localsReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.memory-basics.wat", "WebAssemblySharpTest.Data.Result.memory-basicsReaderResult.txt")]
     public async Task ReadTest(string p_SourcePath, string p_ExpectedResultPath)
     {
         using (Stream l_Stream = typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream(p_SourcePath))
@@ -55,8 +58,11 @@ public class WasmTextReaderTest
     [DataRow("WebAssemblySharpExampleData.Programms.add.wat", "WebAssemblySharpTest.Data.Result.addReaderResult.txt")]
     [DataRow("WebAssemblySharpExampleData.Programms.isprime.wat", "WebAssemblySharpTest.Data.Result.isprimeReaderResult.txt")]
     [DataRow("WebAssemblySharpExampleData.Programms.itoa.wat", "WebAssemblySharpTest.Data.Result.itoaReaderResult.txt")]
-    [DataRow("WebAssemblySharpExampleData.Programms.loops.wasm", "WebAssemblySharpTest.Data.Result.loopsReaderResult.txt")]
-    [DataRow("WebAssemblySharpExampleData.Programms.imports.wasm", "WebAssemblySharpTest.Data.Result.importsReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.loops.wat", "WebAssemblySharpTest.Data.Result.loopsReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.imports.wat", "WebAssemblySharpTest.Data.Result.importsReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.ifexpr.wat", "WebAssemblySharpTest.Data.Result.ifexprReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.locals.wat", "WebAssemblySharpTest.Data.Result.localsReaderResult.txt")]
+    [DataRow("WebAssemblySharpExampleData.Programms.memory-basics.wat", "WebAssemblySharpTest.Data.Result.memory-basicsReaderResult.txt")]
     public async Task ReadTestSlow(string p_SourcePath, string p_ExpectedResultPath)
     {
         using (Stream l_Stream = typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream(p_SourcePath))

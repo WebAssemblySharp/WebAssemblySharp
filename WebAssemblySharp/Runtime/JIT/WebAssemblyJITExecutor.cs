@@ -32,7 +32,7 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor
         // Best Case load the precompiled assembly
     }
 
-    public Span<byte> GetMemoryAccess(long p_Address, int p_Length)
+    public IWebAssemblyMemoryArea GetMemoryArea(int p_Index)
     {
         throw new NotImplementedException();
     }

@@ -1,1 +1,1 @@
-﻿"asm" "`" "env" "times2" "twiceplus5" "A" "j" "name" "times2"
+﻿( module ( "import" "env" "times2" ( func "$times2" ( param i32 ) ( result i32 ) ) ) ( func ( export "twiceplus5" ) ( param i32 ) ( result i32 ) ( i32 ( "call" "$times2" ( local "0" ) ) ( i32 "5" ) ) ) )

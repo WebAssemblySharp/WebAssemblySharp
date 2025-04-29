@@ -12,12 +12,15 @@ namespace WebAssemblySharpTest.Readers;
 public class WasmBinaryReaderTest
 {
     [DataTestMethod]
-    [DataRow("WebAssemblySharpExampleData.Programms.add.wasm", "WebAssemblySharpTest.Result.addReaderResult.txt")]
-    [DataRow("WebAssemblySharpExampleData.Programms.isprime.wasm", "WebAssemblySharpTest.Result.addReaderResult.txt")]
-    [DataRow("WebAssemblySharpExampleData.Programms.itoa.wasm", "WebAssemblySharpTest.Data.Result.itoaReaderResult.txt")]
-    [DataRow("WebAssemblySharpExampleData.Programms.loops.wasm", "WebAssemblySharpTest.Data.Result.loopsReaderResult.txt")]
-    [DataRow("WebAssemblySharpExampleData.Programms.imports.wasm", "WebAssemblySharpTest.Data.Result.importsReaderResult.txt")]
-    public async Task ReadTest(string p_SourcePath, string p_ExpectedResultPath)
+    [DataRow("WebAssemblySharpExampleData.Programms.add.wasm")]
+    [DataRow("WebAssemblySharpExampleData.Programms.isprime.wasm")]
+    [DataRow("WebAssemblySharpExampleData.Programms.itoa.wasm")]
+    [DataRow("WebAssemblySharpExampleData.Programms.loops.wasm")]
+    [DataRow("WebAssemblySharpExampleData.Programms.imports.wasm")]
+    [DataRow("WebAssemblySharpExampleData.Programms.ifexpr.wasm")]
+    [DataRow("WebAssemblySharpExampleData.Programms.locals.wasm")]
+    [DataRow("WebAssemblySharpExampleData.Programms.memory-basics.wasm")]
+    public async Task ReadTest(string p_SourcePath)
     {
         using (Stream l_Stream = typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream(p_SourcePath))
         {
@@ -47,12 +50,15 @@ public class WasmBinaryReaderTest
     
     
     [DataTestMethod]
-    [DataRow("WebAssemblySharpExampleData.Programms.add.wasm", "WebAssemblySharpTest.Result.addReaderResult.txt")]
-    [DataRow("WebAssemblySharpExampleData.Programms.isprime.wasm", "WebAssemblySharpTest.Result.addReaderResult.txt")]
-    [DataRow("WebAssemblySharpExampleData.Programms.itoa.wasm", "WebAssemblySharpTest.Data.Result.itoaReaderResult.txt")]
-    [DataRow("WebAssemblySharpExampleData.Programms.loops.wasm", "WebAssemblySharpTest.Data.Result.loopsReaderResult.txt")]
-    [DataRow("WebAssemblySharpExampleData.Programms.imports.wasm", "WebAssemblySharpTest.Data.Result.importsReaderResult.txt")]
-    public async Task ReadTestSlow(string p_SourcePath, string p_ExpectedResultPath)
+    [DataRow("WebAssemblySharpExampleData.Programms.add.wasm")]
+    [DataRow("WebAssemblySharpExampleData.Programms.isprime.wasm")]
+    [DataRow("WebAssemblySharpExampleData.Programms.itoa.wasm")]
+    [DataRow("WebAssemblySharpExampleData.Programms.loops.wasm")]
+    [DataRow("WebAssemblySharpExampleData.Programms.imports.wasm")]
+    [DataRow("WebAssemblySharpExampleData.Programms.ifexpr.wasm")]
+    [DataRow("WebAssemblySharpExampleData.Programms.locals.wasm")]
+    [DataRow("WebAssemblySharpExampleData.Programms.memory-basics.wasm")]
+    public async Task ReadTestSlow(string p_SourcePath)
     {
         using (Stream l_Stream = typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream(p_SourcePath))
         {

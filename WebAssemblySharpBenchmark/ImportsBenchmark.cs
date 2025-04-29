@@ -1,11 +1,12 @@
 ﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 using WebAssemblySharp.Runtime;
 using WebAssemblySharpExampleData;
 
 namespace WebAssemblySharpBenchmark;
 
 //[DotTraceDiagnoser]
-[ShortRunJob]
+[ShortRunJob(RuntimeMoniker.Net90)]
 [MemoryDiagnoser]
 [JsonExporter("-custom", indentJson: true, excludeMeasurements: true)]
 public class ImportsBenchmark

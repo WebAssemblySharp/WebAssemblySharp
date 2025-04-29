@@ -150,7 +150,7 @@ public class WasmBinaryReader
         {
             if (m_CurrentInstruction == null)
             {
-                WasmOpcode? l_Opcode = ReadOpCode(l_Reader);
+                WasmOpcode? l_Opcode = l_Reader.ReadOpcode();
 
                 if (l_Opcode == null)
                     return;
@@ -218,18 +218,7 @@ public class WasmBinaryReader
             m_CurrentInstruction = null;
         }
     }
-
-    private WasmOpcode? ReadOpCode(InternalInstructionReader p_Reader)
-    {
-        ReadOnlySpan<byte> l_Bytes = p_Reader.ReadReadBytes(1);
-        
-        if (l_Bytes.IsEmpty)
-            return null;
-
-        byte l_ByteValue = l_Bytes[0];
-        WasmOpcode l_Opcode = (WasmOpcode)l_ByteValue;
-        return l_Opcode;
-    }
+    
 
     private void ReadCode(ReadOnlySpan<byte> p_Data, ref int p_Index)
     {
@@ -1469,6 +1458,41 @@ public class WasmBinaryReader
         m_SectionSize = -1;
     }
 
+    private WasmOpcode? ReadOpcode(ReadOnlySpan<byte> p_Data, ref int p_Index, ref long p_Limit)
+    {
+        
+        ReadOnlySpan<byte> l_NextByte = ReadReadBytes(p_Data, ref p_Index, 1, ref p_Limit, false);
+
+        if (l_NextByte.IsEmpty)
+        {
+            return null;
+        }
+
+        // If we dont have a multi byte opcode. We can stop
+        if (l_NextByte[0] != 0xFC)
+        {
+            // Reset buffer
+            ResetBuffer(ref p_Limit, 1);
+            return (WasmOpcode)l_NextByte[0];    
+        } 
+        
+        l_NextByte = ReadReadBytes(p_Data, ref p_Index, 2, ref p_Limit, false);
+        
+        if (l_NextByte.IsEmpty)
+        {
+            return null;
+        }
+        
+        ushort l_Opcode = 0;
+        
+        l_Opcode |= (ushort)(l_NextByte[0] << 8);
+        l_Opcode |= (ushort)(l_NextByte[1]);
+        
+        // Reset buffer
+        ResetBuffer(ref p_Limit, 2);
+        return (WasmOpcode)l_Opcode;  
+    }
+
     private long? ReadLEB128Int(ReadOnlySpan<byte> p_Data, ref int p_Index)
     {
         long l_Limit = -1;
@@ -1705,6 +1729,14 @@ public class WasmBinaryReader
                 return m_Parent.ReadReadBytes(m_Data, ref m_Index, p_Length, ref m_Parent.m_CurrentCode.CodeSizeRemaining, true);
             
             return m_Parent.ReadReadBytes(m_Data, ref m_Index, p_Length, ref m_Parent.m_SectionSize, true);
+        }
+
+        public WasmOpcode? ReadOpcode()
+        {
+            if (m_Parent.m_CurrentCode != null)
+                return m_Parent.ReadOpcode(m_Data, ref m_Index, ref m_Parent.m_CurrentCode.CodeSizeRemaining); 
+            
+            return m_Parent.ReadOpcode(m_Data, ref m_Index, ref m_Parent.m_SectionSize);
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
+using WebAssemblySharp.Runtime.Interpreter;
 
 namespace WebAssemblySharp.Runtime;
 
@@ -55,8 +56,8 @@ public class WebAssemblyModule
         return m_Executor.GetMethod(p_Name);
     }
 
-    public Span<byte> GetMemoryAccess(long p_Address, int p_Length)
+    public IWebAssemblyMemoryArea GetMemoryArea()
     {
-        return m_Executor.GetMemoryAccess(p_Address, p_Length);
+        return m_Executor.GetMemoryArea();
     }
 }
