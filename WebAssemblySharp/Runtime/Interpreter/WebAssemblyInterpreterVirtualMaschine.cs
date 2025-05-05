@@ -111,6 +111,24 @@ public class WebAssemblyInterpreterVirtualMaschine
         m_InstructionHandlers.Add(WasmOpcode.MemoryGrow, HandleMemoryGrow);
         m_InstructionHandlers.Add(WasmOpcode.MemorySize, HandleMemorySize);
         m_InstructionHandlers.Add(WasmOpcode.MemoryFill, HandleMemoryFill);
+        m_InstructionHandlers.Add(WasmOpcode.I32Ne, HandleI32Ne);
+        m_InstructionHandlers.Add(WasmOpcode.I32GtS, HandleI32GtS);
+    }
+
+    private void HandleI32GtS(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
+    {
+        WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
+        WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
+        WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue(l_Value2.IntValue > l_Value1.IntValue ? 1 : 0);
+        p_Context.PushToStack(l_Result);
+    }
+
+    private void HandleI32Ne(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
+    {
+        WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
+        WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
+        WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue(l_Value2.IntValue != l_Value1.IntValue ? 1 : 0);
+        p_Context.PushToStack(l_Result);
     }
 
     private void HandleMemoryFill(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
@@ -167,12 +185,6 @@ public class WebAssemblyInterpreterVirtualMaschine
     private void HandleI32Store8(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
     {
         WasmI32Store8 l_Instruction = (WasmI32Store8)p_Instruction;
-        
-        if (l_Instruction.Alignment != 0)
-        {
-            throw new WebAssemblyInterpreterException("QQQ Alignment is not supported");
-        }
-        
         WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
         WebAssemblyInterpreterValue l_Address = p_Context.PopFromStack();
         Span<byte> l_Memory = m_MemoryAreas[0].GetMemoryAccess(l_Instruction.Offset + l_Address.IntValue, 1);
@@ -183,12 +195,6 @@ public class WebAssemblyInterpreterVirtualMaschine
     private void HandleI64Store32(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
     {
         WasmI64Store32 l_Instruction = (WasmI64Store32)p_Instruction;
-        
-        if (l_Instruction.Alignment != 0)
-        {
-            throw new WebAssemblyInterpreterException("QQQ Alignment is not supported");
-        }
-        
         WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
         WebAssemblyInterpreterValue l_Address = p_Context.PopFromStack();
 
@@ -218,12 +224,6 @@ public class WebAssemblyInterpreterVirtualMaschine
     private void HandleI32Load(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
     {
         WasmI32Load l_Instruction = (WasmI32Load)p_Instruction;
-        
-        if (l_Instruction.Alignment != 0)
-        {
-            throw new WebAssemblyInterpreterException("QQQ Alignment is not supported");
-        }    
-        
         WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
         long l_Address = l_Instruction.Offset + l_Value.IntValue;
         Span<byte> l_Span = m_MemoryAreas[0].GetMemoryAccess(l_Address, 4);
@@ -237,12 +237,6 @@ public class WebAssemblyInterpreterVirtualMaschine
     private void HandleI32Load8U(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
     {
         WasmI32Load8U l_Instruction = (WasmI32Load8U)p_Instruction;
-        
-        if (l_Instruction.Alignment != 0)
-        {
-            throw new WebAssemblyInterpreterException("QQQ Alignment is not supported");
-        }
-        
         WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
         long l_Address = l_Instruction.Offset + l_Value.IntValue;
         Span<byte> l_Span = m_MemoryAreas[0].GetMemoryAccess(l_Address, 1);

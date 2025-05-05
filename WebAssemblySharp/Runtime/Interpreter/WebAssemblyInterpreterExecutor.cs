@@ -32,13 +32,14 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
 {
     private WasmMetaData m_WasmMetaData;
     private ConcurrentDictionary<String, IWebAssemblyMethod> m_ExportMethods;
-    private ConcurrentDictionary<WasmImport, WebAssemblyInterpreterImportMethod> m_ImportMethods;
+    private ConcurrentDictionary<WasmImportFunction, WebAssemblyInterpreterImportMethod> m_ImportMethods;
     private WebAssemblyInterpreterVirtualMaschine m_VirtualMaschine;
 
     public WebAssemblyInterpreterExecutor()
     {
         m_ExportMethods = new ConcurrentDictionary<String, IWebAssemblyMethod>();
-        m_ImportMethods = new ConcurrentDictionary<WasmImport, WebAssemblyInterpreterImportMethod>();
+        m_ImportMethods = new ConcurrentDictionary<WasmImportFunction, WebAssemblyInterpreterImportMethod>();
+        
         m_VirtualMaschine = new WebAssemblyInterpreterVirtualMaschine();
     }
 
@@ -448,12 +449,16 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
         if (p_Instruction is WasmCall)
         {
             WasmCall l_Call = (WasmCall)p_Instruction;
-            WasmImport l_WasmImport = m_WasmMetaData.Import[l_Call.FunctionIndex];
+            WasmImportFunction l_WasmImport = (WasmImportFunction)m_WasmMetaData.Import[l_Call.FunctionIndex];
 
             WebAssemblyInterpreterImportMethod l_ImportMethod;
 
             if (!m_ImportMethods.TryGetValue(l_WasmImport, out l_ImportMethod))
-                throw new Exception("Import method not found: " + l_WasmImport.Name.Value);
+            {
+                WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_WasmImport.FunctionIndex];
+                throw new Exception("Import method not found: " + l_WasmImport.Name.Value + l_FuncType.ToString());
+            }
+                
 
             l_Call.VmData = l_ImportMethod.Delegate;
             return true;
