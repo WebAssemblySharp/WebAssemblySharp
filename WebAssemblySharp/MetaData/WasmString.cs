@@ -22,4 +22,9 @@ public class WasmString
     {
         return m_RawValue;
     }
+    
+    public static implicit operator String(WasmString p_Value)
+    {
+        return p_Value.Value;
+    }
 }

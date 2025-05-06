@@ -11,12 +11,9 @@ public class LocalsTest
     [TestMethod]
     public async Task return_defaultTest()
     {
-        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        WebAssemblyModuleBuilder l_ModuleBuilder =
-            await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.locals.wasm"));
-        WebAssemblyModule l_Module = await l_ModuleBuilder.Build();
-
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.locals.wasm"));
+        
         int l_Result = await l_Module.Call<int>("return_default");
         Assert.AreEqual(0, l_Result);
     }
@@ -24,11 +21,8 @@ public class LocalsTest
     [TestMethod]
     public async Task unnamed_localsTest()
     {
-        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        WebAssemblyModuleBuilder l_ModuleBuilder =
-            await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.locals.wasm"));
-        WebAssemblyModule l_Module = await l_ModuleBuilder.Build();
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.locals.wasm"));
 
         object[] l_Result = (Object[])await l_Module.Call("unnamed_locals", 11, 22);
         Assert.AreEqual(3, l_Result.Length);
@@ -40,11 +34,8 @@ public class LocalsTest
     [TestMethod]
     public async Task some_unnamedTest()
     {
-        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        WebAssemblyModuleBuilder l_ModuleBuilder =
-            await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.locals.wasm"));
-        WebAssemblyModule l_Module = await l_ModuleBuilder.Build();
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.locals.wasm"));
 
         object[] l_Result = (Object[])await l_Module.Call("some_unnamed", 11, 22);
         Assert.AreEqual(4, l_Result.Length);
@@ -57,11 +48,8 @@ public class LocalsTest
     [TestMethod]
     public async Task named_by_indexTest()
     {
-        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        WebAssemblyModuleBuilder l_ModuleBuilder =
-            await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.locals.wasm"));
-        WebAssemblyModule l_Module = await l_ModuleBuilder.Build();
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.locals.wasm"));
 
         object[] l_Result = (Object[])await l_Module.Call("named_by_index", 11, 22);
         Assert.AreEqual(3, l_Result.Length);
@@ -73,11 +61,8 @@ public class LocalsTest
     [TestMethod]
     public async Task multi_declTest()
     {
-        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        WebAssemblyModuleBuilder l_ModuleBuilder =
-            await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.locals.wasm"));
-        WebAssemblyModule l_Module = await l_ModuleBuilder.Build();
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.locals.wasm"));
 
         object[] l_Result = (Object[])await l_Module.Call("multi_decl", 11, 22);
         Assert.AreEqual(4, l_Result.Length);

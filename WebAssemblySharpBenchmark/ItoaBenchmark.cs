@@ -20,11 +20,9 @@ public class ItoaBenchmark
     [GlobalSetup]
     public async Task GlobalSetup()
     {
-        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        m_Module =
-            await (await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"))).Build();
-
+        m_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));
+        
         await m_Module.Call("itoa", 1);     
     }
 

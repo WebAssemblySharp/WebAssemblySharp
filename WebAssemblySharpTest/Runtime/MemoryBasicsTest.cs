@@ -12,12 +12,9 @@ public class MemoryBasicsTest
     [TestMethod]
     public async Task MemoryTest()
     {
-        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        WebAssemblyModuleBuilder l_ModuleBuilder =
-            await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.memory-basics.wasm"));
-        WebAssemblyModule l_Module = await l_ModuleBuilder.Build();
-
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.memory-basics.wasm"));
+        
         // Check if the init is fine
         ///////////////////////////////////////
         

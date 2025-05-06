@@ -23,11 +23,9 @@ public class IsPrimeTest
     //[TestMethod]
     public async Task ExecuteIsprimeWasmTest_1_000_000()
     {
-        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        WebAssemblyModule l_Module =
-            await (await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"))).Build();
-
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
+        
         for (int i = 0; i < 1_000_000; i++)
         {
             int l_Result = (int)await l_Module.Call("is_prime", 99);
@@ -38,10 +36,8 @@ public class IsPrimeTest
     [DynamicData(nameof(IsPrimeData))]
     public async Task ExecuteIsprimeWasmTest(int p_Number, bool p_IsPrime)
     {
-        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        WebAssemblyModule l_Module =
-            await (await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"))).Build();
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
 
         int l_Result = (int)await l_Module.Call("is_prime", p_Number);
 

@@ -24,10 +24,12 @@ namespace WebAssemblySharp.Runtime;
 public class WebAssemblyModule
 {
     private readonly IWebAssemblyExecutor m_Executor;
+    public String Name { get; }
     
-    public WebAssemblyModule(IWebAssemblyExecutor p_Executor)
+    public WebAssemblyModule(string p_Name, IWebAssemblyExecutor p_Executor)
     {
         m_Executor = p_Executor;
+        Name = p_Name;
     }
 
     public Task<object> Call(string p_Name, params object[] p_Args)

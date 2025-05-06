@@ -22,7 +22,12 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor
         // QQQ Precompile global wasm code maybe also other functions  
     }
 
-    public void DefineImport(string p_Name, Delegate p_Delegate)
+    public void ImportMemoryArea(string p_Name, IWebAssemblyMemoryArea p_Memory)
+    {
+        
+    }
+
+    public void ImportMethod(string p_Name, Delegate p_Delegate)
     {
         
     }

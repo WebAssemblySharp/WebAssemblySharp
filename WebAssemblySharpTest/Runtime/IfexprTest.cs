@@ -28,12 +28,9 @@ public class IfexprTest
     [DynamicData(nameof(Numbers))]
     public async Task ExecuteItoaTest(int p_Number1, int p_Number2, int p_Result)
     {
-        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        WebAssemblyModuleBuilder l_ModuleBuilder =
-            await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.ifexpr.wasm"));
-        WebAssemblyModule l_Module = await l_ModuleBuilder.Build();
-
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.ifexpr.wasm"));
+        
         int l_ResultValue = await l_Module.Call<int>("ifexpr", p_Number1, p_Number2);
         Assert.AreEqual(p_Result, l_ResultValue);
     }

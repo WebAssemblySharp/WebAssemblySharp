@@ -58,7 +58,18 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
         m_VirtualMaschine.OptimizeCode(this, m_WasmMetaData);
     }
 
-    public void DefineImport(string p_Name, Delegate p_Delegate)
+    public void ImportMemoryArea(string p_Name, IWebAssemblyMemoryArea p_Memory)
+    {
+        WasmImportMemory l_Import = FindImportByName<WasmImportMemory>(p_Name);
+        
+        if (l_Import == null)
+            throw new Exception("Import not found: " + p_Name);
+        
+        throw new NotImplementedException();
+        
+    }
+
+    public void ImportMethod(string p_Name, Delegate p_Delegate)
     {
         WasmImportFunction l_Import = FindImportByName<WasmImportFunction>(p_Name);
 

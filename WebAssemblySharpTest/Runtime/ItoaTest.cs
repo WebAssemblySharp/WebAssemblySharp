@@ -26,12 +26,9 @@ public class ItoaTest
     [DynamicData(nameof(Numbers))]
     public async Task ExecuteItoaTest(int p_Number)
     {
-        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        WebAssemblyModuleBuilder l_ModuleBuilder =
-            await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));
-        WebAssemblyModule l_Module = await l_ModuleBuilder.Build();
-
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));
+        
         WebAssemblyUTF8String l_StringValue = await l_Module.Call<WebAssemblyUTF8String>("itoa", p_Number);
         Assert.AreEqual(Convert.ToString(p_Number), l_StringValue);
     }

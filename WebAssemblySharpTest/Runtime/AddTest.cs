@@ -10,11 +10,9 @@ public class AddTest
     [TestMethod]
     public async Task ExecuteAddWasmTest()
     {
-        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        WebAssemblyModule l_Module =
-            await (await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.add.wasm"))).Build();
-
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.add.wasm"));
+        
         int l_Result = (int) await l_Module.Call("add", 1, 2);
         Assert.AreEqual(3, l_Result);
     }
