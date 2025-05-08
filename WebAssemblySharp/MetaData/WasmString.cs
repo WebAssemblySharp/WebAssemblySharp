@@ -27,4 +27,32 @@ public class WasmString
     {
         return p_Value.Value;
     }
+    
+    public override bool Equals(object p_Obj)
+    {
+        if (p_Obj is null) return false;
+        if (ReferenceEquals(this, p_Obj)) return true;
+        if (p_Obj.GetType() != GetType()) return false;
+        return m_RawValue == ((WasmString)p_Obj).m_RawValue;
+    }
+
+    public override int GetHashCode()
+    {
+        return (m_RawValue != null ? m_RawValue.GetHashCode() : 0);
+    }
+
+    public static bool Equals(WasmString p_A, WasmString p_B)
+    {
+        return Object.Equals(p_A, p_B);
+    }
+    
+    public static bool operator ==(WasmString p_A, WasmString p_B)
+    {
+        return Equals(p_A, p_B);
+    }
+
+    public static bool operator !=(WasmString p_A, WasmString p_B)
+    {
+        return !Equals(p_A, p_B);
+    }
 }

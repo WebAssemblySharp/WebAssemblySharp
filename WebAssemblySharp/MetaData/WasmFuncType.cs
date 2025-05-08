@@ -1,4 +1,6 @@
-﻿namespace WebAssemblySharp.MetaData;
+﻿using System.Linq;
+
+namespace WebAssemblySharp.MetaData;
 
 public class WasmFuncType
 {
@@ -23,5 +25,22 @@ public class WasmFuncType
         {
             return $"({string.Join(", ", Parameters)}): ({string.Join(", ", Results)})";
         }
+    }
+    
+    public bool IsSame(WasmFuncType p_FuncType)
+    {
+        if (Parameters.Length != p_FuncType.Parameters.Length)
+            return false;
+        
+        if (Results.Length != p_FuncType.Results.Length)
+            return false;
+        
+        if (!Parameters.SequenceEqual(p_FuncType.Parameters))
+            return false;
+        
+        if (!Results.SequenceEqual(p_FuncType.Results))
+            return false;
+        
+        return true;
     }
 }

@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -32,14 +34,17 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
 {
     private WasmMetaData m_WasmMetaData;
     private ConcurrentDictionary<String, IWebAssemblyMethod> m_ExportMethods;
-    private ConcurrentDictionary<WasmImportFunction, WebAssemblyInterpreterImportMethod> m_ImportMethods;
+
+    private IDictionary<WasmImportFunction, WebAssemblyInterpreterImportMethod> m_ImportMethods;
+    private IDictionary<int, IWebAssemblyInterpreterMemoryArea> m_ImportedMemoryAreas;
+
     private WebAssemblyInterpreterVirtualMaschine m_VirtualMaschine;
 
     public WebAssemblyInterpreterExecutor()
     {
         m_ExportMethods = new ConcurrentDictionary<String, IWebAssemblyMethod>();
-        m_ImportMethods = new ConcurrentDictionary<WasmImportFunction, WebAssemblyInterpreterImportMethod>();
-        
+        m_ImportMethods = new Dictionary<WasmImportFunction, WebAssemblyInterpreterImportMethod>();
+        m_ImportedMemoryAreas = new Dictionary<int, IWebAssemblyInterpreterMemoryArea>();
         m_VirtualMaschine = new WebAssemblyInterpreterVirtualMaschine();
     }
 
@@ -55,18 +60,25 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
 
     public void OptimizeCode()
     {
+        // Freeze Imports
+        m_ImportMethods = new ReadOnlyDictionary<WasmImportFunction, WebAssemblyInterpreterImportMethod>(m_ImportMethods);
+        m_ImportedMemoryAreas = new ReadOnlyDictionary<int, IWebAssemblyInterpreterMemoryArea>(m_ImportedMemoryAreas);
+
         m_VirtualMaschine.OptimizeCode(this, m_WasmMetaData);
     }
 
     public void ImportMemoryArea(string p_Name, IWebAssemblyMemoryArea p_Memory)
     {
         WasmImportMemory l_Import = FindImportByName<WasmImportMemory>(p_Name);
-        
+
         if (l_Import == null)
             throw new Exception("Import not found: " + p_Name);
-        
-        throw new NotImplementedException();
-        
+
+        if (p_Memory.GetCurrentPages() < l_Import.Min)
+            throw new Exception($"Import memory {p_Name} area too small. Expected min {l_Import.Min} pages, got {p_Memory.GetCurrentPages()} pages");
+
+        if (p_Memory.GetMaximumPages() < l_Import.Max)
+            throw new Exception($"Import memory {p_Name} area too small. Expected max {l_Import.Max} pages, got {p_Memory.GetMaximumPages()} pages");
     }
 
     public void ImportMethod(string p_Name, Delegate p_Delegate)
@@ -85,25 +97,47 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
             throw new Exception("Import already defined: " + p_Name);
     }
 
-    public async Task Init()
-    {
-        m_VirtualMaschine.SetupMemory(m_WasmMetaData.Memory);
-        await m_VirtualMaschine.PreloadData(m_WasmMetaData.Data);
-        await m_VirtualMaschine.InitGlobals(m_WasmMetaData.Globals);
-    }
-    
-    public IWebAssemblyMemoryArea GetMemoryArea(int p_Index)
+    public IWebAssemblyMemoryAreaReadAccess GetInternalMemoryArea(int p_Index = 0)
     {
         return m_VirtualMaschine.GetMemoryArea(p_Index);
     }
 
+    public async Task Init()
+    {
+        if (m_ImportedMemoryAreas.Count > 0)
+            throw new Exception("QQQ Imported memory areas not supported");
+
+        m_VirtualMaschine.SetupMemory(m_WasmMetaData.Memory);
+        await m_VirtualMaschine.PreloadData(m_WasmMetaData.Data);
+        await m_VirtualMaschine.InitGlobals(m_WasmMetaData.Globals);
+    }
+
+    public IWebAssemblyMemoryArea GetMemoryArea(string p_Name)
+    {
+        int? l_ExportIndex = FindExportIndex(p_Name, WasmExternalKind.Memory);
+
+        if (!l_ExportIndex.HasValue)
+        {
+            throw new Exception("Export not found: " + p_Name);
+        }
+
+        return m_VirtualMaschine.GetMemoryArea(l_ExportIndex.Value);
+    }
+
     private Delegate CompileImport(WasmFuncType p_FuncType, Delegate p_Delegate)
     {
-        
+        // Link to other WebAssembly Method
+        if (p_Delegate.Target is IWebAssemblyMethod)
+        {
+            return CompileWasmImport(p_FuncType, p_Delegate, (IWebAssemblyMethod)p_Delegate.Target);
+        }
+
+        // Link CLR Method
+
         // Validated Input
         if (p_FuncType.Results.Length > 1)
             throw new Exception("Import with multiple return values not supported");
-        
+
         ParameterInfo[] l_ParameterInfos = p_Delegate.Method.GetParameters();
 
         if (p_FuncType.Parameters.Length != l_ParameterInfos.Length)
@@ -129,7 +163,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
                 if (WebAssemblyDataTypeUtils.GetInternalType(p_FuncType.Results[0]) != l_UnwarppedResultType)
                     throw new Exception("Import return type mismatch: " + p_FuncType.Results[0] + " != " + l_UnwarppedResultType);
             }
-            
+
             if (l_UnwarppedResultType == typeof(int))
             {
                 return CompileImportWithResultTask<int>(p_FuncType, p_Delegate);
@@ -213,7 +247,10 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
             // Optimize for 0-3 parameters and no return value
             if (p_FuncType.Parameters.Length == 0)
             {
-                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) => { p_Delegate.DynamicInvoke(); });
+                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegate((p_Instruction, p_Context) =>
+                {
+                    p_Delegate.DynamicInvoke();
+                });
             }
 
             if (p_FuncType.Parameters.Length == 1)
@@ -259,15 +296,14 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
                 p_Delegate.DynamicInvoke(l_Args);
             });
         }
-        
-        
-        
+
+
         if (p_FuncType.Results.Length == 1)
         {
             if (WebAssemblyDataTypeUtils.GetInternalType(p_FuncType.Results[0]) != p_Delegate.Method.ReturnType)
                 throw new Exception("Import return type mismatch: " + p_FuncType.Results[0] + " != " + p_Delegate.Method.ReturnType);
         }
-        
+
 
         // Optimize for 0-3 parameters and 1 return value
         if (p_FuncType.Parameters.Length == 0)
@@ -327,9 +363,165 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
         });
     }
 
+    private Delegate CompileWasmImport(WasmFuncType p_FuncType, Delegate p_Delegate, IWebAssemblyMethod p_InternalMethod)
+    {
+        WasmFuncType l_ImportMetaData = p_InternalMethod.GetMetaData();
+
+        if (!l_ImportMetaData.IsSame(p_FuncType))
+            throw new Exception("Import method signature mismatch: " + l_ImportMetaData.ToString() + " != " + p_FuncType.ToString());
+
+        // Void Result
+        if (l_ImportMetaData.Results.Length == 0)
+        {
+            // Optimize for 0 parameters and Task<void> return value
+            if (l_ImportMetaData.Parameters.Length == 0)
+            {
+                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
+                {
+                    Task<object> l_Task = p_InternalMethod.Invoke();
+                    await l_Task;    
+                });
+            }
+            
+            // Optimize for 1 parameter and Task<void> return value
+            if (l_ImportMetaData.Parameters.Length == 1)
+            {
+                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
+                {
+                    WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
+                    Task<object> l_Task = p_InternalMethod.Invoke(l_Value.GetRawValue());
+                    await l_Task;
+                });
+            }
+            
+            // Optimize for 2 parameters and Task<void> return value
+            if (l_ImportMetaData.Parameters.Length == 2)
+            {
+                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
+                {
+                    WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
+                    Task<object> l_Task = p_InternalMethod.Invoke(l_Value1.GetRawValue(), l_Value2.GetRawValue());
+                    await l_Task;
+                });
+            }
+            
+            // Fallback for 3 and more parameters and Task<void> return value
+            return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
+            {
+                Object[] l_Args = new Object[p_FuncType.Parameters.Length];
+                for (int i = 0; i < l_Args.Length; i++)
+                {
+                    WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
+                    l_Args[i] = l_Value.GetRawValue();
+                }
+                    
+                Task<object> l_Task = p_InternalMethod.Invoke(l_Args);
+                await l_Task;
+            });
+            
+        }
+
+        if (l_ImportMetaData.Results.Length == 1)
+        {
+        
+            // Optimize for 0 parameters and Task<T> return value
+            if (l_ImportMetaData.Parameters.Length == 0)
+            {
+                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
+                {
+                    Task<object> l_Task = p_InternalMethod.Invoke();
+                    object l_TaskValue = await l_Task;
+                    p_Context.PushToStack(WebAssemblyInterpreterValue.CreateDynamic(p_FuncType.Results[0], l_TaskValue));
+                });
+            }
+            
+            // Optimize for 1 parameter and Task<T> return value
+            if (l_ImportMetaData.Parameters.Length == 1)
+            {
+                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
+                {
+                    WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
+                    Task<object> l_Task = p_InternalMethod.Invoke(l_Value.GetRawValue());
+                    object l_TaskValue = await l_Task;
+                    p_Context.PushToStack(WebAssemblyInterpreterValue.CreateDynamic(p_FuncType.Results[0], l_TaskValue));
+                });
+            }
+            
+            // Optimize for 2 parameters and Task<T> return value
+            if (l_ImportMetaData.Parameters.Length == 2)
+            {
+                return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
+                {
+                    WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
+                    WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
+                    Task<object> l_Task = p_InternalMethod.Invoke(l_Value1.GetRawValue(), l_Value2.GetRawValue());
+                    object l_TaskValue = await l_Task;
+                    p_Context.PushToStack(WebAssemblyInterpreterValue.CreateDynamic(p_FuncType.Results[0], l_TaskValue));
+                });
+            }
+            
+            // Fallback for 3 and more parameters and Task<T> return value
+            return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
+            {
+                Object[] l_Args = new Object[p_FuncType.Parameters.Length];
+                for (int i = 0; i < l_Args.Length; i++)
+                {
+                    WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
+                    l_Args[i] = l_Value.GetRawValue();
+                }
+                    
+                Task<object> l_Task = p_InternalMethod.Invoke(l_Args);
+                object l_TaskValue = await l_Task;
+                p_Context.PushToStack(WebAssemblyInterpreterValue.CreateDynamic(p_FuncType.Results[0], l_TaskValue));
+            });
+            
+        }
+        
+        // Dynamic Fallbacks which can handle everything
+        return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
+        {
+            Object[] l_Args = new Object[p_FuncType.Parameters.Length];
+            for (int i = 0; i < l_Args.Length; i++)
+            {
+                WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
+                l_Args[i] = l_Value.GetRawValue();
+            }
+
+            Task<object> l_Task = p_InternalMethod.Invoke(l_Args);
+            object l_TaskValue = await l_Task;
+
+            // Void Result
+            if (l_ImportMetaData.Results.Length == 0)
+                return;
+
+            // Single Result
+            if (l_ImportMetaData.Results.Length == 1)
+            {
+                p_Context.PushToStack(WebAssemblyInterpreterValue.CreateDynamic(p_FuncType.Results[0], l_TaskValue));
+                return;
+            }
+
+            // Multiple Results
+            if (l_ImportMetaData.Results.Length > 1)
+            {
+                object[] l_Results = (object[])l_TaskValue;
+
+                if (l_Results.Length != l_ImportMetaData.Results.Length)
+                    throw new Exception("Import method result count mismatch: " + l_ImportMetaData.Results.Length + " != " + l_Results.Length);
+
+                for (int i = 0; i < l_Results.Length; i++)
+                {
+                    p_Context.PushToStack(WebAssemblyInterpreterValue.CreateDynamic(p_FuncType.Results[i], l_Results[i]));
+                }
+
+                return;
+            }
+        });
+    }
+
     private Delegate CompileImportWithResultTask<T>(WasmFuncType p_FuncType, Delegate p_Delegate)
     {
-        
         // Optimize for 0-3 parameters and Task<T> return value
         if (p_FuncType.Parameters.Length == 0)
         {
@@ -393,13 +585,13 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
         });
     }
 
-    private T FindImportByName<T>(string p_Name) where T: WasmImport
+    private T FindImportByName<T>(string p_Name) where T : WasmImport
     {
         foreach (WasmImport l_Import in m_WasmMetaData.Import)
         {
             if (!(l_Import is T))
                 continue;
-            
+
             if (l_Import.Name.Value == p_Name)
             {
                 return (T)l_Import;
@@ -469,7 +661,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
                 WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_WasmImport.FunctionIndex];
                 throw new Exception("Import method not found: " + l_WasmImport.Name.Value + l_FuncType.ToString());
             }
-                
+
 
             l_Call.VmData = l_ImportMethod.Delegate;
             return true;

@@ -91,16 +91,10 @@ public class WebAssemblyModuleBuilder
         return m_Executor.GetMethod(p_ExportName);
     }
 
-    public IWebAssemblyMemoryArea GetMemoryArea(WasmString p_ExportName)
+    public IWebAssemblyMemoryArea GetMemoryArea(String p_ExportName)
     {
         PreInit();
-
-        WasmExport l_WasmExport = m_MetaData.Export.FirstOrDefault(x => x.Name == p_ExportName && x.Kind == WasmExternalKind.Memory);
-
-        if (l_WasmExport == null)
-            return null;
-
-        return m_Executor.GetMemoryArea((int)l_WasmExport.Index);
+        return m_Executor.GetMemoryArea(p_ExportName);
 
     }
 }

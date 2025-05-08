@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using WebAssemblySharp.MetaData;
 
 namespace WebAssemblySharp.Runtime.Interpreter;
 
@@ -13,6 +14,11 @@ public class WebAssemblyInterpreterMethodNotFound: IWebAssemblyMethod
     }
 
     public Task<object> Invoke(params object[] p_Args)
+    {
+        throw new InvalidOperationException("Method not found: " + m_Name);
+    }
+
+    public WasmFuncType GetMetaData()
     {
         throw new InvalidOperationException("Method not found: " + m_Name);
     }

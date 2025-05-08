@@ -49,12 +49,12 @@ public interface IWebAssemblyExecutor
     Task Init();
     
     /*
-     * Gets a WebAssembly memory area by its index.
+     * Gets a WebAssembly memory area by its exported Name.
      *
-     * @param p_Index The index of the memory area to retrieve (default is 0)
+     * @param p_Name Of the memory area to retrieve. This is the Name field from the WasmExport metadata.
      * @return The WebAssembly memory area interface
      */
-    IWebAssemblyMemoryArea GetMemoryArea(int p_Index = 0);
+    IWebAssemblyMemoryArea GetMemoryArea(string p_Name);
     
     /*
      * Imports an external memory area into the WebAssembly module.
@@ -71,4 +71,12 @@ public interface IWebAssemblyExecutor
      * @param p_Delegate The .NET delegate representing the method implementation
      */
     void ImportMethod(string p_Name, Delegate p_Delegate);
+    
+    /*
+     * Accessor for the internal memory area.
+     *
+     * @param p_Index The index of the memory area to access. Defaults to 0.
+     * @return The memory area interface for accessing the memory area.
+     */
+    IWebAssemblyMemoryAreaReadAccess GetInternalMemoryArea(int p_Index = 0);
 }

@@ -48,7 +48,11 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         return l_Results;
     }
 
-    
+    public WasmFuncType GetMetaData()
+    {
+        return m_FuncType;
+    }
+
 
     private void ValidateParameters(object[] p_Args)
     {

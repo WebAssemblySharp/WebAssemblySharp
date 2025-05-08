@@ -8,7 +8,5 @@ namespace WebAssemblySharp.Runtime.Interpreter;
  */
 public interface IWebAssemblyInterpreterMemoryArea: IWebAssemblyMemoryArea
 {
-    int GetCurrentPages();
     
-    int GrowMemory(int p_Pages);
 }

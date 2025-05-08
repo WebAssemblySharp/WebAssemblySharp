@@ -32,6 +32,7 @@ public class WebAssemblyRuntimeBuilder
 {
     private Type m_ExecutorType;
     private Dictionary<string, WebAssemblyModuleBuilder> m_Modules;
+    private Dictionary<string, Delegate> m_ImportedMethods;
     private bool m_ValidateImportAndExport;
 
     public static WebAssemblyRuntimeBuilder Create<T>() where T : IWebAssemblyExecutor
@@ -155,7 +156,30 @@ public class WebAssemblyRuntimeBuilder
         {
             if (l_WasmImport.Module == WebAssemblyConst.WASM_HOST_MODULE_NAME)
             {
-                continue;
+                if (l_WasmImport.Kind == WasmExternalKind.Function)
+                {
+                    if (m_ImportedMethods == null)
+                        continue;
+
+                    if (!m_ImportedMethods.TryGetValue(l_WasmImport.Name, out Delegate l_Delegate))
+                    {
+                        if (!m_ValidateImportAndExport)
+                            continue;
+
+                        throw new Exception($"Cannot find global function  {l_WasmImport.Name}");    
+                    }    
+                    
+                    p_ImportModule.ImportMethod(l_WasmImport.Name, l_Delegate);
+                    continue;
+                }
+                else
+                {
+                    if (!m_ValidateImportAndExport)
+                        continue;
+
+                    throw new Exception($"Cannot find global import {l_WasmImport.Name} and kind {l_WasmImport.Kind}");
+                }
+                
             }
 
             if (!m_Modules.TryGetValue(l_WasmImport.Module, out WebAssemblyModuleBuilder l_ExportModule))
@@ -193,5 +217,15 @@ public class WebAssemblyRuntimeBuilder
                     throw new ArgumentOutOfRangeException(nameof(l_Export.Kind));
             }
         }
+    }
+
+    public void ImportMethod(string p_Name, Delegate p_Delegate)
+    {
+        if (m_ImportedMethods == null)
+        {
+            m_ImportedMethods = new Dictionary<string, Delegate>();
+        }
+        
+        m_ImportedMethods.Add(p_Name, p_Delegate);
     }
 }

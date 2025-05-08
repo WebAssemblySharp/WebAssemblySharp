@@ -18,7 +18,7 @@ public class MemoryBasicsTest
         // Check if the init is fine
         ///////////////////////////////////////
         
-        int l_Size = l_Module.GetMemoryArea().GetSize();
+        int l_Size = l_Module.GetMemoryArea("memory").GetSize();
         Assert.AreEqual(1 * WebAssemblyConst.WASM_MEMORY_PAGE_SIZE, l_Size);
         
         CheckMemoryContainsInitContent(l_Module);
@@ -32,7 +32,7 @@ public class MemoryBasicsTest
         int l_OldPageSize = await l_Module.Call<int>("wasm_grow", 5);
         Assert.AreEqual(1, l_OldPageSize);
         
-        l_Size = l_Module.GetMemoryArea().GetSize();
+        l_Size = l_Module.GetMemoryArea("memory").GetSize();
         Assert.AreEqual(6 * WebAssemblyConst.WASM_MEMORY_PAGE_SIZE, l_Size);
         
         CheckMemoryContainsInitContent(l_Module);
@@ -44,7 +44,7 @@ public class MemoryBasicsTest
         ///////////////////////////////////////
         
         await l_Module.Call("wasm_fill", 1024, 127, 16);
-        Span<byte> l_MemoryAccess = l_Module.GetMemoryArea().GetMemoryAccess(1024, 16);
+        Span<byte> l_MemoryAccess = l_Module.GetMemoryArea("memory").GetMemoryAccess(1024, 16);
         
         for (int i = 0; i < l_MemoryAccess.Length; i++)
         {
@@ -54,7 +54,7 @@ public class MemoryBasicsTest
 
     private void CheckMemoryContainsInitContent(WebAssemblyModule p_Module)
     {
-        IWebAssemblyMemoryArea l_MemoryArea = p_Module.GetMemoryArea();
+        IWebAssemblyMemoryArea l_MemoryArea = p_Module.GetMemoryArea("memory");
 
         Span<byte> l_MemoryAccess = l_MemoryArea.GetMemoryAccess(0, l_MemoryArea.GetSize());
 

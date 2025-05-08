@@ -30,6 +30,11 @@ public class WebAssemblyInterpreterRamMemoryArea: IWebAssemblyInterpreterMemoryA
         return m_CurrentPages;
     }
 
+    public int GetMaximumPages()
+    {
+        return m_MaxPages;
+    }
+
     public int GrowMemory(int p_Pages)
     {
         if (p_Pages < 0)

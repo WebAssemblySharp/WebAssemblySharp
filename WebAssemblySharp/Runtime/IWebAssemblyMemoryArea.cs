@@ -9,8 +9,12 @@ namespace WebAssemblySharp.Runtime;
  * Implementations of this interface should provide the actual memory management logic,
  * including allocation, deallocation, and access control.
  */
-public interface IWebAssemblyMemoryArea
+public interface IWebAssemblyMemoryArea: IWebAssemblyMemoryAreaReadAccess
 {
-    Span<byte> GetMemoryAccess(long p_Address, int p_Length);
-    int GetSize();
+    
+    int GetCurrentPages();
+    
+    int GetMaximumPages();
+    
+    int GrowMemory(int p_Pages);
 }

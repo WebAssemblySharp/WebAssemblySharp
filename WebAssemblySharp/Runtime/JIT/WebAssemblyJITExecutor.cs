@@ -22,6 +22,11 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor
         // QQQ Precompile global wasm code maybe also other functions  
     }
 
+    public IWebAssemblyMemoryArea GetMemoryArea(string p_Name)
+    {
+        throw new NotImplementedException();
+    }
+
     public void ImportMemoryArea(string p_Name, IWebAssemblyMemoryArea p_Memory)
     {
         
@@ -32,13 +37,13 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor
         
     }
 
+    public IWebAssemblyMemoryAreaReadAccess GetInternalMemoryArea(int p_Index = 0)
+    {
+        throw new NotImplementedException();
+    }
+
     public async Task Init()
     {
         // Best Case load the precompiled assembly
-    }
-
-    public IWebAssemblyMemoryArea GetMemoryArea(int p_Index)
-    {
-        throw new NotImplementedException();
     }
 }

@@ -58,8 +58,8 @@ public class WebAssemblyModule
         return m_Executor.GetMethod(p_Name);
     }
 
-    public IWebAssemblyMemoryArea GetMemoryArea()
+    public IWebAssemblyMemoryArea GetMemoryArea(string p_Name)
     {
-        return m_Executor.GetMemoryArea();
+        return m_Executor.GetMemoryArea(p_Name);
     }
 }
