@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
+using WebAssemblySharp.Runtime.Memory;
 using WebAssemblySharp.Runtime.Utils;
 
 namespace WebAssemblySharp.Runtime.Interpreter;
@@ -36,7 +37,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
     private ConcurrentDictionary<String, IWebAssemblyMethod> m_ExportMethods;
 
     private IDictionary<WasmImportFunction, WebAssemblyInterpreterImportMethod> m_ImportMethods;
-    private IDictionary<int, IWebAssemblyInterpreterMemoryArea> m_ImportedMemoryAreas;
+    private IDictionary<int, IWebAssemblyMemoryArea> m_ImportedMemoryAreas;
 
     private WebAssemblyInterpreterVirtualMaschine m_VirtualMaschine;
 
@@ -44,7 +45,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
     {
         m_ExportMethods = new ConcurrentDictionary<String, IWebAssemblyMethod>();
         m_ImportMethods = new Dictionary<WasmImportFunction, WebAssemblyInterpreterImportMethod>();
-        m_ImportedMemoryAreas = new Dictionary<int, IWebAssemblyInterpreterMemoryArea>();
+        m_ImportedMemoryAreas = new Dictionary<int, IWebAssemblyMemoryArea>();
         m_VirtualMaschine = new WebAssemblyInterpreterVirtualMaschine();
     }
 
@@ -62,7 +63,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
     {
         // Freeze Imports
         m_ImportMethods = new ReadOnlyDictionary<WasmImportFunction, WebAssemblyInterpreterImportMethod>(m_ImportMethods);
-        m_ImportedMemoryAreas = new ReadOnlyDictionary<int, IWebAssemblyInterpreterMemoryArea>(m_ImportedMemoryAreas);
+        m_ImportedMemoryAreas = new ReadOnlyDictionary<int, IWebAssemblyMemoryArea>(m_ImportedMemoryAreas);
 
         m_VirtualMaschine.OptimizeCode(this, m_WasmMetaData);
     }
@@ -79,6 +80,8 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
 
         if (p_Memory.GetMaximumPages() < l_Import.Max)
             throw new Exception($"Import memory {p_Name} area too small. Expected max {l_Import.Max} pages, got {p_Memory.GetMaximumPages()} pages");
+        
+        m_ImportedMemoryAreas.Add(0, p_Memory);
     }
 
     public void ImportMethod(string p_Name, Delegate p_Delegate)
@@ -104,10 +107,51 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
 
     public async Task Init()
     {
+        
+        if (m_ImportedMemoryAreas.Count > 0 && m_WasmMetaData.Memory != null && m_WasmMetaData.Memory.Length > 0)
+        {
+            throw new Exception("Import memory and internal memory are not allowed at the same time");
+        }
+        
+        
         if (m_ImportedMemoryAreas.Count > 0)
-            throw new Exception("QQQ Imported memory areas not supported");
+        {
+            int l_Max = m_ImportedMemoryAreas.Keys.Max();
+            
+            IWebAssemblyMemoryArea[] l_MemoryAreas = new IWebAssemblyMemoryArea[l_Max + 1];
+            
+            for (int i = 0; i < l_Max + 1; i++)
+            {
+                if (m_ImportedMemoryAreas.TryGetValue(i, out IWebAssemblyMemoryArea l_MemoryArea))
+                {
+                    l_MemoryAreas[i] = l_MemoryArea;
+                }
+                else
+                {
+                    l_MemoryAreas[i] = new WebAssemblyHeapMemoryArea(0, 0);
+                }
+            }
+            
+            m_VirtualMaschine.SetupMemory(l_MemoryAreas);
+        }
+        else if (m_WasmMetaData.Memory != null)
+        {
+            IWebAssemblyMemoryArea [] l_MemoryAreas = new IWebAssemblyMemoryArea[m_WasmMetaData.Memory.Length];
 
-        m_VirtualMaschine.SetupMemory(m_WasmMetaData.Memory);
+            for (int i = 0; i < m_WasmMetaData.Memory.Length; i++)
+            {
+                WasmMemory l_Memory = m_WasmMetaData.Memory[i];
+                IWebAssemblyMemoryArea l_InterpreterMemoryArea = new WebAssemblyHeapMemoryArea((int)l_Memory.Min, (int)l_Memory.Max);
+                l_MemoryAreas[i] = l_InterpreterMemoryArea;
+            }
+            
+            m_VirtualMaschine.SetupMemory(l_MemoryAreas);    
+        }
+        else
+        {
+            m_VirtualMaschine.SetupMemory(null);
+        }
+        
         await m_VirtualMaschine.PreloadData(m_WasmMetaData.Data);
         await m_VirtualMaschine.InitGlobals(m_WasmMetaData.Globals);
     }
@@ -136,12 +180,12 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
 
         // Validated Input
         if (p_FuncType.Results.Length > 1)
-            throw new Exception("Import with multiple return values not supported");
+            throw new Exception("Import with multiple return values not supported. " + p_FuncType);
 
         ParameterInfo[] l_ParameterInfos = p_Delegate.Method.GetParameters();
 
         if (p_FuncType.Parameters.Length != l_ParameterInfos.Length)
-            throw new Exception("Import parameter count mismatch");
+            throw new Exception("Import parameter count mismatch. Expected: " + p_FuncType + " Got: " + p_Delegate.Method + "(" + l_ParameterInfos + ")");
 
         for (int i = 0; i < p_FuncType.Parameters.Length; i++)
         {
@@ -625,7 +669,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
         WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_FinalIndex];
         WasmCode l_Code = m_WasmMetaData.Code[l_Index.Value];
 
-        return new WebAssemblyInterpreterMethod(m_VirtualMaschine, l_FuncType, l_Code);
+        return new WebAssemblyInterpreterMethod(m_VirtualMaschine, l_FuncType, l_Code, p_Name);
     }
 
     private int? FindExportIndex(string p_Name, WasmExternalKind p_ExternalKind)

@@ -1,14 +1,18 @@
 ﻿using System;
 
-namespace WebAssemblySharp.Runtime.Interpreter;
+namespace WebAssemblySharp.Runtime.Memory;
 
-public class WebAssemblyInterpreterRamMemoryArea: IWebAssemblyInterpreterMemoryArea
+public class WebAssemblyHeapMemoryArea: IWebAssemblyMemoryArea
 {
     private byte[] m_Memory;
     private int m_CurrentPages;
     private int m_MaxPages;
 
-    public WebAssemblyInterpreterRamMemoryArea(int p_CurrentPages, int p_MaxPages)
+    public WebAssemblyHeapMemoryArea(int p_CurrentPages): this(p_CurrentPages, Int32.MaxValue)
+    {
+    }
+    
+    public WebAssemblyHeapMemoryArea(int p_CurrentPages, int p_MaxPages)
     {
         m_CurrentPages = p_CurrentPages;
         m_MaxPages = p_MaxPages;

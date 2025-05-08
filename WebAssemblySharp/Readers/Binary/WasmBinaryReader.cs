@@ -420,7 +420,7 @@ public class WasmBinaryReader
             {
                 // Only Min
                 m_CurrentMemory.Min = -1;
-                m_CurrentMemory.Max = Int64.MaxValue;
+                m_CurrentMemory.Max = Int32.MaxValue;
             }
             else
             {
@@ -569,7 +569,7 @@ public class WasmBinaryReader
 
                 if (l_HasMax[0] == 0)
                 {
-                    l_ImportMemory.Max = Int64.MaxValue;
+                    l_ImportMemory.Max = Int32.MaxValue;
                 }
                 else
                 {

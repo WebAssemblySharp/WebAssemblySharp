@@ -31,8 +31,12 @@ namespace WebAssemblySharp.Runtime;
 public class WebAssemblyRuntimeBuilder
 {
     private Type m_ExecutorType;
+    
     private Dictionary<string, WebAssemblyModuleBuilder> m_Modules;
+    
     private Dictionary<string, Delegate> m_ImportedMethods;
+    private Dictionary<string, IWebAssemblyMemoryArea> m_ImportedMemoryAreas;
+    
     private bool m_ValidateImportAndExport;
 
     public static WebAssemblyRuntimeBuilder Create<T>() where T : IWebAssemblyExecutor
@@ -172,12 +176,28 @@ public class WebAssemblyRuntimeBuilder
                     p_ImportModule.ImportMethod(l_WasmImport.Name, l_Delegate);
                     continue;
                 }
+                else if (l_WasmImport.Kind == WasmExternalKind.Memory)
+                {
+                    if (m_ImportedMemoryAreas == null)
+                        continue;
+                    
+                    if (!m_ImportedMemoryAreas.TryGetValue(l_WasmImport.Name, out IWebAssemblyMemoryArea l_Memory))
+                    {
+                        if (!m_ValidateImportAndExport)
+                            continue;
+
+                        throw new Exception($"Cannot find global memory {l_WasmImport.Name}");
+                    }
+                    
+                    p_ImportModule.ImportMemoryArea(l_WasmImport.Name, l_Memory);
+                    continue;
+                } 
                 else
                 {
                     if (!m_ValidateImportAndExport)
                         continue;
 
-                    throw new Exception($"Cannot find global import {l_WasmImport.Name} and kind {l_WasmImport.Kind}");
+                    throw new Exception($"Cannot find global import {l_WasmImport.Name} of kind {l_WasmImport.Kind}");
                 }
                 
             }
@@ -227,5 +247,13 @@ public class WebAssemblyRuntimeBuilder
         }
         
         m_ImportedMethods.Add(p_Name, p_Delegate);
+    }
+
+    public void ImportMemoryArea(string p_Name, IWebAssemblyMemoryArea p_Memory)
+    {
+        if (m_ImportedMemoryAreas == null)
+            m_ImportedMemoryAreas = new Dictionary<string, IWebAssemblyMemoryArea>();
+        
+        m_ImportedMemoryAreas.Add(p_Name, p_Memory);
     }
 }

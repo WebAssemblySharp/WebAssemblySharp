@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
+using WebAssemblySharp.Runtime.Memory;
 using WebAssemblySharp.Runtime.Utils;
 
 namespace WebAssemblySharp.Runtime.Interpreter;
@@ -24,7 +25,7 @@ public class WebAssemblyInterpreterVirtualMaschine
     public delegate Task ExecuteInstructionDelegateAsync(WasmInstruction Instruction, WebAssemblyInterpreterExecutionContext Context);
 
     private WebAssemblyInterpreterValue[] m_Globals;
-    private IWebAssemblyInterpreterMemoryArea[] m_MemoryAreas;
+    private IWebAssemblyMemoryArea[] m_MemoryAreas;
     private Dictionary<WasmOpcode, ExecuteInstructionDelegate> m_InstructionHandlers;
 
     private void HandleI32Const(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
@@ -148,7 +149,7 @@ public class WebAssemblyInterpreterVirtualMaschine
     {
         WasmMemorySize l_Instruction = (WasmMemorySize)p_Instruction;
         
-        IWebAssemblyInterpreterMemoryArea l_Area = m_MemoryAreas[l_Instruction.MemoryIndex];
+        IWebAssemblyMemoryArea l_Area = m_MemoryAreas[l_Instruction.MemoryIndex];
         int l_Pages = l_Area.GetCurrentPages();
         p_Context.PushToStack(new WebAssemblyInterpreterValue(l_Pages));
     }
@@ -165,7 +166,7 @@ public class WebAssemblyInterpreterVirtualMaschine
             throw new WebAssemblyInterpreterException("Memory grow negative");
         }
         
-        IWebAssemblyInterpreterMemoryArea l_InterpreterMemoryArea = m_MemoryAreas[l_Instruction.MemoryIndex];
+        IWebAssemblyMemoryArea l_InterpreterMemoryArea = m_MemoryAreas[l_Instruction.MemoryIndex];
         int l_CurrentPages = l_InterpreterMemoryArea.GetCurrentPages();
         int l_NewSize = l_InterpreterMemoryArea.GrowMemory(l_PagesToAdd);
         
@@ -598,23 +599,16 @@ public class WebAssemblyInterpreterVirtualMaschine
         return p_Context.StackToArray();
     }
 
-    public void SetupMemory(WasmMemory[] p_Memory)
+    public void SetupMemory(IWebAssemblyMemoryArea[] p_Memory)
     {
-        if (p_Memory == null)
+        if (p_Memory != null)
         {
-            m_MemoryAreas = Array.Empty<IWebAssemblyInterpreterMemoryArea>();
-            return;
+            m_MemoryAreas = p_Memory;    
         }
-        
-        m_MemoryAreas = new IWebAssemblyInterpreterMemoryArea[p_Memory.Length];
-
-        for (int i = 0; i < p_Memory.Length; i++)
+        else
         {
-            WasmMemory l_Memory = p_Memory[i];
-            IWebAssemblyInterpreterMemoryArea l_InterpreterMemoryArea = new WebAssemblyInterpreterRamMemoryArea((int)l_Memory.Min, (int)l_Memory.Max);
-            m_MemoryAreas[i] = l_InterpreterMemoryArea;
+            m_MemoryAreas = Array.Empty<IWebAssemblyMemoryArea>();
         }
-        
     }
 
     public async Task PreloadData(WasmData[] p_Data)
