@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
@@ -39,7 +40,14 @@ public class WebAssemblyInterpreterVirtualMaschine
     {
         WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
         WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
-        WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue(l_Value1.IntValue + l_Value2.IntValue);
+
+        int l_IntResult = l_Value1.IntValue + l_Value2.IntValue;
+        
+#if true
+        Debug.WriteLine($"{l_Value2.IntValue} + {l_Value1.IntValue} = {l_IntResult}");
+#endif
+        
+        WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue(l_IntResult);
         p_Context.PushToStack(l_Result);
     }
 
@@ -120,16 +128,28 @@ public class WebAssemblyInterpreterVirtualMaschine
     {
         WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
         WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
-        WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue(l_Value2.IntValue > l_Value1.IntValue ? 1 : 0);
-        p_Context.PushToStack(l_Result);
+
+        int l_Result = l_Value2.IntValue > l_Value1.IntValue ? 1 : 0;
+
+#if DEBUG
+        Debug.WriteLine($"{l_Value2.IntValue} > ${l_Value1.IntValue} = ${l_Result}");
+#endif
+        
+        p_Context.PushToStack(new WebAssemblyInterpreterValue(l_Result));
     }
 
     private void HandleI32Ne(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
     {
         WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
         WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
-        WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue(l_Value2.IntValue != l_Value1.IntValue ? 1 : 0);
-        p_Context.PushToStack(l_Result);
+
+        int l_Result = l_Value2.IntValue != l_Value1.IntValue ? 1 : 0;
+
+#if DEBUG
+        Debug.WriteLine($"{l_Value2.IntValue} != ${l_Value1.IntValue} = ${l_Result}");
+#endif
+        
+        p_Context.PushToStack(new WebAssemblyInterpreterValue(l_Result));
     }
 
     private void HandleMemoryFill(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
@@ -142,6 +162,11 @@ public class WebAssemblyInterpreterVirtualMaschine
         
         Span<byte> l_Memory = m_MemoryAreas[l_Instruction.MemoryIndex].GetMemoryAccess(l_Offset.IntValue, l_Length.IntValue);
         byte l_ByteVal = (byte)(l_Value.IntValue & 0xFF);
+
+#if DEBUG
+        Debug.WriteLine($"MemoryFill: {l_Length.IntValue} bytes at {l_Offset.IntValue} with {l_ByteVal}");
+#endif
+        
         l_Memory.Fill(l_ByteVal);
     }
 
@@ -151,6 +176,11 @@ public class WebAssemblyInterpreterVirtualMaschine
         
         IWebAssemblyMemoryArea l_Area = m_MemoryAreas[l_Instruction.MemoryIndex];
         int l_Pages = l_Area.GetCurrentPages();
+
+#if DEBUG
+        Debug.WriteLine($"GetMemorySize: {l_Pages} pages");
+#endif
+        
         p_Context.PushToStack(new WebAssemblyInterpreterValue(l_Pages));
     }
 
@@ -169,6 +199,10 @@ public class WebAssemblyInterpreterVirtualMaschine
         IWebAssemblyMemoryArea l_InterpreterMemoryArea = m_MemoryAreas[l_Instruction.MemoryIndex];
         int l_CurrentPages = l_InterpreterMemoryArea.GetCurrentPages();
         int l_NewSize = l_InterpreterMemoryArea.GrowMemory(l_PagesToAdd);
+
+#if DEBUG
+        Debug.WriteLine($"MemoryGrow: {l_CurrentPages} pages + {l_PagesToAdd} pages = {l_NewSize}");
+#endif
         
         if (l_NewSize < 0)
         {
@@ -190,6 +224,11 @@ public class WebAssemblyInterpreterVirtualMaschine
         WebAssemblyInterpreterValue l_Address = p_Context.PopFromStack();
         Span<byte> l_Memory = m_MemoryAreas[0].GetMemoryAccess(l_Instruction.Offset + l_Address.IntValue, 1);
         byte l_ByteVal = (byte)(l_Value.IntValue & 0xFF);
+
+#if DEBUG
+        Debug.WriteLine($"I32Store8: {l_ByteVal} at {l_Instruction.Offset + l_Address.IntValue}");
+#endif
+        
         l_Memory[0] = l_ByteVal;
     }
 
@@ -200,8 +239,13 @@ public class WebAssemblyInterpreterVirtualMaschine
         WebAssemblyInterpreterValue l_Address = p_Context.PopFromStack();
 
         Span<byte> l_Memory = m_MemoryAreas[0].GetMemoryAccess(l_Instruction.Offset + l_Address.IntValue, 4);
-
+        
         uint l_Lower32 = (uint)(l_Value.LongValue & 0xFFFFFFFF);
+        
+#if DEBUG
+        Debug.WriteLine($"I64Store32: {l_Lower32} at {l_Instruction.Offset + l_Address.IntValue}");
+#endif
+        
         l_Memory[0] = (byte)(l_Lower32 & 0xFF);
         l_Memory[1] = (byte)((l_Lower32 >> 8) & 0xFF);
         l_Memory[2] = (byte)((l_Lower32 >> 16) & 0xFF);
@@ -213,6 +257,11 @@ public class WebAssemblyInterpreterVirtualMaschine
         WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
         int l_Value8 = l_Value.IntValue;
         int l_Value32 = (sbyte)(l_Value8 & 0xFF);
+
+#if DEBUG
+        Debug.WriteLine($"Extend8_s: {l_Value8} to {l_Value32}");
+#endif
+        
         WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue(l_Value32);
         p_Context.PushToStack(l_Result);
     }
@@ -230,6 +279,10 @@ public class WebAssemblyInterpreterVirtualMaschine
         Span<byte> l_Span = m_MemoryAreas[0].GetMemoryAccess(l_Address, 4);
         
         uint l_Value32 = (uint)(l_Span[0] | (l_Span[1] << 8) | (l_Span[2] << 16) | (l_Span[3] << 24));
+
+#if DEBUG
+        Debug.WriteLine($"I32Load: {l_Value32} at {l_Instruction.Offset + l_Value.IntValue}");
+#endif
         
         WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue((int)l_Value32);
         p_Context.PushToStack(l_Result);
@@ -242,6 +295,11 @@ public class WebAssemblyInterpreterVirtualMaschine
         long l_Address = l_Instruction.Offset + l_Value.IntValue;
         Span<byte> l_Span = m_MemoryAreas[0].GetMemoryAccess(l_Address, 1);
         uint l_Value8 = l_Span[0];
+
+#if DEBUG
+        Debug.WriteLine($"I32Load8U: {l_Value8} at {l_Instruction.Offset + l_Value.IntValue}");
+#endif
+        
         WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue((int)l_Value8);
         p_Context.PushToStack(l_Result);
     }
@@ -252,6 +310,11 @@ public class WebAssemblyInterpreterVirtualMaschine
         WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
 
         int l_Value = l_Value2.IntValue - l_Value1.IntValue;
+
+#if DEBUG
+        Debug.WriteLine($"{l_Value2.IntValue} - {l_Value1.IntValue} = {l_Value}");
+#endif
+        
         WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue(l_Value);
         p_Context.PushToStack(l_Result);
     }
@@ -268,6 +331,11 @@ public class WebAssemblyInterpreterVirtualMaschine
         WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
 
         uint l_Value = (uint)l_Value2.IntValue / (uint)l_Value1.IntValue;
+        
+#if DEBUG
+        Debug.WriteLine($"{l_Value2.IntValue} / {l_Value1.IntValue} = {(int)l_Value}");
+#endif
+        
         WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue((int)l_Value);
         p_Context.PushToStack(l_Result);
     }
@@ -278,6 +346,11 @@ public class WebAssemblyInterpreterVirtualMaschine
         WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
         
         int l_Value = l_Value2.IntValue * l_Value1.IntValue;
+
+#if DEBUG
+        Debug.WriteLine($"{l_Value2.IntValue} * {l_Value1.IntValue} = {l_Value}");
+#endif
+        
         WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue(l_Value);
         p_Context.PushToStack(l_Result);
     }
@@ -286,6 +359,11 @@ public class WebAssemblyInterpreterVirtualMaschine
     {
         WasmBr l_Instruction = (WasmBr)p_Instruction;
         p_Context.MoveCallFrameToBranchIndex(l_Instruction.LabelIndex);
+        
+#if DEBUG
+        Debug.WriteLine($"Br: {l_Instruction.LabelIndex}");
+#endif
+        
     }
 
     private void HandleBrIf(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
@@ -293,6 +371,10 @@ public class WebAssemblyInterpreterVirtualMaschine
         WasmBrIf l_Instruction = (WasmBrIf)p_Instruction;
         WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
 
+#if DEBUG
+        Debug.WriteLine($"BrIf: Go Label {l_Instruction.LabelIndex} if {l_Value.IntValue} != 0 = {l_Value.IntValue != 0}");
+#endif
+        
         if (l_Value.IntValue != 0)
         {
             p_Context.MoveCallFrameToBranchIndex(l_Instruction.LabelIndex);
@@ -303,16 +385,28 @@ public class WebAssemblyInterpreterVirtualMaschine
     {
         WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
         WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
-        WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue((uint)l_Value2.IntValue >= (uint)l_Value1.IntValue ? 1 : 0);
-        p_Context.PushToStack(l_Result);
+
+        int l_Result = (uint)l_Value2.IntValue >= (uint)l_Value1.IntValue ? 1 : 0;
+
+#if DEBUG
+        Debug.WriteLine($"{l_Value2.IntValue} >= {l_Value1.IntValue} = {l_Result}");
+#endif
+        
+        p_Context.PushToStack(new WebAssemblyInterpreterValue(l_Result));
     }
     
     private void HandleI32GeS(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
     {
         WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
         WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
-        WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue(l_Value2.IntValue >= l_Value1.IntValue ? 1 : 0);
-        p_Context.PushToStack(l_Result);    
+
+        int l_Result = l_Value2.IntValue >= l_Value1.IntValue ? 1 : 0;
+
+#if DEBUG
+        Debug.WriteLine($"{l_Value2.IntValue} >= {l_Value1.IntValue} = {l_Result}");
+#endif
+        
+        p_Context.PushToStack(new WebAssemblyInterpreterValue(l_Result));    
     }
 
     private void HandleBlock(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
@@ -342,6 +436,11 @@ public class WebAssemblyInterpreterVirtualMaschine
         WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
 
         uint l_Value = (uint)l_Value2.IntValue % (uint)l_Value1.IntValue;
+
+#if DEBUG
+        Debug.WriteLine($"{l_Value2.IntValue} % {l_Value1.IntValue} = {(int)l_Value}");
+#endif
+        
         WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue((int)l_Value);
         p_Context.PushToStack(l_Result);
     }
@@ -350,19 +449,36 @@ public class WebAssemblyInterpreterVirtualMaschine
     {
         WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
         WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
-        WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue(l_Value2.IntValue == l_Value1.IntValue ? 1 : 0);
-        p_Context.PushToStack(l_Result);
+
+        int l_Result = l_Value2.IntValue == l_Value1.IntValue ? 1 : 0;
+
+#if DEBUG
+        Debug.WriteLine($"{l_Value2.IntValue} == {l_Value1.IntValue} = {l_Result}");
+#endif
+        
+        p_Context.PushToStack(new WebAssemblyInterpreterValue(l_Result));
     }
 
     private void HandleI32Eqz(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
     {
         WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
-        WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue(l_Value.IntValue == 0 ? 1 : 0);
-        p_Context.PushToStack(l_Result);
+
+        int l_Result = l_Value.IntValue == 0 ? 1 : 0;
+
+#if DEBUG
+        Debug.WriteLine($"{l_Value.IntValue} == 0 = {l_Result}");
+#endif
+        
+        p_Context.PushToStack(new WebAssemblyInterpreterValue(l_Result));
     }
 
     private void HandleReturn(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
     {
+
+#if DEBUG
+        Debug.WriteLine("Return");
+#endif
+        
         p_Context.ExitContext();
     }
 
@@ -374,6 +490,10 @@ public class WebAssemblyInterpreterVirtualMaschine
 
         bool l_CompareResult = (l_Value.IntValue != 0);
 
+#if DEBUG
+        Debug.WriteLine($"If: {l_Value.IntValue} != 0 = {l_CompareResult}");
+#endif
+        
         if (l_CompareResult)
         {
             if (l_Instruction.IfBody != null)
@@ -390,16 +510,28 @@ public class WebAssemblyInterpreterVirtualMaschine
     {
         WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
         WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
-        WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue((uint)l_Value2.IntValue < (uint)l_Value1.IntValue ? 1 : 0);
-        p_Context.PushToStack(l_Result);
+
+        int l_Result = (uint)l_Value2.IntValue < (uint)l_Value1.IntValue ? 1 : 0;
+
+#if DEBUG
+        Debug.WriteLine($"{l_Value2.IntValue} < {l_Value1.IntValue} = {l_Result}");
+#endif
+        
+        p_Context.PushToStack(new WebAssemblyInterpreterValue(l_Result));
     }
 
     private void HandleI32LtS(WasmInstruction p_Instruction, WebAssemblyInterpreterExecutionContext p_Context)
     {
         WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
         WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
-        WebAssemblyInterpreterValue l_Result = new WebAssemblyInterpreterValue(l_Value2.IntValue < l_Value1.IntValue ? 1 : 0);
-        p_Context.PushToStack(l_Result);
+
+        int l_Result = l_Value2.IntValue < l_Value1.IntValue ? 1 : 0;
+
+#if DEBUG
+        Debug.WriteLine($"{l_Value2.IntValue} < {l_Value1.IntValue} = {l_Result}");
+#endif
+        
+        p_Context.PushToStack(new WebAssemblyInterpreterValue(l_Result));
     }
 
     private void OptimizeInstructions(IWebAssemblyInterpreterInteropOptimizer p_ExternalOptimizer, IEnumerable<WasmInstruction> p_Instructions)
@@ -570,6 +702,14 @@ public class WebAssemblyInterpreterVirtualMaschine
             {
                 await (((ExecuteInstructionDelegateAsync)l_Instruction.VmData)(l_Instruction, p_Context));
             }
+
+#if DEBUG
+            WebAssemblyInterpreterValue[] l_StackToArray = p_Context.StackToArray();
+            if (l_StackToArray.Length != 0)
+                Debug.WriteLine($"Stack: {string.Join(";", l_StackToArray)}");
+            else
+                Debug.WriteLine($"Stack: (empty)");
+#endif
         }
     }
 

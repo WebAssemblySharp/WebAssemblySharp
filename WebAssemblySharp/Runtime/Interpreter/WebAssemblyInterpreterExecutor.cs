@@ -696,7 +696,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
         if (p_Instruction is WasmCall)
         {
             WasmCall l_Call = (WasmCall)p_Instruction;
-            WasmImportFunction l_WasmImport = (WasmImportFunction)m_WasmMetaData.Import[l_Call.FunctionIndex];
+            WasmImportFunction l_WasmImport = m_WasmMetaData.Import.Where(x => x is WasmImportFunction).Cast<WasmImportFunction>().First(x => x.FunctionIndex == l_Call.FunctionIndex);
 
             WebAssemblyInterpreterImportMethod l_ImportMethod;
 
