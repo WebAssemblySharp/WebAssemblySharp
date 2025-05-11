@@ -39,6 +39,11 @@ public class WebAssemblyRuntimeBuilder
     
     private bool m_ValidateImportAndExport;
 
+    public static WebAssemblyRuntimeBuilder Create(Type p_RuntimeType)
+    {
+        return new WebAssemblyRuntimeBuilder(p_RuntimeType);
+    }
+    
     public static WebAssemblyRuntimeBuilder Create<T>() where T : IWebAssemblyExecutor
     {
         return new WebAssemblyRuntimeBuilder(typeof(T));
@@ -61,6 +66,14 @@ public class WebAssemblyRuntimeBuilder
     public static async Task<WebAssemblyModule> CreateSingleModuleRuntime(Stream p_Stream, Action<WebAssemblyModuleBuilder> p_Configure = null)
     {
         WebAssemblyRuntimeBuilder l_RuntimeBuilder = Create();
+        await l_RuntimeBuilder.LoadModule("main", p_Stream, p_Configure);
+        WebAssemblyRuntime l_WebAssemblyRuntime = await l_RuntimeBuilder.Build();
+        return l_WebAssemblyRuntime.GetModule("main");
+    }
+    
+    public static async Task<WebAssemblyModule> CreateSingleModuleRuntime(Type p_RuntimeType, Stream p_Stream, Action<WebAssemblyModuleBuilder> p_Configure = null)
+    {
+        WebAssemblyRuntimeBuilder l_RuntimeBuilder = Create(p_RuntimeType);
         await l_RuntimeBuilder.LoadModule("main", p_Stream, p_Configure);
         WebAssemblyRuntime l_WebAssemblyRuntime = await l_RuntimeBuilder.Build();
         return l_WebAssemblyRuntime.GetModule("main");

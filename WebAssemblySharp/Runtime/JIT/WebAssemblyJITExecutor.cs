@@ -1,25 +1,39 @@
 ﻿using System;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
+using WebAssemblySharp.Runtime.Interpreter;
 
 namespace WebAssemblySharp.Runtime.JIT;
 
 // Starting Point for the JIT/ILCompiler
 public class WebAssemblyJITExecutor: IWebAssemblyExecutor
 {
+    private WasmMetaData m_WasmMetaData;
+    private WebAssemblyJITCompiler m_Compiler;
+    private WebAssemblyJITAssembly m_Assembly;
+    
     public IWebAssemblyMethod GetMethod(string p_Name)
     {
-        throw new NotImplementedException();
+        if (m_Assembly == null)
+            throw new InvalidOperationException("Assembly not initialized. Call Init() before using GetMethod.");
+        
+        if (!m_Assembly.ExportedMethodes.TryGetValue(p_Name, out var l_Method))
+            throw new InvalidOperationException($"Method {p_Name} not found in the assembly.");
+        
+        return l_Method;
+        
     }
 
     public void LoadCode(WasmMetaData p_WasmMetaData)
     {
-        throw new NotImplementedException();
+        m_WasmMetaData = p_WasmMetaData;
     }
 
     public void OptimizeCode()
     {
-        // QQQ Precompile global wasm code maybe also other functions  
+        m_Compiler = new WebAssemblyJITCompiler(m_WasmMetaData);
+        m_Compiler.Compile();
+    
     }
 
     public IWebAssemblyMemoryArea GetMemoryArea(string p_Name)
@@ -29,12 +43,12 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor
 
     public void ImportMemoryArea(string p_Name, IWebAssemblyMemoryArea p_Memory)
     {
-        
+        throw new NotImplementedException();
     }
 
     public void ImportMethod(string p_Name, Delegate p_Delegate)
     {
-        
+        throw new NotImplementedException();
     }
 
     public IWebAssemblyMemoryAreaReadAccess GetInternalMemoryArea(int p_Index = 0)
@@ -42,8 +56,10 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor
         throw new NotImplementedException();
     }
 
-    public async Task Init()
+    public Task Init()
     {
-        // Best Case load the precompiled assembly
+        m_Assembly = m_Compiler.BuildAssembly();
+        m_Compiler = null;
+        return Task.CompletedTask;
     }
 }
