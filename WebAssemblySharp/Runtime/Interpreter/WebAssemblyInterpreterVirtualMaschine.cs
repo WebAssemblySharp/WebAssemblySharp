@@ -587,16 +587,16 @@ public class WebAssemblyInterpreterVirtualMaschine
                 case WasmDataType.Unkown:
                     throw new InvalidOperationException($"Invalid Function Param Type {p_FuncType.Parameters[i]}");
                 case WasmDataType.I32:
-                    l_Values[i] = new WebAssemblyInterpreterValue((int)p_Args[i], false);
+                    l_Values[i] = new WebAssemblyInterpreterValue((int)p_Args[i], true);
                     break;
                 case WasmDataType.I64:
-                    l_Values[i] = new WebAssemblyInterpreterValue((long)p_Args[i], false);
+                    l_Values[i] = new WebAssemblyInterpreterValue((long)p_Args[i], true);
                     break;
                 case WasmDataType.F32:
-                    l_Values[i] = new WebAssemblyInterpreterValue((float)p_Args[i], false);
+                    l_Values[i] = new WebAssemblyInterpreterValue((float)p_Args[i], true);
                     break;
                 case WasmDataType.F64:
-                    l_Values[i] = new WebAssemblyInterpreterValue((double)p_Args[i], false);
+                    l_Values[i] = new WebAssemblyInterpreterValue((double)p_Args[i], true);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
