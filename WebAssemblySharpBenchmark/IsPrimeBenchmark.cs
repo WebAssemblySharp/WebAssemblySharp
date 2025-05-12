@@ -3,6 +3,7 @@ using BenchmarkDotNet.Diagnostics.dotTrace;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using WebAssemblySharp.Runtime;
+using WebAssemblySharp.Runtime.JIT;
 using WebAssemblySharpExampleData;
 
 namespace WebAssemblySharpBenchmark;
@@ -16,22 +17,28 @@ public class IsPrimeBenchmark {
     [Params(2, 3, 99, 512, 9999)]
     public int N;
 
-    private WebAssemblyModule m_Module;
+    private WebAssemblyModule m_InterpreterModule;
+    private WebAssemblyModule m_JitModule;
     
 
     [GlobalSetup]
     public async Task GlobalSetup()
     {
-        m_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+        m_InterpreterModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
         
-        await m_Module.Call("is_prime", 1);     
+        m_JitModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime<WebAssemblyJITExecutor>(
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
+        
+        await m_InterpreterModule.Call("is_prime", 1);
+        await m_JitModule.Call("is_prime", 1);
     }
 
     [GlobalCleanup]
     public void GlobalCleanup()
     {
-        m_Module = null;
+        m_InterpreterModule = null;
+        m_JitModule = null;
     }
     
     [Benchmark(Baseline = true)]
@@ -44,10 +51,17 @@ public class IsPrimeBenchmark {
     [Benchmark]
     public async Task Interpreter() {
 
-        await m_Module.Call("is_prime", N); 
+        await m_InterpreterModule.Call("is_prime", N); 
 
     }
 
+    [Benchmark]
+    public async Task Jit() {
+
+        await m_JitModule.Call("is_prime", N); 
+
+    }
+    
     
     private bool NativeIsPrime(int n)
     {

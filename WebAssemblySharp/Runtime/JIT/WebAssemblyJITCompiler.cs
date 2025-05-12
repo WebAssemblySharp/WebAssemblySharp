@@ -16,10 +16,14 @@ public class WebAssemblyJITCompiler
 {
     private readonly WasmMetaData m_WasmMetaData;
     private Dictionary<String, MethodInfo> m_ExportedMethods;
-    private Dictionary<WasmCode, DynamicMethod> m_DynamicMethodsByCode;
+    private Dictionary<WasmCode, MethodInfo> m_DynamicMethodsByCode;
+    private TypeBuilder m_TypeBuilder;
+    private AssemblyBuilder m_AssemblyBuilder;
 
     private WasmFuncType m_CurrentFuncType;
     private LocalBuilder[] m_CurrentLocals;
+    private List<Label> m_CurrentLabels;
+    private Label m_ReturnLabel;
 
     public WebAssemblyJITCompiler(WasmMetaData p_WasmMetaData)
     {
@@ -28,6 +32,8 @@ public class WebAssemblyJITCompiler
 
     public WebAssemblyJITAssembly BuildAssembly()
     {
+        Type l_Type = m_TypeBuilder.CreateType();
+        
         Dictionary<string, IWebAssemblyMethod> l_ExportedMethods = new Dictionary<string, IWebAssemblyMethod>();
 
         foreach (KeyValuePair<string, MethodInfo> l_Pair in m_ExportedMethods)
@@ -41,7 +47,9 @@ public class WebAssemblyJITCompiler
             long l_FinalIndex = m_WasmMetaData.FuncIndex[l_FunctionIndex.Value];
             WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_FinalIndex];
 
-            Delegate l_Delegate = CreateDelegate(l_Pair.Value, l_FuncType);
+            MethodInfo l_MethodInfo = l_Type.GetMethod(l_Pair.Key);
+
+            Delegate l_Delegate = CreateDelegate(l_MethodInfo, l_FuncType);
 
             if (l_FuncType.Results.Length == 0)
             {
@@ -60,6 +68,10 @@ public class WebAssemblyJITCompiler
             
         }
 
+        m_TypeBuilder = null;
+        m_AssemblyBuilder = null;
+        m_DynamicMethodsByCode = null;
+        m_ExportedMethods = null;
 
         return new WebAssemblyJITAssembly(l_ExportedMethods);
     }
@@ -165,8 +177,14 @@ public class WebAssemblyJITCompiler
 
     public void Compile()
     {
+        AssemblyName l_AssemblyName = new AssemblyName("DynamicAssembly");
+        AssemblyBuilder l_AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(l_AssemblyName, AssemblyBuilderAccess.RunAndCollect);
+        ModuleBuilder l_ModuleBuilder = l_AssemblyBuilder.DefineDynamicModule("DynamicModule");
+        
+        m_TypeBuilder = l_ModuleBuilder.DefineType("DynamicType", TypeAttributes.Public);
+        
         m_ExportedMethods = new Dictionary<string, MethodInfo>();
-        m_DynamicMethodsByCode = new Dictionary<WasmCode, DynamicMethod>();
+        m_DynamicMethodsByCode = new Dictionary<WasmCode, MethodInfo>();
 
         foreach (WasmExport l_Export in m_WasmMetaData.Export)
         {
@@ -185,12 +203,12 @@ public class WebAssemblyJITCompiler
             WasmCode l_Code = m_WasmMetaData.Code[l_FunctionIndex.Value];
 
             // Compile the function
-            MethodInfo l_Method = CompileCode(l_Export.Name, l_FuncType, l_Code);
+            MethodInfo l_Method = CompileCode(m_TypeBuilder, l_Export.Name, l_FuncType, l_Code);
             m_ExportedMethods.Add(l_Export.Name, l_Method);
         }
     }
 
-    private MethodInfo CompileCode(string p_ExportName, WasmFuncType p_FuncType, WasmCode p_Code)
+    private MethodInfo CompileCode(TypeBuilder p_TypeBuilder, string p_ExportName, WasmFuncType p_FuncType, WasmCode p_Code)
     {
         if (m_ExportedMethods.TryGetValue(p_ExportName, out var l_Method))
             return l_Method;
@@ -213,17 +231,14 @@ public class WebAssemblyJITCompiler
             l_ReturnType = typeof(Task<object[]>);
         }
 
-        DynamicMethod l_NewMethod = new DynamicMethod(p_ExportName, l_ReturnType,
-            p_FuncType.Parameters.Select(x => WebAssemblyDataTypeUtils.GetInternalType(x)).ToArray(),
-            typeof(WebAssemblyJITCompiler).Module);
-
-        m_DynamicMethodsByCode.Add(p_Code, l_NewMethod);
-
-        ILGenerator l_IlGenerator = l_NewMethod.GetILGenerator();
+        MethodBuilder l_MethodBuilder = p_TypeBuilder.DefineMethod(p_ExportName, MethodAttributes.Public | MethodAttributes.Static, l_ReturnType, p_FuncType.Parameters.Select(x => WebAssemblyDataTypeUtils.GetInternalType(x)).ToArray());
+        m_DynamicMethodsByCode.Add(p_Code, l_MethodBuilder);
+        ILGenerator l_IlGenerator = l_MethodBuilder.GetILGenerator();
 
         
         m_CurrentFuncType = p_FuncType;
-        m_CurrentLocals = new LocalBuilder[p_Code.Locals != null ? p_Code.Locals.Length + 2 : 2];
+        m_CurrentLocals = new LocalBuilder[p_Code.Locals != null ? p_Code.Locals.Length : 0];
+        m_CurrentLabels = new List<Label>();
         
         if (p_Code.Locals != null)
         {
@@ -236,41 +251,116 @@ public class WebAssemblyJITCompiler
             }
         }
         
-        LocalBuilder l_AsyncMethodBuilderLocalBuilder;
-        
-        if (p_FuncType.Results.Length == 0)
+        m_ReturnLabel = l_IlGenerator.DefineLabel();
+
+        if (IsRealAsync(p_Code.Instructions))
         {
-            l_AsyncMethodBuilderLocalBuilder = l_IlGenerator.DeclareLocal(typeof(AsyncTaskMethodBuilder));
-        }
-        else if (p_FuncType.Results.Length == 1)
-        {
-            Type l_InternalType = WebAssemblyDataTypeUtils.GetInternalType(p_FuncType.Results[0]);
-            l_AsyncMethodBuilderLocalBuilder = l_IlGenerator.DeclareLocal(typeof(AsyncTaskMethodBuilder<>).MakeGenericType(l_InternalType));
+            throw new Exception("Async functions are not supported yet");
         }
         else
         {
-            l_AsyncMethodBuilderLocalBuilder = l_IlGenerator.DeclareLocal(typeof(AsyncTaskMethodBuilder<object[]>));
+            DoCompileSyncMethod(l_IlGenerator, p_FuncType, p_Code);
         }
         
-        l_IlGenerator.Emit(OpCodes.Ldloca_S, l_AsyncMethodBuilderLocalBuilder);
-        
-        // Emit IL for each instruction in the WebAssembly function
-        foreach (WasmInstruction l_Instruction in p_Code.Instructions)
-        {
-            EmitInstruction(l_IlGenerator, l_Instruction);
-        }
-        
-        l_IlGenerator.Emit(OpCodes.Call, typeof(AsyncTaskMethodBuilder<int>).GetMethod("SetResult"));
-
-        // 5. Task zurückgeben
-        l_IlGenerator.Emit(OpCodes.Ldloca_S, l_AsyncMethodBuilderLocalBuilder);
-        l_IlGenerator.Emit(OpCodes.Call, typeof(AsyncTaskMethodBuilder<int>).GetMethod("get_Task"));
         l_IlGenerator.Emit(OpCodes.Ret);
-
+        
         m_CurrentLocals = null;
         m_CurrentFuncType = null;
+        
+        if (m_CurrentLabels.Count != 0)
+        {
+            throw new Exception("Labels not used " + m_CurrentLabels.Count);
+        }
+        
+        m_CurrentLabels = null;
+        m_ReturnLabel = default(Label);
+        
+        return l_MethodBuilder;
+        
+    }
 
-        return l_NewMethod;
+    private void DoCompileSyncMethod(ILGenerator p_IlGenerator, WasmFuncType p_FuncType, WasmCode p_Code)
+    {
+        
+        EmitInstructions(p_IlGenerator, p_Code.Instructions);
+        
+        p_IlGenerator.MarkLabel(m_ReturnLabel);
+        
+        if (p_FuncType.Results.Length == 0)
+        {
+            p_IlGenerator.Emit(OpCodes.Call, typeof(Task).GetProperty(nameof(Task.CompletedTask)).GetMethod);    
+        }
+        else if (p_FuncType.Results.Length == 1)
+        {
+            Type l_ResultType = WebAssemblyDataTypeUtils.GetInternalType(p_FuncType.Results[0]);
+            
+            MethodInfo l_FromResultMethod = typeof(Task).GetMethod(nameof(Task.FromResult))
+                .MakeGenericMethod(l_ResultType);
+        
+            p_IlGenerator.Emit(OpCodes.Call, l_FromResultMethod);     
+        }
+        else
+        {
+            MethodInfo l_FromResultMethod = typeof(Task).GetMethod(nameof(Task.FromResult))
+                .MakeGenericMethod(typeof(object[]));
+        
+            p_IlGenerator.Emit(OpCodes.Call, l_FromResultMethod);    
+        }
+        
+    }
+
+    private void EmitInstructions(ILGenerator p_IlGenerator, IEnumerable<WasmInstruction> p_CodeInstructions)
+    {
+        if (p_CodeInstructions == null)
+            return;
+
+        // Emit IL for each instruction in the WebAssembly function
+        foreach (WasmInstruction l_Instruction in p_CodeInstructions)
+        {
+            EmitInstruction(p_IlGenerator, l_Instruction);
+        }
+    }
+
+    private bool IsRealAsync(IEnumerable<WasmInstruction> p_Code)
+    {
+        if (p_Code == null)
+            return false;
+
+        foreach (WasmInstruction l_Instruction in p_Code)
+        {
+            if (l_Instruction is WasmCall)
+            {
+                WasmCall l_WasmCall =  (WasmCall)l_Instruction;
+                
+                Delegate l_Delegate = GetImortMethod(l_WasmCall);
+                
+                
+                
+            }
+            
+            if (l_Instruction is WasmBlockInstruction)
+            {
+                WasmBlockInstruction l_BlockInstruction = (WasmBlockInstruction)l_Instruction;
+
+                if (IsRealAsync(l_BlockInstruction.GetAllInstructions()))
+                    return true;
+            }
+            
+            
+        }
+
+        return false;
+
+    }
+
+    private Delegate GetImortMethod(WasmCall p_Instruction)
+    {
+        WasmImportFunction l_WasmImport = m_WasmMetaData.Import.Where(x => x is WasmImportFunction).Cast<WasmImportFunction>().First(x => x.FunctionIndex == p_Instruction.FunctionIndex);
+        
+        if (l_WasmImport == null)
+            throw new Exception($"Function not found: {p_Instruction.FunctionIndex}");
+
+        return null;
     }
 
     private void EmitInstruction(ILGenerator p_IlGenerator, WasmInstruction p_Instruction)
@@ -285,23 +375,30 @@ public class WebAssemblyJITCompiler
                 p_IlGenerator.Emit(OpCodes.Nop);
                 return;
             case WasmOpcode.Block:
-                break;
+                CompileBlock(p_IlGenerator, (WasmBlock)p_Instruction);
+                return;
             case WasmOpcode.Loop:
-                break;
+                CompileLoop(p_IlGenerator, (WasmLoop)p_Instruction);
+                return;
             case WasmOpcode.If:
-                break;
+                CompileIf(p_IlGenerator, (WasmIf)p_Instruction);
+                return;
             case WasmOpcode.Else:
                 break;
             case WasmOpcode.End:
                 break;
             case WasmOpcode.Br:
-                break;
+                CompileBr(p_IlGenerator, (WasmBr)p_Instruction);
+                return;
             case WasmOpcode.BrIf:
-                break;
+                CompileBrIf(p_IlGenerator, (WasmBrIf)p_Instruction);
+                return;
             case WasmOpcode.BrTable:
                 break;
             case WasmOpcode.Return:
-                break;
+                // Emit a branch to the return label
+                p_IlGenerator.Emit(OpCodes.Br, m_ReturnLabel);
+                return;
             case WasmOpcode.Call:
                 break;
             case WasmOpcode.CallIndirect:
@@ -314,7 +411,8 @@ public class WebAssemblyJITCompiler
                 CompileLocalGet(p_IlGenerator, (WasmLocalGet)p_Instruction);
                 return;
             case WasmOpcode.LocalSet:
-                break;
+                CompileLocalSet(p_IlGenerator, (WasmLocalSet)p_Instruction);
+                return;
             case WasmOpcode.LocalTee:
                 break;
             case WasmOpcode.GlobalGet:
@@ -370,7 +468,8 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.MemoryGrow:
                 break;
             case WasmOpcode.I32Const:
-                break;
+                p_IlGenerator.Emit(OpCodes.Ldc_I4, ((WasmI32Const)p_Instruction).Const);
+                return;
             case WasmOpcode.I64Const:
                 break;
             case WasmOpcode.F32Const:
@@ -380,13 +479,15 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.I32Eqz:
                 break;
             case WasmOpcode.I32Eq:
-                break;
+                p_IlGenerator.Emit(OpCodes.Ceq);
+                return;
             case WasmOpcode.I32Ne:
                 break;
             case WasmOpcode.I32LtS:
                 break;
             case WasmOpcode.I32LtU:
-                break;
+                p_IlGenerator.Emit(OpCodes.Clt_Un);
+                return;
             case WasmOpcode.I32GtS:
                 break;
             case WasmOpcode.I32GtU:
@@ -398,7 +499,12 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.I32GeS:
                 break;
             case WasmOpcode.I32GeU:
-                break;
+                // The following sequence is equivalent to:
+                // (a >= b) == !(b < a)
+                p_IlGenerator.Emit(OpCodes.Clt_Un); // Lower than
+                p_IlGenerator.Emit(OpCodes.Ldc_I4_0); // Load 0
+                p_IlGenerator.Emit(OpCodes.Ceq); // Compare equal
+                return;
             case WasmOpcode.I64Eqz:
                 break;
             case WasmOpcode.I64Eq:
@@ -465,7 +571,8 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.I32RemS:
                 break;
             case WasmOpcode.I32RemU:
-                break;
+                p_IlGenerator.Emit(OpCodes.Rem_Un);   
+                return;
             case WasmOpcode.I32And:
                 break;
             case WasmOpcode.I32Or:
@@ -677,10 +784,91 @@ public class WebAssemblyJITCompiler
         throw new NotImplementedException("Instruction not implemented: " + p_Instruction.Opcode);
     }
 
+    private void CompileBr(ILGenerator p_IlGenerator, WasmBr p_Instruction)
+    {
+        p_IlGenerator.Emit(OpCodes.Br, m_CurrentLabels[m_CurrentLabels.Count - 1 - (int)p_Instruction.LabelIndex]);
+    }
+
+    private void CompileBrIf(ILGenerator p_IlGenerator, WasmBrIf p_Instruction)
+    {
+        p_IlGenerator.Emit(OpCodes.Brtrue, m_CurrentLabels[m_CurrentLabels.Count -1 -  (int)p_Instruction.LabelIndex]);
+    }
+
+    private void CompileBlock(ILGenerator p_IlGenerator, WasmBlock p_Instruction)
+    {
+        // Define the labels for the block
+        Label l_EndLabel = p_IlGenerator.DefineLabel();
+        
+        // Compile the block body
+        m_CurrentLabels.Add(l_EndLabel);
+        EmitInstructions(p_IlGenerator, p_Instruction.Body);
+        m_CurrentLabels.Remove(l_EndLabel);
+        
+        // Emit a branch to the end label
+        p_IlGenerator.MarkLabel(l_EndLabel);
+    }
+
+    private void CompileLoop(ILGenerator p_IlGenerator, WasmLoop p_Instruction)
+    {
+        // Define the labels for the loop
+        Label l_LoopStartLabel = p_IlGenerator.DefineLabel();
+        p_IlGenerator.MarkLabel(l_LoopStartLabel);
+        
+        // Compile the loop body
+        m_CurrentLabels.Add(l_LoopStartLabel);
+        EmitInstructions(p_IlGenerator, p_Instruction.Body);
+        m_CurrentLabels.Remove(l_LoopStartLabel);
+        
+    }
+
+    private void CompileIf(ILGenerator p_IlGenerator, WasmIf p_Instruction)
+    {
+        // Create the Labels for the if-else block
+        Label l_ElseLabel = p_IlGenerator.DefineLabel();
+        Label l_EndLabel = p_IlGenerator.DefineLabel();
+     
+        p_IlGenerator.Emit(OpCodes.Brfalse, l_ElseLabel);
+        
+        // Compile the if block
+        EmitInstructions(p_IlGenerator, p_Instruction.IfBody);
+        // Emit a branch to the end label
+        p_IlGenerator.Emit(OpCodes.Br, l_EndLabel);
+        
+        // Compile the else block
+        p_IlGenerator.MarkLabel(l_ElseLabel);
+        EmitInstructions(p_IlGenerator, p_Instruction.ElseBody);
+        // Mark the end label
+        p_IlGenerator.MarkLabel(l_EndLabel);
+        
+    }
+
+    private void CompileLocalSet(ILGenerator p_IlGenerator, WasmLocalSet p_Instruction)
+    {
+        
+
+        if (m_CurrentFuncType.Parameters != null && p_Instruction.LocalIndex < m_CurrentFuncType.Parameters.Length)
+        {
+            throw new Exception("Cannot set parameter");
+        }
+        else
+        {
+            long l_LocalIndex = p_Instruction.LocalIndex;
+
+            if (m_CurrentFuncType.Parameters != null)
+            {
+                l_LocalIndex = l_LocalIndex - m_CurrentFuncType.Parameters.Length;
+            }
+            
+            p_IlGenerator.Emit(OpCodes.Stloc, m_CurrentLocals[l_LocalIndex]);    
+        }
+    }
+    
     private void CompileLocalGet(ILGenerator p_IlGenerator, WasmLocalGet p_Instruction)
     {
         if (m_CurrentFuncType.Parameters != null && p_Instruction.LocalIndex < m_CurrentFuncType.Parameters.Length)
         {
+            // Load the parameter
+            
             if (p_Instruction.LocalIndex == 0)
             {
                 // Load the first parameter
@@ -712,30 +900,40 @@ public class WebAssemblyJITCompiler
             // Load the parameter
             p_IlGenerator.Emit(OpCodes.Ldarg, p_Instruction.LocalIndex);
         }
-        else if (m_CurrentLocals != null && p_Instruction.LocalIndex < m_CurrentLocals.Length)
+        else if (m_CurrentLocals != null)
         {
-            if (p_Instruction.LocalIndex == 0)
+            long l_LocalIndex = p_Instruction.LocalIndex;
+
+            if (m_CurrentFuncType.Parameters != null)
+            {
+                l_LocalIndex = l_LocalIndex - m_CurrentFuncType.Parameters.Length;
+            }
+            
+            if (l_LocalIndex < 0 || l_LocalIndex >= m_CurrentLocals.Length)
+                throw new Exception($"Invalid local index: {p_Instruction.LocalIndex}");
+            
+            if (l_LocalIndex  == 0)
             {
                 // Load the first local variable
                 p_IlGenerator.Emit(OpCodes.Ldloc_0);
                 return;
             }
             
-            if (p_Instruction.LocalIndex == 1)
+            if (l_LocalIndex == 1)
             {
                 // Load the second local variable
                 p_IlGenerator.Emit(OpCodes.Ldloc_1);
                 return;
             }
             
-            if (p_Instruction.LocalIndex == 2)
+            if (l_LocalIndex == 2)
             {
                 // Load the third local variable
                 p_IlGenerator.Emit(OpCodes.Ldloc_2);
                 return;
             }
             
-            if (p_Instruction.LocalIndex == 3)
+            if (l_LocalIndex == 3)
             {
                 // Load the fourth local variable
                 p_IlGenerator.Emit(OpCodes.Ldloc_3);
@@ -743,7 +941,7 @@ public class WebAssemblyJITCompiler
             }
             
             // Load the local variable
-            p_IlGenerator.Emit(OpCodes.Ldloc, p_Instruction.LocalIndex);
+            p_IlGenerator.Emit(OpCodes.Ldloc, l_LocalIndex);
         }
         else
         {

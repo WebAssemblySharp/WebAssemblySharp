@@ -16,7 +16,7 @@ public class AddTest
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.add.wasm"));
 
         int l_Result = (int) await l_Module.Call("add", 1, 2);
-        Assert.AreEqual(3, l_Result);   
+        Assert.AreEqual(3, l_Result);
     }
     
     
