@@ -41,12 +41,20 @@ public class IsPrimeBenchmark {
         m_JitModule = null;
     }
     
+    [Benchmark]
+    public async Task NativeAsync() {
+
+        await NativeIsPrimeAsync(N);
+
+    }
+    
     [Benchmark(Baseline = true)]
-    public void Native() {
+    public void NativeSync() {
 
         NativeIsPrime(N);
 
     }
+    
 
     [Benchmark]
     public async Task Interpreter() {
@@ -80,6 +88,25 @@ public class IsPrimeBenchmark {
         }
 
         return true;
+    }
+    
+    private Task<bool> NativeIsPrimeAsync(int n)
+    {
+        
+        if (n < 2)
+            return Task.FromResult(true);
+        if (n == 2)
+            return Task.FromResult(true);
+        if (n % 2 == 0)
+            return Task.FromResult(false);
+
+        for (int i = 3; i < n; i += 2)
+        {
+            if (n % i == 0)
+                return Task.FromResult(false);
+        }
+
+        return Task.FromResult(true);
     }
 
 }

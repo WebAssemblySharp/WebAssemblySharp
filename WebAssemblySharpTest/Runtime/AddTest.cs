@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using WebAssemblySharp.Runtime;
 using WebAssemblySharpExampleData;
@@ -15,7 +16,7 @@ public class AddTest
         WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(p_RuntimeType,
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.add.wasm"));
 
-        int l_Result = (int) await l_Module.Call("add", 1, 2);
+        int l_Result = await l_Module.Call<int>("add", 1, 2);
         Assert.AreEqual(3, l_Result);
     }
     
