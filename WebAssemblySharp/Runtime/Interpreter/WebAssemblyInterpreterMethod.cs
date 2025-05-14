@@ -10,16 +10,17 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
     private readonly WebAssemblyInterpreterVirtualMaschine m_VirtualMachine;
     private readonly WasmFuncType m_FuncType;
     private readonly WasmCode m_Code;
+    private readonly string m_Name;
 
-    public WebAssemblyInterpreterMethod(WebAssemblyInterpreterVirtualMaschine p_VirtualMachine, WasmFuncType p_FuncType,
-        WasmCode p_Code)
+    public WebAssemblyInterpreterMethod(WebAssemblyInterpreterVirtualMaschine p_VirtualMachine, WasmFuncType p_FuncType, WasmCode p_Code, string p_Name)
     {
         m_FuncType = p_FuncType;
         m_Code = p_Code;
+        m_Name = p_Name;
         m_VirtualMachine = p_VirtualMachine;
     }
 
-    public async Task<object> Invoke(params object[] p_Args)
+    public async ValueTask<object> Invoke(params object[] p_Args)
     {
         ValidateParameters(p_Args);
 
@@ -35,31 +36,36 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
             return null;
 
         if (l_JitValues.Length == 1)
-            return l_JitValues[0].Value;
+            return l_JitValues[0].GetRawValue();
         
         object[] l_Results = new object[l_JitValues.Length];
-        
-        for (int i = 0; i < l_JitValues.Length; i++)
-        {
-            l_Results[i] = l_JitValues[i].Value;
-        }
 
+        // Reverse the order of the results because the stack is LIFO
+        for (int i = l_JitValues.Length - 1; i >= 0; i--)
+        {
+            l_Results[l_JitValues.Length - 1 - i] = l_JitValues[i].GetRawValue();
+        }
+        
         return l_Results;
     }
 
-    
+    public WasmFuncType GetMetaData()
+    {
+        return m_FuncType;
+    }
+
 
     private void ValidateParameters(object[] p_Args)
     {
         if (p_Args.Length != m_FuncType.Parameters.Length)
-            throw new InvalidOperationException("Invalid number of arguments");
+            throw new InvalidOperationException("Method " + m_Name + " Invalid number of arguments");
 
         for (int i = 0; i < p_Args.Length; i++)
         {
             Type l_Type = WebAssemblyDataTypeUtils.GetInternalType(m_FuncType.Parameters[i]);
 
             if (p_Args[i].GetType() != l_Type)
-                throw new InvalidOperationException("Invalid argument type at index " + i + " expected " +
+                throw new InvalidOperationException("Method " + m_Name + " Invalid argument type at index " + i + " expected " +
                                                     m_FuncType.Parameters[i] + " but got " + p_Args[i].GetType());
         }
     }

@@ -162,7 +162,20 @@
         groups.forEach(group => {
 
           const groupEntries = entries.filter(x => x.fullName === group);
-          const values = groupEntries.map((x) => valueProvider(x));
+
+          const values = [];
+          labels.forEach((x) => {
+
+            let groupElement = groupEntries.find(e => {new Date(e.date + 'Z').toLocaleString() === x});
+
+            if (groupElement) {
+              values.push(valueProvider(groupElement));  
+            } else {
+              values.push(null);    
+            }
+            
+          })
+
           dataSet.push({
             name: group,
             values: values,

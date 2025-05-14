@@ -1,0 +1,1 @@
+﻿( module ( func "$ifexpr" ( export "ifexpr" ) ( param "$n" i32 ) ( param "$control" i32 ) ( result i32 ) ( i32 ( local "$n" ) ( "if" ( result i32 ) ( i32 ( local "$control" ) ( i32 "0" ) ) ( "then" ( i32 "1" ) ) ( "else" ( i32 "-1" ) ) ) ) ) )

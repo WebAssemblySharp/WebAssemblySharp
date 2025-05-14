@@ -64,6 +64,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.GlobalSet:
                 break;
             case WasmOpcode.I32Load:
+                l_Result = new  WasmI32Load();
                 break;
             case WasmOpcode.I64Load:
                 break;
@@ -117,8 +118,10 @@ public static class WasmInstructionFactory
                 l_Result = new WasmI64Store32();
                 break;
             case WasmOpcode.MemorySize:
+                l_Result = new WasmMemorySize();
                 break;
             case WasmOpcode.MemoryGrow:
+                l_Result = new WasmMemoryGrow();
                 break;
             case WasmOpcode.I32Const:
                 l_Result = new WasmI32Const();
@@ -136,6 +139,7 @@ public static class WasmInstructionFactory
                 l_Result = WasmI32Eq.Instance;
                 break;
             case WasmOpcode.I32Ne:
+                l_Result = WasmI32Ne.Instance;
                 break;
             case WasmOpcode.I32LtS:
                 l_Result = WasmI32LtS.Instance;
@@ -144,6 +148,7 @@ public static class WasmInstructionFactory
                 l_Result = WasmI32LtU.Instance;
                 break;
             case WasmOpcode.I32GtS:
+                l_Result = WasmI32GtS.Instance;
                 break;
             case WasmOpcode.I32GtU:
                 break;
@@ -152,6 +157,7 @@ public static class WasmInstructionFactory
             case WasmOpcode.I32LeU:
                 break;
             case WasmOpcode.I32GeS:
+                l_Result = WasmI32GeS.Instance;
                 break;
             case WasmOpcode.I32GeU:
                 l_Result = WasmI32GeU.Instance;
@@ -215,6 +221,7 @@ public static class WasmInstructionFactory
                 l_Result = WasmI32Sub.Instance;
                 break;
             case WasmOpcode.I32Mul:
+                l_Result = WasmI32Mul.Instance;
                 break;
             case WasmOpcode.I32DivS:
                 break;
@@ -394,6 +401,43 @@ public static class WasmInstructionFactory
             case WasmOpcode.I64Extend16_s:
                 break;
             case WasmOpcode.I64Extend32_s:
+                break;
+            case WasmOpcode.I32TruncSatF32S:
+                break;
+            case WasmOpcode.I32TruncSatF32U:
+                break;
+            case WasmOpcode.I32TruncSatF64S:
+                break;
+            case WasmOpcode.I32TruncSatF64U:
+                break;
+            case WasmOpcode.I64TruncSatF32S:
+                break;
+            case WasmOpcode.I64TruncSatF32U:
+                break;
+            case WasmOpcode.I64TruncSatF64S:
+                break;
+            case WasmOpcode.I64TruncSatF64U:
+                break;
+            case WasmOpcode.MemoryInit:
+                break;
+            case WasmOpcode.DataDrop:
+                break;
+            case WasmOpcode.MemoryCopy:
+                break;
+            case WasmOpcode.MemoryFill:
+                l_Result = new WasmMemoryFill();
+                break;
+            case WasmOpcode.TableInit:
+                break;
+            case WasmOpcode.ElemDrop:
+                break;
+            case WasmOpcode.TableCopy:
+                break;
+            case WasmOpcode.TableGrow:
+                break;
+            case WasmOpcode.TableSize:
+                break;
+            case WasmOpcode.TableFill:
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(p_Opcode), p_Opcode, "Invalid opcode");

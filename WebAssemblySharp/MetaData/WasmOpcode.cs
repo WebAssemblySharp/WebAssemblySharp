@@ -373,6 +373,45 @@ public enum WasmOpcode
     I64Extend16_s = 0xC3,
     /// <summary>Extend 32-bit signed integer to i64</summary>
     I64Extend32_s = 0xC4,
+    
+    // Extended instructions (prefix 0xFC)
+    /// <summary>Truncate f32 to i32 (signed) with saturation</summary>
+    I32TruncSatF32S = 0xFC00,
+    /// <summary>Truncate f32 to i32 (unsigned) with saturation</summary>
+    I32TruncSatF32U = 0xFC01,
+    /// <summary>Truncate f64 to i32 (signed) with saturation</summary>
+    I32TruncSatF64S = 0xFC02,
+    /// <summary>Truncate f64 to i32 (unsigned) with saturation</summary>
+    I32TruncSatF64U = 0xFC03,
+    /// <summary>Truncate f32 to i64 (signed) with saturation</summary>
+    I64TruncSatF32S = 0xFC04,
+    /// <summary>Truncate f32 to i64 (unsigned) with saturation</summary>
+    I64TruncSatF32U = 0xFC05,
+    /// <summary>Truncate f64 to i64 (signed) with saturation</summary>
+    I64TruncSatF64S = 0xFC06,
+    /// <summary>Truncate f64 to i64 (unsigned) with saturation</summary>
+    I64TruncSatF64U = 0xFC07,
+    /// <summary>Initialize memory segment</summary>
+    MemoryInit = 0xFC08,
+    /// <summary>Drop a data segment</summary>
+    DataDrop = 0xFC09,
+    /// <summary>Copy memory from one region to another</summary>
+    MemoryCopy = 0xFC0A,
+    /// <summary>Fill memory with a specified value</summary>
+    MemoryFill = 0xFC0B,
+    /// <summary>Initialize a table segment</summary>
+    TableInit = 0xFC0C,
+    /// <summary>Drop an element segment</summary>
+    ElemDrop = 0xFC0D,
+    /// <summary>Copy elements from one table to another</summary>
+    TableCopy = 0xFC0E,
+    /// <summary>Grow a table by a specified number of elements</summary>
+    TableGrow = 0xFC0F,
+    /// <summary>Get the current size of a table</summary>
+    TableSize = 0xFC10,
+    /// <summary>Fill a table with a specified value</summary>
+    TableFill = 0xFC11,
+    
    
     
     
@@ -384,26 +423,7 @@ public enum WasmOpcode
 {
     // Previous opcodes remain unchanged...
     
-    // Extended instructions (prefix 0xFC)
-    I32TruncSatF32S = 0xFC00,
-    I32TruncSatF32U = 0xFC01,
-    I32TruncSatF64S = 0xFC02,
-    I32TruncSatF64U = 0xFC03,
-    I64TruncSatF32S = 0xFC04,
-    I64TruncSatF32U = 0xFC05,
-    I64TruncSatF64S = 0xFC06,
-    I64TruncSatF64U = 0xFC07,
-    MemoryInit = 0xFC08,
-    DataDrop = 0xFC09,
-    MemoryCopy = 0xFC0A,
-    MemoryFill = 0xFC0B,
-    TableInit = 0xFC0C,
-    ElemDrop = 0xFC0D,
-    TableCopy = 0xFC0E,
-    TableGrow = 0xFC0F,
-    TableSize = 0xFC10,
-    TableFill = 0xFC11,
-
+    
     // Vector instructions (prefix 0xFD)
     V128Load = 0xFD00,
     V128Load8x8S = 0xFD01,

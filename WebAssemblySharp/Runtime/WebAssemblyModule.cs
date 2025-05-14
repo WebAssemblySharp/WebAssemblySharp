@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
+using WebAssemblySharp.Runtime.Interpreter;
 
 namespace WebAssemblySharp.Runtime;
 
@@ -23,15 +24,33 @@ namespace WebAssemblySharp.Runtime;
 public class WebAssemblyModule
 {
     private readonly IWebAssemblyExecutor m_Executor;
+    public String Name { get; }
     
-    public WebAssemblyModule(IWebAssemblyExecutor p_Executor)
+    public WebAssemblyModule(string p_Name, IWebAssemblyExecutor p_Executor)
     {
         m_Executor = p_Executor;
+        Name = p_Name;
     }
 
-    public Task<object> Call(string p_Name, params object[] p_Args)
+    public ValueTask<object> Call(string p_Name, params object[] p_Args)
     {
         return m_Executor.GetMethod(p_Name).Invoke(p_Args);
+    }
+    
+    public async ValueTask<T> Call<T>(string p_Name, params object[] p_Args)
+    {
+        object l_Result = await m_Executor.GetMethod(p_Name).Invoke(p_Args);
+
+        if (typeof(T).IsAssignableTo(typeof(IWebAssemblyValue)))
+        {
+            IWebAssemblyValue l_Instance = (IWebAssemblyValue)Activator.CreateInstance<T>();
+            l_Instance.Load(l_Result, m_Executor);
+            return (T)l_Instance;
+        }
+        else
+        {
+            return (T) l_Result;   
+        }
     }
 
     public IWebAssemblyMethod GetMethod(string p_Name)
@@ -39,8 +58,8 @@ public class WebAssemblyModule
         return m_Executor.GetMethod(p_Name);
     }
 
-    public Span<byte> GetMemoryAccess(long p_Address, int p_Length)
+    public IWebAssemblyMemoryArea GetMemoryArea(string p_Name)
     {
-        return m_Executor.GetMemoryAccess(p_Address, p_Length);
+        return m_Executor.GetMemoryArea(p_Name);
     }
 }

@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using WebAssemblySharp.Runtime;
 using WebAssemblySharpExampleData;
 
@@ -8,14 +10,15 @@ namespace WebAssemblySharpTest.Runtime;
 public class AddTest
 {
     [TestMethod]
-    public async Task ExecuteAddWasmTest()
+    [DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
+    public async Task ExecuteAddWasmTest(Type p_RuntimeType)
     {
-        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        WebAssemblyModule l_Module =
-            await (await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.add.wasm"))).Build();
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(p_RuntimeType,
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.add.wasm"));
 
-        int l_Result = (int) await l_Module.Call("add", 1, 2);
+        int l_Result = await l_Module.Call<int>("add", 1, 2);
         Assert.AreEqual(3, l_Result);
     }
+    
+    
 }

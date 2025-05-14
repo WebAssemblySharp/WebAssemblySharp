@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using WebAssemblySharp.Runtime;
+using WebAssemblySharp.Runtime.JIT;
 using WebAssemblySharpExampleData;
 
 namespace WebAssemblySharpTest.Runtime;
@@ -13,35 +17,22 @@ public class IsPrimeTest
     {
         get
         {
-            for (int i = 0; i < 10000; i++)
+            foreach (object[] l_Type in TestRuntimeProvider.RuntimeTypes)
             {
-                yield return new object[] { i, IsPrime(i) };
+                for (int i = 0; i < 10000; i++)
+                {
+                    yield return new object[] { l_Type[0], i, IsPrime(i) };
+                }
             }
-        }
-    }
-
-    //[TestMethod]
-    public async Task ExecuteIsprimeWasmTest_1_000_000()
-    {
-        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        WebAssemblyModule l_Module =
-            await (await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"))).Build();
-
-        for (int i = 0; i < 1_000_000; i++)
-        {
-            int l_Result = (int)await l_Module.Call("is_prime", 99);
         }
     }
 
     [TestMethod]
     [DynamicData(nameof(IsPrimeData))]
-    public async Task ExecuteIsprimeWasmTest(int p_Number, bool p_IsPrime)
+    public async Task ExecuteIsprimeWasmTest(Type p_RunTimeType, int p_Number, bool p_IsPrime)
     {
-        WebAssemblyRuntime l_Runtime = new WebAssemblyRuntime();
-        WebAssemblyModule l_Module =
-            await (await l_Runtime.LoadModule(
-                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"))).Build();
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(p_RunTimeType,
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
 
         int l_Result = (int)await l_Module.Call("is_prime", p_Number);
 

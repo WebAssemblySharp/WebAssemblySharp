@@ -154,7 +154,7 @@ public class WasmTextReader
         if (HandleKeyWords(l_Text, "table", WasmReaderElement.TableElement))
             return;
 
-        if (HandleKeyWords(l_Text, "mem", WasmReaderElement.MemElement))
+        if (HandleKeyWords(l_Text, "memory", WasmReaderElement.MemElement))
             return;
 
         if (HandleKeyWords(l_Text, "global", WasmReaderElement.GlobalElement))

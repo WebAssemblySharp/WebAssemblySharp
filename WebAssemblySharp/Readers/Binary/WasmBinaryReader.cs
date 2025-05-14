@@ -150,7 +150,7 @@ public class WasmBinaryReader
         {
             if (m_CurrentInstruction == null)
             {
-                WasmOpcode? l_Opcode = ReadOpCode(l_Reader);
+                WasmOpcode? l_Opcode = l_Reader.ReadOpcode();
 
                 if (l_Opcode == null)
                     return;
@@ -218,18 +218,7 @@ public class WasmBinaryReader
             m_CurrentInstruction = null;
         }
     }
-
-    private WasmOpcode? ReadOpCode(InternalInstructionReader p_Reader)
-    {
-        ReadOnlySpan<byte> l_Bytes = p_Reader.ReadReadBytes(1);
-        
-        if (l_Bytes.IsEmpty)
-            return null;
-
-        byte l_ByteValue = l_Bytes[0];
-        WasmOpcode l_Opcode = (WasmOpcode)l_ByteValue;
-        return l_Opcode;
-    }
+    
 
     private void ReadCode(ReadOnlySpan<byte> p_Data, ref int p_Index)
     {
@@ -431,7 +420,7 @@ public class WasmBinaryReader
             {
                 // Only Min
                 m_CurrentMemory.Min = -1;
-                m_CurrentMemory.Max = Int64.MaxValue;
+                m_CurrentMemory.Max = Int32.MaxValue;
             }
             else
             {
@@ -485,10 +474,8 @@ public class WasmBinaryReader
             if (l_ModuleLength == null)
                 return;
 
-            m_CurrentImport = new WasmImport();
+            m_CurrentImport = new WasmUnkownImport();
             m_CurrentImport.Module = new WasmStringInComplete((long)l_ModuleLength.Value);
-            m_CurrentImport.Kind = WasmExternalKind.Unknown;
-            m_CurrentImport.Index = -1;
         }
         
         if (m_CurrentImport.Module is WasmStringInComplete)
@@ -530,27 +517,91 @@ public class WasmBinaryReader
             if (l_Bytes.IsEmpty)
                 return;
 
-            m_CurrentImport.Kind = (WasmExternalKind)l_Bytes[0];
+            WasmExternalKind l_Kind = (WasmExternalKind)l_Bytes[0];
+
+            WasmImport l_Unkown = m_CurrentImport;
+
+            switch (l_Kind)
+            {
+                case WasmExternalKind.Function:
+                    m_CurrentImport = new WasmImportFunction() { FunctionIndex = -1 };
+                    break;
+                case WasmExternalKind.Table:
+                    break;
+                case WasmExternalKind.Memory:
+                    m_CurrentImport = new WasmImportMemory() {Min = -1, Max = -2};
+                    break;
+                case WasmExternalKind.Global:
+                    break;
+                default:
+                    // QQQ handle other external kinds
+                    throw new WasmBinaryReaderException("Invalid import kind " + m_CurrentImport.Kind + " not implemnted");
+            }
+            
+            m_CurrentImport.Name = l_Unkown.Name;
+            m_CurrentImport.Module = l_Unkown.Module;
         }
         
-        if (m_CurrentImport.Kind == WasmExternalKind.Function)
+        if (m_CurrentImport is WasmImportFunction)
         {
-            if (m_CurrentImport.Index == -1)
+            WasmImportFunction l_ImportFunction = (WasmImportFunction)m_CurrentImport;
+            
+            if (l_ImportFunction.FunctionIndex == -1)
             {
                 ulong? l_Index = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
 
                 if (l_Index == null)
                     return;
 
-                m_CurrentImport.Index = (long)l_Index.Value;
+                l_ImportFunction.FunctionIndex = (long)l_Index.Value;
+            }
+        }
+        else if (m_CurrentImport is WasmImportMemory)
+        {
+            WasmImportMemory l_ImportMemory = (WasmImportMemory)m_CurrentImport;
+
+            if (l_ImportMemory.Max == -2)
+            {
+                ReadOnlySpan<byte> l_HasMax = ReaReadBytes(p_Data, ref p_Index, 1, ref m_SectionSize);
+
+                if (l_HasMax.IsEmpty)
+                    return;
+
+                if (l_HasMax[0] == 0)
+                {
+                    l_ImportMemory.Max = Int32.MaxValue;
+                }
+                else
+                {
+                    l_ImportMemory.Max = -1;
+                }
+            }
+            
+            if (l_ImportMemory.Min == -1)
+            {
+                ulong? l_Min = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
+                
+                if (l_Min == null)
+                    return;
+                
+                l_ImportMemory.Min = (long)l_Min.Value;        
+            }
+            
+            if (l_ImportMemory.Max == -1)
+            {
+                ulong? l_Max = ReadLEB128UInt(p_Data, ref p_Index, ref m_SectionSize);
+                
+                if (l_Max == null)
+                    return;
+                
+                l_ImportMemory.Max = (long)l_Max.Value;   
             }
         }
         else
         {
             // QQQ handle other external kinds
-            throw new WasmBinaryReaderException("Invalid import kind " + m_CurrentImport.Kind + " not implemnted");
+            throw new WasmBinaryReaderException("Invalid import kind " + m_CurrentImport.Kind + " not implemnted");    
         }
-        
         
         for (int i = 0; i < m_MetaData.Import.Length; i++)
         {
@@ -1407,6 +1458,41 @@ public class WasmBinaryReader
         m_SectionSize = -1;
     }
 
+    private WasmOpcode? ReadOpcode(ReadOnlySpan<byte> p_Data, ref int p_Index, ref long p_Limit)
+    {
+        
+        ReadOnlySpan<byte> l_NextByte = ReadReadBytes(p_Data, ref p_Index, 1, ref p_Limit, false);
+
+        if (l_NextByte.IsEmpty)
+        {
+            return null;
+        }
+
+        // If we dont have a multi byte opcode. We can stop
+        if (l_NextByte[0] != 0xFC)
+        {
+            // Reset buffer
+            ResetBuffer(ref p_Limit, 1);
+            return (WasmOpcode)l_NextByte[0];    
+        } 
+        
+        l_NextByte = ReadReadBytes(p_Data, ref p_Index, 2, ref p_Limit, false);
+        
+        if (l_NextByte.IsEmpty)
+        {
+            return null;
+        }
+        
+        ushort l_Opcode = 0;
+        
+        l_Opcode |= (ushort)(l_NextByte[0] << 8);
+        l_Opcode |= (ushort)(l_NextByte[1]);
+        
+        // Reset buffer
+        ResetBuffer(ref p_Limit, 2);
+        return (WasmOpcode)l_Opcode;  
+    }
+
     private long? ReadLEB128Int(ReadOnlySpan<byte> p_Data, ref int p_Index)
     {
         long l_Limit = -1;
@@ -1643,6 +1729,14 @@ public class WasmBinaryReader
                 return m_Parent.ReadReadBytes(m_Data, ref m_Index, p_Length, ref m_Parent.m_CurrentCode.CodeSizeRemaining, true);
             
             return m_Parent.ReadReadBytes(m_Data, ref m_Index, p_Length, ref m_Parent.m_SectionSize, true);
+        }
+
+        public WasmOpcode? ReadOpcode()
+        {
+            if (m_Parent.m_CurrentCode != null)
+                return m_Parent.ReadOpcode(m_Data, ref m_Index, ref m_Parent.m_CurrentCode.CodeSizeRemaining); 
+            
+            return m_Parent.ReadOpcode(m_Data, ref m_Index, ref m_Parent.m_SectionSize);
         }
     }
 }
