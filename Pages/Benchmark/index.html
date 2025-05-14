@@ -166,7 +166,7 @@
           const values = [];
           labels.forEach((x) => {
 
-            let groupElement = groupEntries.find(e => {new Date(e.date + 'Z').toLocaleString() === x});
+            let groupElement = groupEntries.find(e => {return new Date(e.date + 'Z').toLocaleString() === x});
 
             if (groupElement) {
               values.push(valueProvider(groupElement));  
