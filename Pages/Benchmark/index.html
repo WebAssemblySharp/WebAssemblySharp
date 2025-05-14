@@ -163,11 +163,19 @@
 
           const groupEntries = entries.filter(x => x.fullName === group);
 
+          let groupName = group;
+          if (groupEntries.length > 0) {
+            groupName = groupName.replace(groupEntries[0].namespace + '.', '').replace(groupEntries[0].type + '.', '');   
+          }
+          
           const values = [];
           labels.forEach((x) => {
 
+            
             let groupElement = groupEntries.find(e => {return new Date(e.date + 'Z').toLocaleString() === x});
 
+            
+            
             if (groupElement) {
               values.push(valueProvider(groupElement));  
             } else {
@@ -177,7 +185,7 @@
           })
 
           dataSet.push({
-            name: group,
+            name: groupName,
             values: values,
           });
         });
