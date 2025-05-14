@@ -649,7 +649,7 @@ public class WebAssemblyInterpreterVirtualMaschine
      *          - false: if execution was paused due to reaching the instruction limit
      *
      */
-    public async Task<bool> ExecuteFrame(WebAssemblyInterpreterExecutionContext p_Context, int p_InstructionsToExecute)
+    public async ValueTask<bool> ExecuteFrame(WebAssemblyInterpreterExecutionContext p_Context, int p_InstructionsToExecute)
     {
         if (p_InstructionsToExecute <= 0)
         {
@@ -672,7 +672,7 @@ public class WebAssemblyInterpreterVirtualMaschine
             }
             else
             {
-                await (((ExecuteInstructionDelegateAsync)l_Instruction.VmData)(l_Instruction, p_Context));
+                await (((ExecuteInstructionDelegateAsync)l_Instruction.VmData)(l_Instruction, p_Context)).ConfigureAwait(false);
             }
 
             l_InstcutionCounter++;
@@ -685,7 +685,7 @@ public class WebAssemblyInterpreterVirtualMaschine
         }
     }
 
-    private async Task<bool> ExecuteFrameWithoutInstructionsLimit(WebAssemblyInterpreterExecutionContext p_Context)
+    private async ValueTask<bool> ExecuteFrameWithoutInstructionsLimit(WebAssemblyInterpreterExecutionContext p_Context)
     {
         while (true)
         {
@@ -700,7 +700,7 @@ public class WebAssemblyInterpreterVirtualMaschine
             }
             else
             {
-                await (((ExecuteInstructionDelegateAsync)l_Instruction.VmData)(l_Instruction, p_Context));
+                await (((ExecuteInstructionDelegateAsync)l_Instruction.VmData)(l_Instruction, p_Context)).ConfigureAwait(false);
             }
 
 #if DEBUG

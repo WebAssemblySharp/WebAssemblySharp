@@ -32,12 +32,12 @@ public class WebAssemblyModule
         Name = p_Name;
     }
 
-    public Task<object> Call(string p_Name, params object[] p_Args)
+    public ValueTask<object> Call(string p_Name, params object[] p_Args)
     {
         return m_Executor.GetMethod(p_Name).Invoke(p_Args);
     }
     
-    public async Task<T> Call<T>(string p_Name, params object[] p_Args)
+    public async ValueTask<T> Call<T>(string p_Name, params object[] p_Args)
     {
         object l_Result = await m_Executor.GetMethod(p_Name).Invoke(p_Args);
 

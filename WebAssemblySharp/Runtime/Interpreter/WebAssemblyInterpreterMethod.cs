@@ -20,7 +20,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         m_VirtualMachine = p_VirtualMachine;
     }
 
-    public async Task<object> Invoke(params object[] p_Args)
+    public async ValueTask<object> Invoke(params object[] p_Args)
     {
         ValidateParameters(p_Args);
 

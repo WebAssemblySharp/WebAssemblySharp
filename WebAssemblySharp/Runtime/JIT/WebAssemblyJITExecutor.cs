@@ -17,11 +17,8 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor
         if (m_Assembly == null)
             throw new InvalidOperationException("Assembly not initialized. Call Init() before using GetMethod.");
         
-        if (!m_Assembly.ExportedMethodes.TryGetValue(p_Name, out var l_Method))
-            throw new InvalidOperationException($"Method {p_Name} not found in the assembly.");
-        
-        return l_Method;
-        
+        return (IWebAssemblyMethod)m_Assembly.ExportedMethodes[p_Name];
+ 
     }
 
     public void LoadCode(WasmMetaData p_WasmMetaData)

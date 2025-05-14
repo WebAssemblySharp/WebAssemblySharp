@@ -16,7 +16,7 @@ namespace WebAssemblySharp.Runtime;
  */
 public interface IWebAssemblyMethod
 {
-    Task<object> Invoke(params object[] p_Args);
+    ValueTask<object> Invoke(params object[] p_Args);
     
     WasmFuncType GetMetaData();
 

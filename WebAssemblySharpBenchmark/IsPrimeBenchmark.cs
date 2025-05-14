@@ -19,6 +19,7 @@ public class IsPrimeBenchmark {
 
     private WebAssemblyModule m_InterpreterModule;
     private WebAssemblyModule m_JitModule;
+    private IWebAssemblyMethod m_WebAssemblyMethod;
     
 
     [GlobalSetup]
@@ -32,6 +33,7 @@ public class IsPrimeBenchmark {
         
         await m_InterpreterModule.Call("is_prime", 1);
         await m_JitModule.Call("is_prime", 1);
+        m_WebAssemblyMethod = m_JitModule.GetMethod("is_prime");
     }
 
     [GlobalCleanup]
@@ -39,6 +41,7 @@ public class IsPrimeBenchmark {
     {
         m_InterpreterModule = null;
         m_JitModule = null;
+        m_WebAssemblyMethod = null;
     }
     
     [Benchmark]
@@ -66,7 +69,14 @@ public class IsPrimeBenchmark {
     [Benchmark]
     public async Task Jit() {
 
-        await m_JitModule.Call("is_prime", N); 
+        await m_JitModule.Call("is_prime", N);
+        
+    }
+    
+    //[Benchmark]
+    public async Task JitDirectCall() {
+
+        await m_WebAssemblyMethod.Invoke(N); 
 
     }
     
