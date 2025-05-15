@@ -30,7 +30,7 @@ public class LoopsTest
     {
         var (l_HeapMemoryArea, l_StartOffset, l_Count, l_Module) = await SetupMemoryAndRuntime();
 
-        int l_Result = await l_Module.Call<int>("first_power_over_limit", p_Base, p_Limit);
+        int l_Result = await l_Module.Call<int, int, int>("first_power_over_limit", p_Base, p_Limit);
         
         Assert.AreEqual(p_Expected, l_Result);
     }
@@ -56,7 +56,7 @@ public class LoopsTest
         
         var (l_HeapMemoryArea, l_StartOffset, l_Count, l_Module) = await SetupMemoryAndRuntime();
         
-        int l_Sum = await l_Module.Call<int>("add_all", l_StartOffset, l_Count);
+        int l_Sum = await l_Module.Call<int, int, int>("add_all", l_StartOffset, l_Count);
 
         Span<byte> l_MemoryAccess = l_HeapMemoryArea.GetMemoryAccess(l_StartOffset, l_Count * sizeof(int));
         int l_WantSum = 0;

@@ -40,8 +40,8 @@ public class ImportsBenchmark
         m_AsyncModule = l_WebAssemblyRuntime.GetModule("Async");
         m_SyncModule = l_WebAssemblyRuntime.GetModule("Sync");
         
-        await m_AsyncModule.Call("twiceplus5", 3);
-        await m_SyncModule.Call("twiceplus5", 3);
+        await m_AsyncModule.Call<int, int>("twiceplus5", 3);
+        await m_SyncModule.Call<int, int>("twiceplus5", 3);
      
     }
 
@@ -55,14 +55,14 @@ public class ImportsBenchmark
     [Benchmark(Baseline = true)]
     public async Task Sync() {
 
-        await m_SyncModule.Call("twiceplus5", N);
+        await m_SyncModule.Call<int, int>("twiceplus5", N);
 
     }
 
     [Benchmark]
     public async Task Async() {
 
-        await m_AsyncModule.Call("twiceplus5", N); 
+        await m_AsyncModule.DynamicCall("twiceplus5", N); 
 
     }
 }

@@ -29,7 +29,7 @@ public class MemoryBasicsTest
         // Grow the memory
         ///////////////////////////////////////
         
-        int l_OldPageSize = await l_Module.Call<int>("wasm_grow", 5);
+        int l_OldPageSize = await l_Module.Call<int, int>("wasm_grow", 5);
         Assert.AreEqual(1, l_OldPageSize);
         
         l_Size = l_Module.GetMemoryArea("memory").GetSize();
@@ -43,7 +43,7 @@ public class MemoryBasicsTest
         // Fill the memory
         ///////////////////////////////////////
         
-        await l_Module.Call("wasm_fill", 1024, 127, 16);
+        await l_Module.DynamicCall("wasm_fill", 1024, 127, 16);
         Span<byte> l_MemoryAccess = l_Module.GetMemoryArea("memory").GetMemoryAccess(1024, 16);
         
         for (int i = 0; i < l_MemoryAccess.Length; i++)

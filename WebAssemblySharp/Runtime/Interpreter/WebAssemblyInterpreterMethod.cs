@@ -12,7 +12,8 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
     private readonly WasmCode m_Code;
     private readonly string m_Name;
 
-    public WebAssemblyInterpreterMethod(WebAssemblyInterpreterVirtualMaschine p_VirtualMachine, WasmFuncType p_FuncType, WasmCode p_Code, string p_Name)
+    public WebAssemblyInterpreterMethod(WebAssemblyInterpreterVirtualMaschine p_VirtualMachine, WasmFuncType p_FuncType, WasmCode p_Code,
+        string p_Name)
     {
         m_FuncType = p_FuncType;
         m_Code = p_Code;
@@ -20,7 +21,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         m_VirtualMachine = p_VirtualMachine;
     }
 
-    public async ValueTask<object> Invoke(params object[] p_Args)
+    public async ValueTask<object> DynamicInvoke(params object[] p_Args)
     {
         ValidateParameters(p_Args);
 
@@ -37,7 +38,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
 
         if (l_JitValues.Length == 1)
             return l_JitValues[0].GetRawValue();
-        
+
         object[] l_Results = new object[l_JitValues.Length];
 
         // Reverse the order of the results because the stack is LIFO
@@ -45,7 +46,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         {
             l_Results[l_JitValues.Length - 1 - i] = l_JitValues[i].GetRawValue();
         }
-        
+
         return l_Results;
     }
 
@@ -53,7 +54,6 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
     {
         return m_FuncType;
     }
-
 
     private void ValidateParameters(object[] p_Args)
     {
@@ -68,5 +68,654 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
                 throw new InvalidOperationException("Method " + m_Name + " Invalid argument type at index " + i + " expected " +
                                                     m_FuncType.Parameters[i] + " but got " + p_Args[i].GetType());
         }
+    }
+    
+    private TResult ConvertToFinalType<TResult>(object p_Value) where TResult : struct
+    {
+        if (typeof(TResult).IsAssignableTo(typeof(IWebAssemblyValue)))
+        {
+            IWebAssemblyValue l_Instance = (IWebAssemblyValue)Activator.CreateInstance<TResult>();
+            l_Instance.Load(p_Value, m_VirtualMachine);
+            return (TResult)l_Instance;
+        }
+
+        return (TResult)p_Value;
+        
+    }
+
+    public Func<ValueTask<TResult>> GetDelegate<TResult>() where TResult : struct
+    {
+        return new Func<ValueTask<TResult>>(async () => { return ConvertToFinalType<TResult>(await DynamicInvoke()); });
+    }
+
+    
+
+    public Func<TInput1, ValueTask<TResult>> GetDelegate<TInput1, TResult>() where TInput1 : struct where TResult : struct
+    {
+        return new Func<TInput1, ValueTask<TResult>>(async (x1) => { return ConvertToFinalType<TResult>(await DynamicInvoke(x1)); });
+    }
+
+    public Func<TInput1, TInput2, ValueTask<TResult>> GetDelegate<TInput1, TInput2, TResult>()
+        where TInput1 : struct where TInput2 : struct where TResult : struct
+    {
+        return new Func<TInput1, TInput2, ValueTask<TResult>>(async (x1, x2) => { return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2)); });
+    }
+
+    public Func<TInput1, TInput2, TInput3, ValueTask<TResult>> GetDelegate<TInput1, TInput2, TInput3, TResult>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TResult : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, ValueTask<TResult>>(async (x1, x2, x3) => { return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3)); });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, ValueTask<TResult>> GetDelegate<TInput1, TInput2, TInput3, TInput4, TResult>()
+        where TInput1 : struct where TInput2 : struct where TInput3 : struct where TInput4 : struct where TResult : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, ValueTask<TResult>>(async (x1, x2, x3, x4) =>
+        {
+            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4));
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, ValueTask<TResult>> GetDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TResult>()
+        where TInput1 : struct where TInput2 : struct where TInput3 : struct where TInput4 : struct where TInput5 : struct where TResult : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, ValueTask<TResult>>(async (x1, x2, x3, x4, x5) =>
+        {
+            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5));
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, ValueTask<TResult>>
+        GetDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TResult>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TResult : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6) =>
+        {
+            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6));
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, ValueTask<TResult>>
+        GetDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TResult>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TResult : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6, x7) =>
+        {
+            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7));
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, ValueTask<TResult>>
+        GetDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TResult>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TResult : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6, x7,
+            x8) =>
+        {
+            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8));
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, ValueTask<TResult>> GetDelegate<TInput1, TInput2,
+        TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TResult>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+        where TResult : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, ValueTask<TResult>>(async (x1, x2, x3, x4,
+            x5, x6, x7, x8, x9) =>
+        {
+            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9));
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, ValueTask<TResult>> GetDelegate<TInput1,
+        TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TResult>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+        where TInput10 : struct
+        where TResult : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, ValueTask<TResult>>(async (x1, x2,
+            x3, x4, x5, x6, x7, x8, x9, x10) =>
+        {
+            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10));
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, ValueTask<TResult>>
+        GetDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TResult>()
+        where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+        where TInput10 : struct
+        where TInput11 : struct
+        where TResult : struct
+    {
+        return new
+            Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, ValueTask<TResult>>(async (x1,
+                x2, x3, x4, x5, x6, x7, x8, x9, x10, x11) =>
+            {
+                return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11));
+            });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, ValueTask<TResult>>
+        GetDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TResult>()
+        where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+        where TInput10 : struct
+        where TInput11 : struct
+        where TInput12 : struct
+        where TResult : struct
+    {
+        return new
+            Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12,
+                ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12) =>
+            {
+                return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12));
+            });
+    }
+
+    public
+        Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13,
+            ValueTask<TResult>>
+        GetDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13,
+            TResult>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+        where TInput10 : struct
+        where TInput11 : struct
+        where TInput12 : struct
+        where TInput13 : struct
+        where TResult : struct
+    {
+        return new
+            Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13,
+                ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13) =>
+            {
+                return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13));
+            });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13, TInput14,
+        ValueTask<TResult>> GetDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12,
+        TInput13, TInput14,
+        TResult>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+        where TInput10 : struct
+        where TInput11 : struct
+        where TInput12 : struct
+        where TInput13 : struct
+        where TInput14 : struct
+        where TResult : struct
+    {
+        return new
+            Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13, TInput14,
+                ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14) =>
+            {
+                return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14));
+            });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13, TInput14,
+        TInput15, ValueTask<TResult>> GetDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11,
+        TInput12, TInput13, TInput14,
+        TInput15, TResult>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+        where TInput10 : struct
+        where TInput11 : struct
+        where TInput12 : struct
+        where TInput13 : struct
+        where TInput14 : struct
+        where TInput15 : struct
+        where TResult : struct
+    {
+        return new
+            Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13, TInput14,
+                TInput15, ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15) =>
+            {
+                return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14,
+                    x15));
+            });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13, TInput14,
+        TInput15, TInput16, ValueTask<TResult>> GetDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10,
+        TInput11, TInput12, TInput13, TInput14,
+        TInput15, TInput16, TResult>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+        where TInput10 : struct
+        where TInput11 : struct
+        where TInput12 : struct
+        where TInput13 : struct
+        where TInput14 : struct
+        where TInput15 : struct
+        where TInput16 : struct
+        where TResult : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13,
+            TInput14, TInput15, TInput16, ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11,
+            x12,
+            x13,
+            x14,
+            x15,
+            x16) =>
+        {
+            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9,
+                x10,
+                x11,
+                x12,
+                x13,
+                x14,
+                x15,
+                x16));
+        });
+    }
+
+    public Func<ValueTask> GetVoidDelegate()
+    {
+        return new Func<ValueTask>(async () => { await DynamicInvoke(); });
+    }
+
+    public Func<TInput1, ValueTask> GetVoidDelegate<TInput1>() where TInput1 : struct
+    {
+        return new Func<TInput1, ValueTask>(async (x1) => { await DynamicInvoke(x1); });
+    }
+
+    public Func<TInput1, TInput2, ValueTask> GetVoidDelegate<TInput1, TInput2>() where TInput1 : struct where TInput2 : struct
+    {
+        return new Func<TInput1, TInput2, ValueTask>(async (x1, x2) => { await DynamicInvoke(x1, x2); });
+    }
+
+    public Func<TInput1, TInput2, TInput3, ValueTask> GetVoidDelegate<TInput1, TInput2, TInput3>()
+        where TInput1 : struct where TInput2 : struct where TInput3 : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, ValueTask>(async (x1, x2, x3) => { await DynamicInvoke(x1, x2, x3); });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, ValueTask> GetVoidDelegate<TInput1, TInput2, TInput3, TInput4>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, ValueTask>(async (x1, x2, x3, x4) => { await DynamicInvoke(x1, x2, x3, x4); });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, ValueTask> GetVoidDelegate<TInput1, TInput2, TInput3, TInput4, TInput5>()
+        where TInput1 : struct where TInput2 : struct where TInput3 : struct where TInput4 : struct where TInput5 : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, ValueTask>(async (x1, x2, x3, x4, x5) =>
+        {
+            await DynamicInvoke(x1, x2, x3, x4, x5);
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, ValueTask>
+        GetVoidDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, ValueTask>(async (x1, x2, x3, x4, x5, x6) =>
+        {
+            await DynamicInvoke(x1, x2, x3, x4, x5, x6);
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, ValueTask>
+        GetVoidDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, ValueTask>(async (x1, x2, x3, x4, x5, x6, x7) =>
+        {
+            await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7);
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, ValueTask>
+        GetVoidDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, ValueTask>(async (x1, x2, x3, x4, x5, x6, x7,
+            x8) =>
+        {
+            await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8);
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, ValueTask>
+        GetVoidDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, ValueTask>(async (x1, x2, x3, x4, x5,
+            x6,
+            x7,
+            x8,
+            x9) =>
+        {
+            await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9);
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, ValueTask> GetVoidDelegate<TInput1,
+        TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+        where TInput10 : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, ValueTask>(async (x1, x2, x3,
+            x4,
+            x5,
+            x6,
+            x7,
+            x8,
+            x9,
+            x10) =>
+        {
+            await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10);
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, ValueTask>
+        GetVoidDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+        where TInput10 : struct
+        where TInput11 : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, ValueTask>(async (x1,
+            x2,
+            x3,
+            x4,
+            x5,
+            x6,
+            x7,
+            x8,
+            x9,
+            x10,
+            x11) =>
+        {
+            await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11);
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, ValueTask>
+        GetVoidDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12>()
+        where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+        where TInput10 : struct
+        where TInput11 : struct
+        where TInput12 : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12,
+            ValueTask>(async (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12) =>
+        {
+            await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10,
+                x11,
+                x12);
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13, ValueTask>
+        GetVoidDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13>()
+        where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+        where TInput10 : struct
+        where TInput11 : struct
+        where TInput12 : struct
+        where TInput13 : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12,
+            TInput13,
+            ValueTask>(async (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10,
+            x11,
+            x12,
+            x13) =>
+        {
+            await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9,
+                x10,
+                x11,
+                x12,
+                x13);
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13, TInput14,
+        ValueTask> GetVoidDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12,
+        TInput13,
+        TInput14>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+        where TInput10 : struct
+        where TInput11 : struct
+        where TInput12 : struct
+        where TInput13 : struct
+        where TInput14 : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12,
+            TInput13,
+            TInput14,
+            ValueTask>(async (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10,
+            x11,
+            x12,
+            x13,
+            x14) =>
+        {
+            await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9,
+                x10,
+                x11,
+                x12,
+                x13,
+                x14);
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13, TInput14,
+        TInput15, ValueTask> GetVoidDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11,
+        TInput12, TInput13,
+        TInput14, TInput15>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+        where TInput10 : struct
+        where TInput11 : struct
+        where TInput12 : struct
+        where TInput13 : struct
+        where TInput14 : struct
+        where TInput15 : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12,
+            TInput13,
+            TInput14,
+            TInput15,
+            ValueTask>(async (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10,
+            x11,
+            x12,
+            x13,
+            x14,
+            x15) =>
+        {
+            await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9,
+                x10,
+                x11,
+                x12,
+                x13,
+                x14,
+                x15);
+        });
+    }
+
+    public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13, TInput14,
+        TInput15, TInput16, ValueTask> GetVoidDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10,
+        TInput11, TInput12, TInput13,
+        TInput14, TInput15, TInput16>() where TInput1 : struct
+        where TInput2 : struct
+        where TInput3 : struct
+        where TInput4 : struct
+        where TInput5 : struct
+        where TInput6 : struct
+        where TInput7 : struct
+        where TInput8 : struct
+        where TInput9 : struct
+        where TInput10 : struct
+        where TInput11 : struct
+        where TInput12 : struct
+        where TInput13 : struct
+        where TInput14 : struct
+        where TInput15 : struct
+        where TInput16 : struct
+    {
+        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12,
+            TInput13,
+            TInput14,
+            TInput15,
+            TInput16,
+            ValueTask>(async (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10,
+            x11,
+            x12,
+            x13,
+            x14,
+            x15,
+            x16) =>
+        {
+            await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9,
+                x10,
+                x11,
+                x12,
+                x13,
+                x14,
+                x15,
+                x16);
+        });
     }
 }

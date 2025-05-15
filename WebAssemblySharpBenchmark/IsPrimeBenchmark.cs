@@ -31,8 +31,8 @@ public class IsPrimeBenchmark {
         m_JitModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime<WebAssemblyJITExecutor>(
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
         
-        await m_InterpreterModule.Call("is_prime", 1);
-        await m_JitModule.Call("is_prime", 1);
+        await m_InterpreterModule.Call<int, int>("is_prime", 1);
+        await m_JitModule.Call<int, int>("is_prime", 1);
         m_WebAssemblyMethod = m_JitModule.GetMethod("is_prime");
     }
 
@@ -62,22 +62,15 @@ public class IsPrimeBenchmark {
     [Benchmark]
     public async Task Interpreter() {
 
-        await m_InterpreterModule.Call("is_prime", N); 
+        await m_InterpreterModule.Call<int, int>("is_prime", N); 
 
     }
 
     [Benchmark]
     public async Task Jit() {
 
-        await m_JitModule.Call("is_prime", N);
+        await m_JitModule.Call<int, int>("is_prime", N);
         
-    }
-    
-    //[Benchmark]
-    public async Task JitDirectCall() {
-
-        await m_WebAssemblyMethod.Invoke(N); 
-
     }
     
     

@@ -18,7 +18,7 @@ public class ImportBetweenModulesTest
 
         WebAssemblyModule l_Module = l_Runtime.GetModule("mod2");
 
-        int l_Result = await l_Module.Call<int>("twiceplus5", 10);
+        int l_Result = await l_Module.Call<int, int>("twiceplus5", 10);
         
         Assert.AreEqual(25, l_Result);
     }

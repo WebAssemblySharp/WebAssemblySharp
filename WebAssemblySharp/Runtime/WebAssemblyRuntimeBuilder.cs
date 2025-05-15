@@ -240,7 +240,7 @@ public class WebAssemblyRuntimeBuilder
             {
                 case WasmExternalKind.Function:
                     IWebAssemblyMethod l_Method = l_ExportModule.GetMethod(l_Export.Name);
-                    p_ImportModule.ImportMethod(l_WasmImport.Name, l_Method.Invoke);
+                    p_ImportModule.ImportMethod(l_WasmImport.Name, l_Method.DynamicInvoke);
                     break;
                 case WasmExternalKind.Memory:
                     IWebAssemblyMemoryArea l_Memory = l_ExportModule.GetMemoryArea(l_Export.Name);

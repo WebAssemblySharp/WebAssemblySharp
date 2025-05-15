@@ -16,7 +16,7 @@ public class ImportTest
         l_RuntimeBuilder.ImportMethod("times2", new Func<int, Task<int>>(x => Task.FromResult(x * 2)));
         WebAssemblyRuntime l_Runtime = await l_RuntimeBuilder.Build();
         WebAssemblyModule l_Module = l_Runtime.GetModule("main");
-        int l_Result = (int) await l_Module.Call("twiceplus5", 3);
+        int l_Result = (int) await l_Module.DynamicCall("twiceplus5", 3);
         Assert.AreEqual(11, l_Result);
     }
     
@@ -29,7 +29,7 @@ public class ImportTest
         WebAssemblyRuntime l_Runtime = await l_RuntimeBuilder.Build();
         WebAssemblyModule l_Module = l_Runtime.GetModule("main");
         
-        int l_Result = (int) await l_Module.Call("twiceplus5", 3);
+        int l_Result = (int) await l_Module.DynamicCall("twiceplus5", 3);
         Assert.AreEqual(11, l_Result);
     }
     
@@ -43,7 +43,7 @@ public class ImportTest
                 x.ImportMethod("times2", new Func<int, Task<int>>(x => Task.FromResult(x * 2)));
             });
         
-        int l_Result = (int) await l_Module.Call("twiceplus5", 3);
+        int l_Result = (int) await l_Module.DynamicCall("twiceplus5", 3);
         Assert.AreEqual(11, l_Result);
     }
     
@@ -57,7 +57,7 @@ public class ImportTest
                 x.ImportMethod("times2", new Func<int, int>(x => x * 2));
             });
         
-        int l_Result = (int) await l_Module.Call("twiceplus5", 3);
+        int l_Result = (int) await l_Module.DynamicCall("twiceplus5", 3);
         Assert.AreEqual(11, l_Result);
     }
 }

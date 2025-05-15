@@ -23,7 +23,7 @@ public class ItoaBenchmark
         m_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));
         
-        await m_Module.Call("itoa", 1);     
+        await m_Module.Call<int, int>("itoa", 1);     
     }
 
     [GlobalCleanup]
@@ -42,7 +42,7 @@ public class ItoaBenchmark
     [Benchmark]
     public async Task Interpreter() {
 
-        await m_Module.Call("itoa", N); 
+        await m_Module.Call<int, int>("itoa", N); 
 
     }
     

@@ -19,7 +19,7 @@ namespace WebAssemblySharp.Runtime.Interpreter;
  * facilities for optimizing WebAssembly code paths. It implements various WebAssembly
  * instructions like arithmetic operations, control flow, memory access, and stack manipulation.
  */
-public class WebAssemblyInterpreterVirtualMaschine
+public class WebAssemblyInterpreterVirtualMaschine: IWebAssemblyValueAccess
 {
     public delegate void ExecuteInstructionDelegate(WasmInstruction Instruction, WebAssemblyInterpreterExecutionContext Context);
 
@@ -836,6 +836,10 @@ public class WebAssemblyInterpreterVirtualMaschine
     {
         return m_MemoryAreas[p_Index];
     }
-    
-    
+
+
+    public IWebAssemblyMemoryAreaReadAccess GetInternalMemoryArea(int p_Index = 0)
+    {
+        return GetMemoryArea(p_Index);
+    }
 }

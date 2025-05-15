@@ -2,5 +2,5 @@
 
 public interface IWebAssemblyValue
 {
-    void Load(object p_Result, IWebAssemblyExecutor p_Executor);
+    void Load(object p_Result, IWebAssemblyValueAccess p_Executor);
 }

@@ -28,8 +28,8 @@ public class ItoaTest
     {
         WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));
-        
-        WebAssemblyUTF8String l_StringValue = await l_Module.Call<WebAssemblyUTF8String>("itoa", p_Number);
+
+        WebAssemblyUTF8String l_StringValue = await l_Module.Call<WebAssemblyUTF8String, int>("itoa", p_Number);
         Assert.AreEqual(Convert.ToString(p_Number), l_StringValue);
     }
 }

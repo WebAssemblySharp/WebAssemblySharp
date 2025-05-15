@@ -7,7 +7,7 @@ public struct WebAssemblyUnicodeString: IWebAssemblyValue
 {
     private String m_Value;
     
-    public void Load(object p_Result, IWebAssemblyExecutor p_Executor)
+    public void Load(object p_Result, IWebAssemblyValueAccess p_Executor)
     {
         object[] l_Objects = (Object[])p_Result;
         Span<byte> l_Access = p_Executor.GetInternalMemoryArea().GetMemoryAccess((int)l_Objects[1], (int)l_Objects[0]);

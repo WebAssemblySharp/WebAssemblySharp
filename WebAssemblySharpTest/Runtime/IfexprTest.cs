@@ -31,7 +31,7 @@ public class IfexprTest
         WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.ifexpr.wasm"));
         
-        int l_ResultValue = await l_Module.Call<int>("ifexpr", p_Number1, p_Number2);
+        int l_ResultValue = await l_Module.Call<int, int, int>("ifexpr", p_Number1, p_Number2);
         Assert.AreEqual(p_Result, l_ResultValue);
     }
     
