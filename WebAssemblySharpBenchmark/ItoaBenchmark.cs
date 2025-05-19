@@ -1,6 +1,7 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using WebAssemblySharp.Runtime;
+using WebAssemblySharp.Runtime.Values;
 using WebAssemblySharpExampleData;
 
 namespace WebAssemblySharpBenchmark;
@@ -23,7 +24,7 @@ public class ItoaBenchmark
         m_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));
         
-        await m_Module.Call<int, int>("itoa", 1);     
+        await m_Module.Call<WebAssemblyUTF8String, int>("itoa", 1);     
     }
 
     [GlobalCleanup]
@@ -42,7 +43,7 @@ public class ItoaBenchmark
     [Benchmark]
     public async Task Interpreter() {
 
-        await m_Module.Call<int, int>("itoa", N); 
+        await m_Module.Call<WebAssemblyUTF8String, int>("itoa", N); 
 
     }
     
