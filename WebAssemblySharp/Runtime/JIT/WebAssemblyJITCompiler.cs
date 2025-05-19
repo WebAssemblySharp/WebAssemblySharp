@@ -17,27 +17,29 @@ namespace WebAssemblySharp.Runtime.JIT;
 public class WebAssemblyJITCompiler
 {
     private readonly WasmMetaData m_WasmMetaData;
+    private readonly Type m_ProxyType;
     private Dictionary<String, MethodInfo> m_ExportedMethods;
     private Dictionary<WasmCode, MethodInfo> m_DynamicMethodsByCode;
     private TypeBuilder m_TypeBuilder;
-    private AssemblyBuilder m_AssemblyBuilder;
 
     private WasmFuncType m_CurrentFuncType;
     private LocalBuilder[] m_CurrentLocals;
     private List<Label> m_CurrentLabels;
     private Label m_ReturnLabel;
 
-    public WebAssemblyJITCompiler(WasmMetaData p_WasmMetaData)
+    public WebAssemblyJITCompiler(WasmMetaData p_WasmMetaData, Type p_ProxyType)
     {
         m_WasmMetaData = p_WasmMetaData;
+        m_ProxyType = p_ProxyType;
     }
 
     public WebAssemblyJITAssembly BuildAssembly()
     {
         Type l_Type = m_TypeBuilder.CreateType();
-
+        object l_Instance = Activator.CreateInstance(l_Type);
+        
         IDictionary l_ExportedMethods = new HybridDictionary();
-
+        
         foreach (KeyValuePair<string, MethodInfo> l_Pair in m_ExportedMethods)
         {
             // Find the function index in the module
@@ -51,25 +53,24 @@ public class WebAssemblyJITCompiler
 
             MethodInfo l_MethodInfo = l_Type.GetMethod(l_Pair.Key);
 
-            IWebAssemblyMethod l_WebAssemblyMethod = CreateMethod(l_MethodInfo, l_FuncType);
+            IWebAssemblyMethod l_WebAssemblyMethod = CreateMethod(l_Instance, l_MethodInfo, l_FuncType);
             l_ExportedMethods.Add(l_Pair.Key, l_WebAssemblyMethod);
         }
 
         m_TypeBuilder = null;
-        m_AssemblyBuilder = null;
         m_DynamicMethodsByCode = null;
         m_ExportedMethods = null;
 
-        return new WebAssemblyJITAssembly(l_ExportedMethods);
+        return new WebAssemblyJITAssembly(l_ExportedMethods, l_Instance);
     }
 
-    private IWebAssemblyMethod CreateMethod(MethodInfo p_MethodInfo, WasmFuncType p_FuncType)
+    private IWebAssemblyMethod CreateMethod(object p_Instance, MethodInfo p_MethodInfo, WasmFuncType p_FuncType)
     {
         List<Type> l_ParameterTypes = p_FuncType.Parameters.Select(x => WebAssemblyDataTypeUtils.GetInternalType(x)).ToList();
 
         if (p_FuncType.Results.Length == 0)
         {
-            return CreateVoidMethod(l_ParameterTypes, p_MethodInfo, p_FuncType);
+            return CreateVoidMethod(l_ParameterTypes, p_Instance, p_MethodInfo, p_FuncType);
         }
         else if (p_FuncType.Results.Length == 1)
         {
@@ -182,10 +183,10 @@ public class WebAssemblyJITCompiler
             throw new Exception($"Too many parameters: {l_ParameterTypes.Count}");
         }
 
-        return (IWebAssemblyMethod)Activator.CreateInstance(l_DelegateType, p_FuncType, p_MethodInfo);
+        return (IWebAssemblyMethod)Activator.CreateInstance(l_DelegateType, p_Instance, p_FuncType, p_MethodInfo);
     }
 
-    private IWebAssemblyMethod CreateVoidMethod(List<Type> p_ParameterTypes, MethodInfo p_MethodInfo, WasmFuncType p_FuncType)
+    private IWebAssemblyMethod CreateVoidMethod(List<Type> p_ParameterTypes, object p_Instance, MethodInfo p_MethodInfo, WasmFuncType p_FuncType)
     {
         
         Type l_DelegateType;
@@ -283,7 +284,7 @@ public class WebAssemblyJITCompiler
             throw new Exception($"Too many parameters: {p_ParameterTypes.Count}");
         }
 
-        return (IWebAssemblyMethod)Activator.CreateInstance(l_DelegateType, p_FuncType, p_MethodInfo);
+        return (IWebAssemblyMethod)Activator.CreateInstance(l_DelegateType, p_Instance, p_FuncType, p_MethodInfo);
     }
 
     public void Compile()
@@ -292,7 +293,12 @@ public class WebAssemblyJITCompiler
         AssemblyBuilder l_AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(l_AssemblyName, AssemblyBuilderAccess.RunAndCollect);
         ModuleBuilder l_ModuleBuilder = l_AssemblyBuilder.DefineDynamicModule("DynamicModule");
 
-        m_TypeBuilder = l_ModuleBuilder.DefineType("DynamicType", TypeAttributes.Public);
+        m_TypeBuilder = l_ModuleBuilder.DefineType("DynamicType", TypeAttributes.Public | TypeAttributes.Sealed);
+
+        if (m_ProxyType != null)
+        {
+            m_TypeBuilder.AddInterfaceImplementation(m_ProxyType);
+        }
 
         m_ExportedMethods = new Dictionary<string, MethodInfo>();
         m_DynamicMethodsByCode = new Dictionary<WasmCode, MethodInfo>();
@@ -342,7 +348,7 @@ public class WebAssemblyJITCompiler
             l_ReturnType = typeof(ValueTask<object[]>);
         }
 
-        MethodBuilder l_MethodBuilder = p_TypeBuilder.DefineMethod(p_ExportName, MethodAttributes.Public | MethodAttributes.Static, l_ReturnType,
+        MethodBuilder l_MethodBuilder = p_TypeBuilder.DefineMethod(p_ExportName, MethodAttributes.Public | MethodAttributes.Virtual, l_ReturnType,
             p_FuncType.Parameters.Select(x => WebAssemblyDataTypeUtils.GetInternalType(x)).ToArray());
         m_DynamicMethodsByCode.Add(p_Code, l_MethodBuilder);
         ILGenerator l_IlGenerator = l_MethodBuilder.GetILGenerator();
@@ -967,38 +973,31 @@ public class WebAssemblyJITCompiler
     {
         if (m_CurrentFuncType.Parameters != null && p_Instruction.LocalIndex < m_CurrentFuncType.Parameters.Length)
         {
-            // Load the parameter
+            // Load the parameter 0 is the this parameter
 
             if (p_Instruction.LocalIndex == 0)
             {
                 // Load the first parameter
-                p_IlGenerator.Emit(OpCodes.Ldarg_0);
+                p_IlGenerator.Emit(OpCodes.Ldarg_1);
                 return;
             }
 
             if (p_Instruction.LocalIndex == 1)
             {
                 // Load the second parameter
-                p_IlGenerator.Emit(OpCodes.Ldarg_1);
+                p_IlGenerator.Emit(OpCodes.Ldarg_2);
                 return;
             }
 
             if (p_Instruction.LocalIndex == 2)
             {
                 // Load the third parameter
-                p_IlGenerator.Emit(OpCodes.Ldarg_2);
-                return;
-            }
-
-            if (p_Instruction.LocalIndex == 3)
-            {
-                // Load the fourth parameter
                 p_IlGenerator.Emit(OpCodes.Ldarg_3);
                 return;
             }
-
+            
             // Load the parameter
-            p_IlGenerator.Emit(OpCodes.Ldarg, p_Instruction.LocalIndex);
+            p_IlGenerator.Emit(OpCodes.Ldarg, p_Instruction.LocalIndex + 1);
         }
         else if (m_CurrentLocals != null)
         {

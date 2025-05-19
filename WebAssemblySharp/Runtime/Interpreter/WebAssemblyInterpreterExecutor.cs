@@ -35,12 +35,11 @@ namespace WebAssemblySharp.Runtime.Interpreter;
 public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssemblyInterpreterInteropOptimizer
 {
     private WasmMetaData m_WasmMetaData;
-    private ConcurrentDictionary<String, IWebAssemblyMethod> m_ExportMethods;
-
     private IDictionary<WasmImportFunction, WebAssemblyInterpreterImportMethod> m_ImportMethods;
     private IDictionary<int, IWebAssemblyMemoryArea> m_ImportedMemoryAreas;
-
-    private WebAssemblyInterpreterVirtualMaschine m_VirtualMaschine;
+    
+    private readonly ConcurrentDictionary<String, IWebAssemblyMethod> m_ExportMethods;
+    private readonly WebAssemblyInterpreterVirtualMaschine m_VirtualMaschine;
 
     public WebAssemblyInterpreterExecutor()
     {

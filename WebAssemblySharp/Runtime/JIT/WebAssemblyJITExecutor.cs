@@ -6,11 +6,12 @@ using WebAssemblySharp.Runtime.Interpreter;
 namespace WebAssemblySharp.Runtime.JIT;
 
 // Starting Point for the JIT/ILCompiler
-public class WebAssemblyJITExecutor: IWebAssemblyExecutor
+public class WebAssemblyJITExecutor: IWebAssemblyExecutor, IWebAssemblyExecutorProxy
 {
     private WasmMetaData m_WasmMetaData;
     private WebAssemblyJITCompiler m_Compiler;
     private WebAssemblyJITAssembly m_Assembly;
+    private Type m_ProxyType;
     
     public IWebAssemblyMethod GetMethod(string p_Name)
     {
@@ -28,7 +29,7 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor
 
     public void OptimizeCode()
     {
-        m_Compiler = new WebAssemblyJITCompiler(m_WasmMetaData);
+        m_Compiler = new WebAssemblyJITCompiler(m_WasmMetaData, m_ProxyType);
         m_Compiler.Compile();
     
     }
@@ -51,6 +52,28 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor
     public IWebAssemblyMemoryAreaReadAccess GetInternalMemoryArea(int p_Index = 0)
     {
         throw new NotImplementedException();
+    }
+
+    public void SetProxyType(Type p_ProxyType)
+    {
+        if (!p_ProxyType.IsInterface)
+            throw new ArgumentException("Proxy type must be an interface type.", nameof(p_ProxyType));
+        
+        m_ProxyType = p_ProxyType;
+    }
+
+    public T AsInterface<T>()
+    {
+        if (m_ProxyType == null)
+            return default;
+
+        if (!m_ProxyType.IsAssignableFrom(typeof(T)))
+            return default;
+                
+        if (m_Assembly == null)
+            throw new InvalidOperationException("Assembly not initialized. Call Init() before using AsInterface.");
+
+        return (T)m_Assembly.Instance;
     }
 
     public Task Init()

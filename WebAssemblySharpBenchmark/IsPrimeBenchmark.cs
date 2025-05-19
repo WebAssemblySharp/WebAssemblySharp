@@ -19,7 +19,7 @@ public class IsPrimeBenchmark {
 
     private WebAssemblyModule m_InterpreterModule;
     private WebAssemblyModule m_JitModule;
-    private IWebAssemblyMethod m_WebAssemblyMethod;
+    
     
 
     [GlobalSetup]
@@ -28,12 +28,11 @@ public class IsPrimeBenchmark {
         m_InterpreterModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
         
-        m_JitModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime<WebAssemblyJITExecutor>(
+        m_JitModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(typeof(WebAssemblyJITExecutor),
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
         
         await m_InterpreterModule.Call<int, int>("is_prime", 1);
         await m_JitModule.Call<int, int>("is_prime", 1);
-        m_WebAssemblyMethod = m_JitModule.GetMethod("is_prime");
     }
 
     [GlobalCleanup]
@@ -41,7 +40,6 @@ public class IsPrimeBenchmark {
     {
         m_InterpreterModule = null;
         m_JitModule = null;
-        m_WebAssemblyMethod = null;
     }
     
     [Benchmark]

@@ -28,11 +28,6 @@ public class WasmReaderElement
     public WasmReaderElement(WasmReaderElementKind p_Kind, string p_Data)
     {
         
-        if (p_Kind == null)
-        {
-            throw new ArgumentNullException(nameof(p_Kind));
-        }
-        
         Kind = p_Kind;
         Data = p_Data;
     }

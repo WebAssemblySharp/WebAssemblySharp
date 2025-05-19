@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.Runtime.Interpreter;
@@ -30,6 +31,25 @@ public class WebAssemblyModule
     {
         m_Executor = p_Executor;
         Name = p_Name;
+    }
+    
+    public T AsInterface<T>()
+    {
+        if (m_Executor is IWebAssemblyExecutorProxy)
+        {
+            T l_DirectCallInstance =  ((IWebAssemblyExecutorProxy)m_Executor).AsInterface<T>();
+
+            if (l_DirectCallInstance != null)
+            {
+                return l_DirectCallInstance;
+            }    
+        }
+        
+        // If the interface is not found, we can try to create an wrapper for the interface
+        WebAssemblyModuleDispatchProxy l_Proxy = (WebAssemblyModuleDispatchProxy)DispatchProxy.Create(typeof(T), typeof(WebAssemblyModuleDispatchProxy)); 
+        l_Proxy.Init(this);
+        return (T)(Object)l_Proxy;
+
     }
 
     public ValueTask<object> DynamicCall(string p_Name, params object[] p_Args)

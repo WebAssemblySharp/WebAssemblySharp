@@ -10,10 +10,10 @@ public class WebAssemblyJITExecutorVoidMethod : IWebAssemblyMethod
     private readonly WasmFuncType m_FuncMetaData;
     private readonly Func<ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
-        m_Delegate = p_Delegate.CreateDelegate<Func<ValueTask>>();
+        m_Delegate = p_Delegate.CreateDelegate<Func<ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -40,10 +40,10 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1> : IWebAssemblyMethod
     private readonly WasmFuncType m_FuncMetaData;
     private readonly Func<TInput1, ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
-        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, ValueTask>>();
+        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -73,10 +73,10 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2> : IWebAssemblyMe
     private readonly WasmFuncType m_FuncMetaData;
     private readonly Func<TInput1, TInput2, ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
-        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, ValueTask>>();
+        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -105,10 +105,10 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3> : IWebA
     private readonly WasmFuncType m_FuncMetaData;
     private readonly Func<TInput1, TInput2, TInput3, ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
-        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, TInput3, ValueTask>>();
+        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, TInput3, ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -141,10 +141,10 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     private readonly WasmFuncType m_FuncMetaData;
     private readonly Func<TInput1, TInput2, TInput3, TInput4, ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
-        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, ValueTask>>();
+        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -180,10 +180,10 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     private readonly WasmFuncType m_FuncMetaData;
     private readonly Func<TInput1, TInput2, TInput3, TInput4, TInput5, ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
-        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, ValueTask>>();
+        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -217,10 +217,10 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     private readonly WasmFuncType m_FuncMetaData;
     private readonly Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
-        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, ValueTask>>();
+        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -261,10 +261,10 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     private readonly WasmFuncType m_FuncMetaData;
     private readonly Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
-        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, ValueTask>>();
+        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -308,10 +308,10 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     private readonly WasmFuncType m_FuncMetaData;
     private readonly Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
-        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, ValueTask>>();
+        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -357,10 +357,10 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     private readonly WasmFuncType m_FuncMetaData;
     private readonly Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
-        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, ValueTask>>();
+        m_Delegate = p_Delegate.CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -408,11 +408,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     private readonly WasmFuncType m_FuncMetaData;
     private readonly Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
         m_Delegate = p_Delegate
-            .CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, ValueTask>>();
+            .CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -464,11 +464,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     private readonly WasmFuncType m_FuncMetaData;
     private readonly Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
         m_Delegate = p_Delegate
-            .CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, ValueTask>>();
+            .CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -527,12 +527,12 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     private readonly Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, ValueTask>
         m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
         m_Delegate = p_Delegate
             .CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12,
-                ValueTask>>();
+                ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -592,12 +592,12 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     private readonly Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13,
         ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
         m_Delegate = p_Delegate
             .CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12,
-                TInput13, ValueTask>>();
+                TInput13, ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -663,12 +663,12 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     private readonly Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13,
         TInput14, ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
         m_Delegate = p_Delegate
             .CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12,
-                TInput13, TInput14, ValueTask>>();
+                TInput13, TInput14, ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -736,12 +736,12 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     private readonly Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13,
         TInput14, TInput15, ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
         m_Delegate = p_Delegate
             .CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12,
-                TInput13, TInput14, TInput15, ValueTask>>();
+                TInput13, TInput14, TInput15, ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -810,12 +810,12 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     private readonly Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13,
         TInput14, TInput15, TInput16, ValueTask> m_Delegate;
 
-    public WebAssemblyJITExecutorVoidMethod(WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
+    public WebAssemblyJITExecutorVoidMethod(Object p_Target, WasmFuncType p_FuncMetaData, MethodInfo p_Delegate)
     {
         m_FuncMetaData = p_FuncMetaData;
         m_Delegate = p_Delegate
             .CreateDelegate<Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12,
-                TInput13, TInput14, TInput15, TInput16, ValueTask>>();
+                TInput13, TInput14, TInput15, TInput16, ValueTask>>(p_Target);
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
