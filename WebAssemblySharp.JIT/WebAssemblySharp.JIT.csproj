@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <RootNamespace>WebAssemblySharp</RootNamespace>
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>false</ImplicitUsings>
         <Nullable>disable</Nullable>
@@ -8,7 +9,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\WebAssemblySharp.Core\WebAssemblySharp.Core.csproj" />
-      <ProjectReference Include="..\WebAssemblySharp.JIT\WebAssemblySharp.JIT.csproj" />
     </ItemGroup>
 
 </Project>

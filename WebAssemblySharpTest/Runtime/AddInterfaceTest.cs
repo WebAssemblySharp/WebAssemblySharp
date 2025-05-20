@@ -18,13 +18,32 @@ public class AddInterfaceTest
         int l_Result = await l_Module.add( 1, 2);
         Assert.AreEqual(3, l_Result);
     }
-
     
-    [WebAssemblyModuleManifestResource("WebAssemblySharpExampleData.Programms.add.wasm", typeof(WebAssemblyExamples))]
-    [WebAssemblyModuleDefinition("add")]
-    public interface IAdd
+    
+    //[TestMethod] Waiting for InterfaceGenerator to be finished
+    //[DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
+    public async Task ExecuteAddAutoGenWasmTest(Type p_RuntimeType)
     {
-        public ValueTask<int> add(int p_A, int p_B);
+        IAddAutoGen l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime<IAddAutoGen>(p_RuntimeType);
+        //int l_Result = await l_Module.add( 1, 2);
+        //Assert.AreEqual(3, l_Result);
     }
-    
 }
+
+
+
+[WebAssemblyModuleManifestResource("WebAssemblySharpExampleData.Programms.add.wasm", typeof(WebAssemblyExamples))]
+[WebAssemblyModuleDefinition("add")]
+public interface IAdd
+{
+    public ValueTask<int> add(int p_A, int p_B);
+}
+
+
+[WebAssemblyModuleManifestResource("WebAssemblySharpExampleData.Programms.add.wasm", typeof(WebAssemblyExamples))]
+[WebAssemblyModuleDefinition("add")]
+public partial interface IAddAutoGen
+{
+        
+}
+

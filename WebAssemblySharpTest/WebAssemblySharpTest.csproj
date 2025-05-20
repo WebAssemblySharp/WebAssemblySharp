@@ -18,6 +18,9 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!--
+      <ProjectReference Include="..\WebAssemblySharp.InterfaceGenerator\WebAssemblySharp.InterfaceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+      -->
       <ProjectReference Include="..\WebAssemblySharpExampleData\WebAssemblySharpExampleData.csproj" />
     </ItemGroup>
 

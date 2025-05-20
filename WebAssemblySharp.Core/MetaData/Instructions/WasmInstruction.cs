@@ -4,7 +4,7 @@ namespace WebAssemblySharp.MetaData.Instructions;
 
 public abstract class WasmInstruction
 {
-    internal Object VmData { get; set; }
+    public Object VmData { get; set; }
     
     public WasmOpcode Opcode
     {

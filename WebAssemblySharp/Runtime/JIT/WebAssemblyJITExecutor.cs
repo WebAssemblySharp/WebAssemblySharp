@@ -9,7 +9,7 @@ namespace WebAssemblySharp.Runtime.JIT;
 public class WebAssemblyJITExecutor: IWebAssemblyExecutor, IWebAssemblyExecutorProxy
 {
     private WasmMetaData m_WasmMetaData;
-    private WebAssemblyJITCompiler m_Compiler;
+    private WebAssemblyJITRuntimeCompiler m_RuntimeCompiler;
     private WebAssemblyJITAssembly m_Assembly;
     private Type m_ProxyType;
     
@@ -29,8 +29,8 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor, IWebAssemblyExecutorP
 
     public void OptimizeCode()
     {
-        m_Compiler = new WebAssemblyJITCompiler(m_WasmMetaData, m_ProxyType);
-        m_Compiler.Compile();
+        m_RuntimeCompiler = new WebAssemblyJITRuntimeCompiler(m_WasmMetaData, m_ProxyType);
+        m_RuntimeCompiler.Compile();
     
     }
 
@@ -78,8 +78,8 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor, IWebAssemblyExecutorP
 
     public Task Init()
     {
-        m_Assembly = m_Compiler.BuildAssembly();
-        m_Compiler = null;
+        m_Assembly = m_RuntimeCompiler.BuildAssembly();
+        m_RuntimeCompiler = null;
         return Task.CompletedTask;
     }
 }
