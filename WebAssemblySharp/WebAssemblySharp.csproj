@@ -8,7 +8,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\WebAssemblySharp.Core\WebAssemblySharp.Core.csproj" />
-      <ProjectReference Include="..\WebAssemblySharp.JIT\WebAssemblySharp.JIT.csproj" />
     </ItemGroup>
 
 </Project>

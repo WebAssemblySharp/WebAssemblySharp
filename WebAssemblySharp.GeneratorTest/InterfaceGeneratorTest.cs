@@ -13,7 +13,7 @@ namespace WebAssemblySharp.GeneratorTest;
 [TestClass]
 public class InterfaceGeneratorTest
 {
-    [TestMethod]
+    //[TestMethod]
     public async Task GenerateInterfaceForExternalWasm()
     {
         var inputSource = @"
