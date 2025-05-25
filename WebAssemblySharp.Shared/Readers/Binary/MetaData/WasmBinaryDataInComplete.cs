@@ -1,7 +1,9 @@
-﻿using System;
+﻿
 using WebAssemblySharp.MetaData;
 #if NETSTANDARD2_0
 using WebAssemblySharp.Polyfills;
+#else
+using System;
 #endif
 
 namespace WebAssemblySharp.Readers.Binary.MetaData;

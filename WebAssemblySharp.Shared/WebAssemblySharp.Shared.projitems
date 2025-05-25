@@ -1,0 +1,90 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>0e5b392b-3776-4b47-b7e3-abb68b8f0959</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>WebAssemblySharp.Shared</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Attributes\WebAssemblyModuleDefinitionAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Attributes\WebAssemblyModuleManifestResource.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\IWasmBinaryInstructionReader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmBlock.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmBlockInstruction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmBr.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmBrIf.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmCall.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmGlobalGet.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32Add.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32Const.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32DivU.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32Eq.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32Eqz.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32Extend8S.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32GeS.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32GeU.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32GtS.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32Load.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32Load8U.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32LtS.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32LtU.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32Mul.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32Ne.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32RemU.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32Store.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32Store8.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI32Sub.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI64Load16S.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI64Load16U.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI64Load32S.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI64Load32U.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI64Load8U.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmI64Store32.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmIf.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmInstruction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmInstructionFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmLocalGet.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmLocalSet.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmLoop.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmMemoryFill.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmMemoryGrow.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmMemorySize.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmReturn.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Instructions\WasmUnreachable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\Utils\WasmMetaDataUtils.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmBinaryData.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmBlockType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmCode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmData.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmDataType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmExport.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmExternalKind.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmFuncType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmGlobal.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmImport.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmImportFunction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmImportMemory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmMemory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmMetaData.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmOpcode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmString.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MetaData\WasmUnkownImport.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Readers\Binary\MetaData\WasmBinaryDataInComplete.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Readers\Binary\MetaData\WasmCodeInComplete.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Readers\Binary\MetaData\WasmCodeLocalInComplete.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Readers\Binary\MetaData\WasmDataInComplete.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Readers\Binary\MetaData\WasmGlobalInComplete.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Readers\Binary\MetaData\WasmStringInComplete.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Readers\Binary\WasmBinaryReader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Readers\Binary\WasmBinaryReaderException.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Readers\Text\Model\WasmReaderElement.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Readers\Text\Model\WasmReaderElementKind.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Readers\Text\WasmTextReader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Readers\Text\WasmTextReaderException.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Readers\WasmReaderException.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\WebAssemblyDataTypeUtils.cs" />
+  </ItemGroup>
+</Project>

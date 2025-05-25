@@ -1,9 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 using WebAssemblySharp.Readers.Text.Model;
 #if NETSTANDARD2_0
 using WebAssemblySharp.Polyfills;
+#else
+using System;
 #endif
 
 namespace WebAssemblySharp.Readers.Text;
@@ -97,7 +98,7 @@ public class WasmTextReader
 
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new System.ArgumentOutOfRangeException();
             }
         }
     }

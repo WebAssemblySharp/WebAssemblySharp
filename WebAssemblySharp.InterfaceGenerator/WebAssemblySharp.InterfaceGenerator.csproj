@@ -9,19 +9,33 @@
         <IsRoslynComponent>true</IsRoslynComponent>
         <IncludeBuildOutput>false</IncludeBuildOutput>
     </PropertyGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\WebAssemblySharp.Core\WebAssemblySharp.Core.csproj" OutputItemType="Analyzer" />
-    </ItemGroup>
-
+    
     <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" PrivateAssets="all" />
-        <PackageReference Include="Mono.Cecil" Version="0.11.6" />
+        <PackageReference Include="Mono.Cecil" Version="0.11.6" PrivateAssets="all" GeneratePathProperty="true"/>
     </ItemGroup>
     
     <ItemGroup>
         <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+        <None Include="$(PkgMono_Cecil)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
     </ItemGroup>
 
+    <Import Project="..\WebAssemblySharp.Shared\WebAssemblySharp.Shared.projitems" Label="Shared" />
+    
+    <!-- Urgly Fix from https://github.com/dotnet/sdk/issues/17775#issuecomment-848451355
+    
+    <PropertyGroup>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <GetTargetPathDependsOn>$(GetTargetPathDependsOn);GetDependencyTargetPaths</GetTargetPathDependsOn>
+    </PropertyGroup>
+
+    <Target Name="GetDependencyTargetPaths" DependsOnTargets="ResolveReferences">
+        <ItemGroup>
+            <DllDependencies Include="@(ReferenceCopyLocalPaths->'%(FullPath)')" Condition="'%(Extension)' == '.dll'" />
+            <TargetPathWithTargetPlatformMoniker Include="@(DllDependencies)" IncludeRuntimeDependency="false" />
+        </ItemGroup>
+    </Target>
+    
+   
 </Project>

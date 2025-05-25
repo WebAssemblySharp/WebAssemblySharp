@@ -1,8 +1,9 @@
-﻿using System;
-using System.Text;
+﻿using System.Text;
 using WebAssemblySharp.MetaData;
 #if NETSTANDARD2_0
 using WebAssemblySharp.Polyfills;
+#else
+using System;
 #endif
 
 namespace WebAssemblySharp.Readers.Binary.MetaData;
@@ -11,7 +12,7 @@ public class WasmStringInComplete: WasmString
 {
     private byte[] m_RawValue;
     
-    public WasmStringInComplete(long p_Length) : base(String.Empty)
+    public WasmStringInComplete(long p_Length) : base(string.Empty)
     {
         m_RawValue = new byte[p_Length];
         RawValuePopulatedIndex = 0;

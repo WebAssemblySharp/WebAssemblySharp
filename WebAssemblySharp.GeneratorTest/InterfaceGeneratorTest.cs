@@ -2,9 +2,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Testing;
-using Microsoft.CodeAnalysis.Testing.Verifiers;
 using WebAssemblySharp.InterfaceGenerator;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using WebAssemblySharp.Attributes;
 using WebAssemblySharpExampleData;
 
@@ -13,7 +11,7 @@ namespace WebAssemblySharp.GeneratorTest;
 [TestClass]
 public class InterfaceGeneratorTest
 {
-    //[TestMethod]
+    [TestMethod]
     public async Task GenerateInterfaceForExternalWasm()
     {
         var inputSource = @"
@@ -40,7 +38,7 @@ public partial interface ITest
 }
 ";
 
-        var l_Test = new CSharpSourceGeneratorTest<InterfaceSourceGenerator, MSTestVerifier>
+        var l_Test = new CSharpSourceGeneratorTest<InterfaceSourceGenerator, DefaultVerifier>
         {
             
             TestState =

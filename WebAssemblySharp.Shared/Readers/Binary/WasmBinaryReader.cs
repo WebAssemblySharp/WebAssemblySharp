@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
 using WebAssemblySharp.Readers.Binary.MetaData;
 #if NETSTANDARD2_0
 using WebAssemblySharp.Polyfills;
+#else
+using System;
 #endif
 
 namespace WebAssemblySharp.Readers.Binary;
@@ -140,7 +140,7 @@ public class WasmBinaryReader
                     ReadData(p_Data, ref l_Index);
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new System.ArgumentOutOfRangeException();
             }
         }
     }
@@ -440,7 +440,7 @@ public class WasmBinaryReader
             {
                 // Only Min
                 m_CurrentMemory.Min = -1;
-                m_CurrentMemory.Max = Int32.MaxValue;
+                m_CurrentMemory.Max = System.Int32.MaxValue;
             }
             else
             {
@@ -589,7 +589,7 @@ public class WasmBinaryReader
 
                 if (l_HasMax[0] == 0)
                 {
-                    l_ImportMemory.Max = Int32.MaxValue;
+                    l_ImportMemory.Max = System.Int32.MaxValue;
                 }
                 else
                 {
@@ -707,7 +707,7 @@ public class WasmBinaryReader
         ref long p_SectionSize)
     {
         long l_MaxRequestedBytes =
-            Math.Min(Math.Min(p_Data.Length - p_Index, p_StringData.BytesRemaining), m_Buffer.Length);
+            System.Math.Min(System.Math.Min(p_Data.Length - p_Index, p_StringData.BytesRemaining), m_Buffer.Length);
 
         ReadOnlySpan<byte> l_Bytes = ReaReadBytes(p_Data, ref p_Index, (int)l_MaxRequestedBytes, ref p_SectionSize);
 
@@ -733,7 +733,7 @@ public class WasmBinaryReader
         ref long p_SectionSize)
     {
         long l_MaxRequestedBytes =
-            Math.Min(Math.Min(p_Data.Length - p_Index, p_BinaryData.BytesRemaining), m_Buffer.Length);
+            System.Math.Min(System.Math.Min(p_Data.Length - p_Index, p_BinaryData.BytesRemaining), m_Buffer.Length);
 
         ReadOnlySpan<byte> l_Bytes = ReaReadBytes(p_Data, ref p_Index, (int)l_MaxRequestedBytes, ref p_SectionSize);
 
@@ -1608,7 +1608,7 @@ public class WasmBinaryReader
             return;
 
 #if NETSTANDARD2_0
-        uint l_MagicValue = BitConverter.ToUInt32(l_Bytes.GetRaw(), 0);    
+        uint l_MagicValue = System.BitConverter.ToUInt32(l_Bytes.GetRaw(), 0);    
 #else 
         uint l_MagicValue = BitConverter.ToUInt32(l_Bytes.Slice(0, 4));
 #endif
@@ -1619,7 +1619,7 @@ public class WasmBinaryReader
         }
 
 #if NETSTANDARD2_0
-        m_MetaData.Version = BitConverter.ToInt32(l_Bytes.GetRaw(), 4);
+        m_MetaData.Version = System.BitConverter.ToInt32(l_Bytes.GetRaw(), 4);
 #else 
         m_MetaData.Version = BitConverter.ToInt32(l_Bytes.Slice(4, 4));
 #endif
@@ -1692,7 +1692,7 @@ public class WasmBinaryReader
     {
         if (m_ReaderPosition == ReaderPosition.Start)
         {
-            throw new InvalidOperationException("Invalid reader state");
+            throw new System.InvalidOperationException("Invalid reader state");
         }
         
         if (m_BufferIndex > 0)

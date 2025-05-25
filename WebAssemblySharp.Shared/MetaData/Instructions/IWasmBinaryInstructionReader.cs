@@ -1,6 +1,7 @@
-﻿using System;
-#if NETSTANDARD2_0
+﻿#if NETSTANDARD2_0
 using WebAssemblySharp.Polyfills;
+#else
+using System;
 #endif
 
 namespace WebAssemblySharp.MetaData.Instructions;
