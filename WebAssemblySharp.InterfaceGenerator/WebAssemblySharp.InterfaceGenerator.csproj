@@ -23,7 +23,7 @@
 
     <Import Project="..\WebAssemblySharp.Shared\WebAssemblySharp.Shared.projitems" Label="Shared" />
     
-    <!-- Urgly Fix from https://github.com/dotnet/sdk/issues/17775#issuecomment-848451355
+    <!-- Urgly Fix from https://github.com/dotnet/sdk/issues/17775#issuecomment-848451355 -->
     
     <PropertyGroup>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
