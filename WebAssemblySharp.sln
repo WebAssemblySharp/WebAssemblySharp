@@ -112,5 +112,6 @@ Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		WebAssemblySharp.Shared\WebAssemblySharp.Shared.projitems*{0e5b392b-3776-4b47-b7e3-abb68b8f0959}*SharedItemsImports = 13
 		WebAssemblySharp.Shared\WebAssemblySharp.Shared.projitems*{1652ac83-5a7e-471f-9697-2ff044e8afc6}*SharedItemsImports = 5
+		WebAssemblySharp.Shared\WebAssemblySharp.Shared.projitems*{ddde93df-bde1-4192-bc2e-3b7a73274507}*SharedItemsImports = 5
 	EndGlobalSection
 EndGlobal

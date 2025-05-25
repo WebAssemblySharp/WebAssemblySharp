@@ -31,8 +31,6 @@ public class AddInterfaceTest
     
 }
 
-
-
 [WebAssemblyModuleManifestResource("WebAssemblySharpExampleData.Programms.add.wasm", typeof(WebAssemblyExamples))]
 [WebAssemblyModuleDefinition("add")]
 public interface IAdd
