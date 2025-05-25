@@ -15,7 +15,13 @@ public abstract class WasmInstruction
     }
     
     protected abstract WasmOpcode GetOpcode();
-    
-    public abstract bool ReadInstruction<TReader>(TReader p_Reader) where TReader : IWasmBinaryInstructionReader, allows ref struct;
-    
+
+    public abstract bool ReadInstruction<TReader>(TReader p_Reader) where TReader : IWasmBinaryInstructionReader
+#if NETSTANDARD2_0
+    ;
+#else
+    ,allows ref struct;
+#endif
+
+
 }

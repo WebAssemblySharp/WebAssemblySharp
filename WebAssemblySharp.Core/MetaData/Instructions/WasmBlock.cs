@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+#if NETSTANDARD2_0
+using WebAssemblySharp.Polyfills;
+#endif
 
 namespace WebAssemblySharp.MetaData.Instructions;
 

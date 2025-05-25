@@ -4,6 +4,9 @@ using System.Linq;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
 using WebAssemblySharp.Readers.Binary.MetaData;
+#if NETSTANDARD2_0
+using WebAssemblySharp.Polyfills;
+#endif
 
 namespace WebAssemblySharp.Readers.Binary;
 
@@ -145,78 +148,95 @@ public class WasmBinaryReader
     private void ReadInstruction(ReadOnlySpan<byte> p_Data, ref int p_Index)
     {
         InternalInstructionReader l_Reader = new InternalInstructionReader(this, p_Data, ref p_Index);
-        
-        while (true)
+#if NETSTANDARD2_0
+        try
         {
-            if (m_CurrentInstruction == null)
+#endif
+
+            while (true)
             {
-                WasmOpcode? l_Opcode = l_Reader.ReadOpcode();
-
-                if (l_Opcode == null)
-                    return;
-            
-                if (l_Opcode == WasmOpcode.End) {
-                    
-                    if (m_InstructionStack.Count > 0) {
-                        WasmBlockInstruction l_BlockInstruction = m_InstructionStack.Pop();
-                        l_BlockInstruction.Finished();
-                        continue;
-                    }
-                    else
-                    {
-                        if (m_CurrentCode != null)
-                            m_ReaderPosition = ReaderPosition.ReadCode;
-                        else if (m_CurrentGlobal != null)
-                            m_ReaderPosition = ReaderPosition.ReadGlobal;
-                        else if (m_CurrentData != null)
-                            m_ReaderPosition = ReaderPosition.ReadData;
-                        else
-                            throw new WasmBinaryReaderException("Invalid end instruction. No Jump back point");
-                        
-                        return;    
-                    }
-                }
-
-                if (l_Opcode == WasmOpcode.Else)
+                if (m_CurrentInstruction == null)
                 {
-                    if (m_InstructionStack.Count > 0) {
-                        m_InstructionStack.Peek().HandleBlockOpCode(l_Opcode.Value);
-                        continue;
-                    }
-                    else
+                    WasmOpcode? l_Opcode = l_Reader.ReadOpcode();
+
+                    if (l_Opcode == null)
+                        return;
+
+                    if (l_Opcode == WasmOpcode.End)
                     {
-                        throw new WasmBinaryReaderException("Invalid else instruction");
-                    }    
+
+                        if (m_InstructionStack.Count > 0)
+                        {
+                            WasmBlockInstruction l_BlockInstruction = m_InstructionStack.Pop();
+                            l_BlockInstruction.Finished();
+                            continue;
+                        }
+                        else
+                        {
+                            if (m_CurrentCode != null)
+                                m_ReaderPosition = ReaderPosition.ReadCode;
+                            else if (m_CurrentGlobal != null)
+                                m_ReaderPosition = ReaderPosition.ReadGlobal;
+                            else if (m_CurrentData != null)
+                                m_ReaderPosition = ReaderPosition.ReadData;
+                            else
+                                throw new WasmBinaryReaderException("Invalid end instruction. No Jump back point");
+
+                            return;
+                        }
+                    }
+
+                    if (l_Opcode == WasmOpcode.Else)
+                    {
+                        if (m_InstructionStack.Count > 0)
+                        {
+                            m_InstructionStack.Peek().HandleBlockOpCode(l_Opcode.Value);
+                            continue;
+                        }
+                        else
+                        {
+                            throw new WasmBinaryReaderException("Invalid else instruction");
+                        }
+                    }
+
+                    m_CurrentInstruction = WasmInstructionFactory.CreateInstruction(l_Opcode.Value);
                 }
-            
-                m_CurrentInstruction = WasmInstructionFactory.CreateInstruction(l_Opcode.Value);
-            }
-            
-            if (!m_CurrentInstruction.ReadInstruction(l_Reader))
-                return;
 
-            
-            if (m_InstructionStack.Count > 0)
-            {
-                m_InstructionStack.Peek().AddInstruction(m_CurrentInstruction);
-            }
-            else
-            {
-                if (m_CurrentCode != null)
-                    m_CurrentCode.ProcessedInstructions.Add(m_CurrentInstruction);
-                else if (m_CurrentGlobal != null)
-                    m_CurrentGlobal.ProcessedInstructions.Add(m_CurrentInstruction);
+                if (!m_CurrentInstruction.ReadInstruction(l_Reader))
+                    return;
+
+
+                if (m_InstructionStack.Count > 0)
+                {
+                    m_InstructionStack.Peek().AddInstruction(m_CurrentInstruction);
+                }
                 else
-                    m_CurrentData.ProcessedInstructions.Add(m_CurrentInstruction);
+                {
+                    if (m_CurrentCode != null)
+                        m_CurrentCode.ProcessedInstructions.Add(m_CurrentInstruction);
+                    else if (m_CurrentGlobal != null)
+                        m_CurrentGlobal.ProcessedInstructions.Add(m_CurrentInstruction);
+                    else
+                        m_CurrentData.ProcessedInstructions.Add(m_CurrentInstruction);
+                }
+
+                if (m_CurrentInstruction is WasmBlockInstruction)
+                {
+                    m_InstructionStack.Push((WasmBlockInstruction)m_CurrentInstruction);
+                }
+
+                m_CurrentInstruction = null;
             }
 
-            if (m_CurrentInstruction is WasmBlockInstruction)
-            {
-                m_InstructionStack.Push((WasmBlockInstruction)m_CurrentInstruction);
-            }
-            
-            m_CurrentInstruction = null;
+#if NETSTANDARD2_0
         }
+        finally
+        {
+            // Hack for .NET Standard 2.0
+            // to keep the index in sync with the reader
+            p_Index = l_Reader.m_Index;   
+        }
+#endif
     }
     
 
@@ -1222,7 +1242,15 @@ public class WasmBinaryReader
                     return;
 
                 m_MetaData.FuncIndex = new long[l_IndexCount.Value];
+
+#if NETSTANDARD2_0
+                for (int i = 0; i < m_MetaData.FuncIndex.Length; i++)
+                {
+                    m_MetaData.FuncIndex[i] = -1;
+                }
+#else 
                 Array.Fill(m_MetaData.FuncIndex, -1);
+#endif
             }
 
             if (m_MetaData.FuncIndex.Length == 0)
@@ -1579,14 +1607,22 @@ public class WasmBinaryReader
         if (l_Bytes.IsEmpty)
             return;
 
+#if NETSTANDARD2_0
+        uint l_MagicValue = BitConverter.ToUInt32(l_Bytes.GetRaw(), 0);    
+#else 
         uint l_MagicValue = BitConverter.ToUInt32(l_Bytes.Slice(0, 4));
-
+#endif
+        
         if (l_MagicValue != CONST_WASM_MAGIC)
         {
             throw new WasmBinaryReaderException("Invalid magic value " + l_MagicValue);
         }
 
+#if NETSTANDARD2_0
+        m_MetaData.Version = BitConverter.ToInt32(l_Bytes.GetRaw(), 4);
+#else 
         m_MetaData.Version = BitConverter.ToInt32(l_Bytes.Slice(4, 4));
+#endif
         m_ReaderPosition = ReaderPosition.Section;
     }
 
@@ -1694,18 +1730,40 @@ public class WasmBinaryReader
         ReadData
     }
 
+#if NETSTANDARD2_0
+    private class InternalInstructionReader : IWasmBinaryInstructionReader
+#else
     private ref struct InternalInstructionReader : IWasmBinaryInstructionReader
+#endif
     {
         private WasmBinaryReader m_Parent;
         private ReadOnlySpan<byte> m_Data;
-        private ref int m_Index;
 
+#if NETSTANDARD2_0
+        
+        public int m_Index;
+        
+        public InternalInstructionReader(WasmBinaryReader p_Parent, ReadOnlySpan<byte> p_Data, ref int p_Index)
+        {
+            m_Parent = p_Parent;
+            m_Data = p_Data;
+            m_Index = p_Index;
+        }
+        
+        
+        
+#else 
+        private ref int m_Index;
+        
         public InternalInstructionReader(WasmBinaryReader p_Parent, ReadOnlySpan<byte> p_Data, ref int p_Index)
         {
             m_Parent = p_Parent;
             m_Data = p_Data;
             m_Index = ref p_Index;
         }
+#endif
+
+        
 
         public ulong? ReadLEB128UInt()
         {

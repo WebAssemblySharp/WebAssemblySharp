@@ -114,6 +114,8 @@ public class InterfaceSourceGenerator: IIncrementalGenerator
 
                 foreach (MetadataReference l_Reference in l_References)
                 {
+                    p_CancelToken.ThrowIfCancellationRequested();
+                    
                     if (l_Reference is PortableExecutableReference l_PortableExecutableReference)
                     {
                         string l_AssemblyPath = l_PortableExecutableReference.FilePath;
@@ -138,8 +140,9 @@ public class InterfaceSourceGenerator: IIncrementalGenerator
                                             
                                             while (l_Read == l_Buffer.Length)
                                             {
-                                                l_Read = l_Stream.Read(l_Buffer);
-                                                l_BinaryReader.Read(l_Buffer.AsSpan(0, l_Read));
+                                                p_CancelToken.ThrowIfCancellationRequested();
+                                                l_Read = l_Stream.Read(l_Buffer, 0, l_Buffer.Length);
+                                                l_BinaryReader.Read(new WebAssemblySharp.Polyfills.ReadOnlySpan<byte>(l_Buffer, 0, l_Read));
                                                 
                                             }
 
@@ -155,39 +158,6 @@ public class InterfaceSourceGenerator: IIncrementalGenerator
                 }
                 
             }
-            
-
-            foreach (ModuleMetadata l_Module in l_AssemblyInfo.GetMetadata().GetModules())
-            {
-                MetadataReader l_Reader = l_Module.GetMetadataReader();
-
-                foreach (ManifestResourceHandle l_ManifestResourceHandle in l_Reader.ManifestResources)
-                {
-                    ManifestResource l_Resource = l_Reader.GetManifestResource(l_ManifestResourceHandle);
-                    string l_ResourceName = l_Reader.GetString(l_Resource.Name);
-                    
-                    if (l_ResourceName != l_Location)
-                    {
-                        continue;
-                    }
-
-                    BlobReader l_BlobReader = l_Reader.GetBlobReader(l_Resource.Name);
-                    
-                    WasmBinaryReader l_BinaryReader = new WasmBinaryReader();
-
-                    byte[] l_Buffer = new byte[1024];
-                    
-                    while (l_BlobReader.RemainingBytes != 0)
-                    {
-                        int l_ByteCount = Math.Min(l_BlobReader.RemainingBytes, l_Buffer.Length);
-                        l_BlobReader.ReadBytes(l_ByteCount, l_Buffer, 0);
-                        l_BinaryReader.Read(l_Buffer.AsSpan(0, l_ByteCount));
-                    }
-
-                    return l_BinaryReader.Finish();
-                }
-            }
-            
         }
             
         return null;
@@ -342,11 +312,11 @@ public class InterfaceSourceGenerator: IIncrementalGenerator
         return l_NameSpace;
     }
     
-    private record InterfaceInfo
+    private struct InterfaceInfo
     {
-        public string Name { get; init; }
-        public string Namespace { get; init; }
-        public WasmMetaData MetaData { get; init; }
+        public string Name { get; set; }
+        public string Namespace { get; set; }
+        public WasmMetaData MetaData { get; set; }
         
     }
     

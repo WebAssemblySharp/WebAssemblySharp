@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Text;
 using WebAssemblySharp.MetaData;
+#if NETSTANDARD2_0
+using WebAssemblySharp.Polyfills;
+#endif
 
 namespace WebAssemblySharp.Readers.Binary.MetaData;
 
@@ -26,7 +29,11 @@ public class WasmStringInComplete: WasmString
 
     public void Append(ReadOnlySpan<byte> p_Bytes)
     {
+#if NETSTANDARD2_0
+        p_Bytes.CopyTo(m_RawValue, (int)RawValuePopulatedIndex);  
+#else 
         p_Bytes.CopyTo(m_RawValue.AsSpan((int)RawValuePopulatedIndex));
+#endif
         RawValuePopulatedIndex += p_Bytes.Length;
         
     }

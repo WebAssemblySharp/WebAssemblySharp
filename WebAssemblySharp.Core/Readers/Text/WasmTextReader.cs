@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 using WebAssemblySharp.Readers.Text.Model;
+#if NETSTANDARD2_0
+using WebAssemblySharp.Polyfills;
+#endif
 
 namespace WebAssemblySharp.Readers.Text;
 
@@ -26,7 +29,7 @@ public class WasmTextReader
 
         while (MoveIndex(ref l_Index, l_TextLength))
         {
-            var l_CurrentChar = p_Text[l_Index];
+            char l_CurrentChar = p_Text[l_Index];
 
             switch (m_ParseState)
             {
