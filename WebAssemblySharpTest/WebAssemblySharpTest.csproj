@@ -27,8 +27,13 @@
     </ItemGroup>
 
     <ItemGroup>
+        <AdditionalFiles Include="Programms\*.wasm" />
+    </ItemGroup>
+
+    <ItemGroup>
       <EmbeddedResource Include="Data\Result\addReaderResult.txt" />
       <EmbeddedResource Include="Data\Result\isprimeReaderResult.txt" />
+      <EmbeddedResource Include="Programms\add.wasm" />
       <None Remove="Data\Result\itoaReaderResult.txt" />
       <EmbeddedResource Include="Data\Result\itoaReaderResult.txt" />
       <None Remove="Data\Result\importsReaderResult.txt" />

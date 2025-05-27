@@ -23,4 +23,8 @@
         <ProjectReference Include="..\WebAssemblySharpExampleData\WebAssemblySharpExampleData.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <EmbeddedResource Include="add.wasm" />
+    </ItemGroup>
+
 </Project>
