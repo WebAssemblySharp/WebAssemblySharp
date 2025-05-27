@@ -58,7 +58,6 @@ public partial interface IAddAutoGen
 }
 
 
-
 [WebAssemblyModuleManifestResource("WebAssemblySharpTest.Programms.add.wasm")]
 [WebAssemblyModuleDefinition("add")]
 public partial interface IAddAutoGenSameProject

@@ -148,7 +148,7 @@ public class InterfaceSourceGenerator : IIncrementalGenerator
             
                 foreach (AdditionalText l_AdditionalText in p_InternalWasmFiles)
                 {
-                    string l_DotNetPath = l_AdditionalText.Path.Replace("\\", ".");
+                    string l_DotNetPath = l_AdditionalText.Path.Replace(Path.DirectorySeparatorChar, '.');
 
                     if (l_DotNetPath.EndsWith(p_Location, StringComparison.OrdinalIgnoreCase))
                     {
@@ -188,7 +188,7 @@ public class InterfaceSourceGenerator : IIncrementalGenerator
         {
             return new FileStream(p_AdditionalText.Path, FileMode.Open, FileAccess.Read);
         }
-        catch (Exception e)
+        catch (Exception)
         {
             
         }
