@@ -432,6 +432,7 @@ public class InterfaceSourceGenerator : IIncrementalGenerator
         if (!DEBUG)
             return;
         
+#pragma warning disable CS0162 // Unreachable code detected
         lock (m_DebugLock)
         {
             FileStream l_FileStream = new FileStream("C:\\tmp\\debug.txt", FileMode.Append, FileAccess.Write);
@@ -443,6 +444,7 @@ public class InterfaceSourceGenerator : IIncrementalGenerator
             l_FileStream.Close();
             
         }
+#pragma warning restore CS0162 // Unreachable code detected
         
     }
     
