@@ -8,6 +8,8 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  tags:
+    - "*"
 
 env:
   VERSION: "99.0.0-Test"
