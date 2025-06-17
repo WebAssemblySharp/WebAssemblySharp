@@ -361,7 +361,10 @@ public class InterfaceSourceGenerator : IIncrementalGenerator
         l_Code.AppendLine("}");
 
 
-        p_Context.AddSource(p_InterfaceClass.Namespace + "." + p_InterfaceClass.Name + ".Generated", l_Code.ToString());
+        p_Context.AddSource(p_InterfaceClass.Namespace + "." + p_InterfaceClass.Name + ".generated.cs", l_Code.ToString());
+        
+        Debug("Source for " + p_InterfaceClass.Name + " in namespace " + p_InterfaceClass.Namespace + " generated successfully.");
+        Debug("Code:\n" + l_Code.ToString());
     }
 
     private string GetPrimitiveName(WasmDataType p_WasmDataType)
