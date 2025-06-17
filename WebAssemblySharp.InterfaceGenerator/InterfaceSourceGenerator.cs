@@ -26,7 +26,7 @@ namespace WebAssemblySharp.InterfaceGenerator;
 [Generator]
 public class InterfaceSourceGenerator : IIncrementalGenerator
 {
-    private const Boolean DEBUG = false;
+    private const Boolean DEBUG = true;
     private static Object m_DebugLock = new Object();
     
     private static int CONST_WASM_BUFFER_READER_SIZE = 1024 * 8;
