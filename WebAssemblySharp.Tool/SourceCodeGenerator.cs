@@ -106,6 +106,7 @@ public class SourceCodeGenerator
 
                     string l_FilePath = Path.Combine(p_OutputDir, l_FileName);
 
+                    Console.WriteLine($"Writing '{l_FilePath}'...");
 
                     string l_Code = l_Decompiler.DecompileTypeAsString(l_Type.GetFullTypeName(l_PeFile.Metadata));
 
