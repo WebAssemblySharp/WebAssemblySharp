@@ -49,7 +49,7 @@ public partial interface ITest
                 AdditionalReferences = { MetadataReference.CreateFromFile(typeof(WebAssemblyModuleManifestResource).Assembly.Location), MetadataReference.CreateFromFile(typeof(WebAssemblyExamples).Assembly.Location) },
                 GeneratedSources =
                 {
-                    (typeof(InterfaceSourceGenerator), "TestNamespace.ITest.Generated.cs", l_ExpectedGenerated)
+                    (typeof(InterfaceSourceGenerator), "TestNamespace.ITest.generated.cs", l_ExpectedGenerated)
                 }
             }
         };
@@ -98,7 +98,7 @@ public partial interface ITest
                 AdditionalReferences = { MetadataReference.CreateFromFile(typeof(WebAssemblyModuleManifestResource).Assembly.Location) },
                 GeneratedSources =
                 {
-                    (typeof(InterfaceSourceGenerator), "TestNamespace.ITest.Generated.cs", l_ExpectedGenerated)
+                    (typeof(InterfaceSourceGenerator), "TestNamespace.ITest.generated.cs", l_ExpectedGenerated)
                 },
                 AdditionalFiles = { 
                     (typeof(InterfaceSourceGenerator), "TestProject.Programms.add.wasm", SourceText.From(l_WasmContent)),
