@@ -41,7 +41,7 @@ public class WebAssemblyJITCompiler
         AssemblyBuilder l_AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(l_AssemblyName, AssemblyBuilderAccess.RunAndCollect);
         ModuleBuilder l_ModuleBuilder = l_AssemblyBuilder.DefineDynamicModule("DynamicModule");
 
-        m_TypeBuilder = l_ModuleBuilder.DefineType("DynamicType", TypeAttributes.Public | TypeAttributes.Sealed);
+        m_TypeBuilder = l_ModuleBuilder.DefineType(GetDynamicTypeName(), TypeAttributes.Public | TypeAttributes.Sealed);
 
         if (m_ProxyType != null)
         {
@@ -71,6 +71,11 @@ public class WebAssemblyJITCompiler
             MethodInfo l_Method = CompileCode(m_TypeBuilder, l_Export.Name, l_FuncType, l_Code);
             m_ExportedMethods.Add(l_Export.Name, l_Method);
         }
+    }
+
+    protected virtual string GetDynamicTypeName()
+    {
+        return "DynamicAssembly";
     }
 
     private MethodInfo CompileCode(TypeBuilder p_TypeBuilder, string p_ExportName, WasmFuncType p_FuncType, WasmCode p_Code)

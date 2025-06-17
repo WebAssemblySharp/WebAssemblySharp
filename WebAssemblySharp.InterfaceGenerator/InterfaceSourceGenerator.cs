@@ -26,7 +26,7 @@ namespace WebAssemblySharp.InterfaceGenerator;
 [Generator]
 public class InterfaceSourceGenerator : IIncrementalGenerator
 {
-    private const Boolean DEBUG = true;
+    private const Boolean DEBUG = false;
     private static Object m_DebugLock = new Object();
     
     private static int CONST_WASM_BUFFER_READER_SIZE = 1024 * 8;
@@ -431,11 +431,11 @@ public class InterfaceSourceGenerator : IIncrementalGenerator
 
     private static void Debug(String p_Message)
     {
-
+        
+#pragma warning disable CS0162 // Unreachable code detected
         if (!DEBUG)
             return;
         
-#pragma warning disable CS0162 // Unreachable code detected
         lock (m_DebugLock)
         {
             FileStream l_FileStream = new FileStream("C:\\tmp\\debug.txt", FileMode.Append, FileAccess.Write);
