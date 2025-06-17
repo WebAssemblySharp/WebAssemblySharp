@@ -4,11 +4,16 @@ using WebAssemblySharp.MetaData;
 
 namespace WebAssemblySharp.Tool;
 
-public class WebAssemblyJITSourceCompiler: WebAssemblyJITCompiler
+/// <summary>
+/// WebAssemblyInMemoryCompiler is responsible for compiling WebAssembly modules into .NET assemblies in memory.
+/// It extends WebAssemblyJITCompiler and provides functionality to generate an assembly stream
+/// without writing to disk, enabling dynamic loading and execution of WebAssembly code at runtime.
+/// </summary>
+public class WebAssemblyInMemoryCompiler: WebAssemblyJITCompiler
 {
     private readonly string m_AssemblyName;
 
-    public WebAssemblyJITSourceCompiler(String p_AssemblyName, WasmMetaData p_WasmMetaData) : base(p_WasmMetaData, null)
+    public WebAssemblyInMemoryCompiler(String p_AssemblyName, WasmMetaData p_WasmMetaData) : base(p_WasmMetaData, null)
     {
         m_AssemblyName = p_AssemblyName;
     }

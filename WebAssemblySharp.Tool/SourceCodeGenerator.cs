@@ -12,6 +12,12 @@ using WebAssemblySharp.Readers.Binary;
 
 namespace WebAssemblySharp.Tool;
 
+/// <summary>
+/// SourceCodeGenerator is responsible for reading a WebAssembly (.wasm) file,
+/// extracting its metadata, compiling it to an in-memory .NET assembly,
+/// and decompiling the resulting assembly into C# source code files.
+/// The generated source files are written to the specified output directory.
+/// </summary>
 public class SourceCodeGenerator
 {
     public static async Task Generate(String p_PathToWasmFile, String p_OutputDir)
@@ -50,7 +56,7 @@ public class SourceCodeGenerator
 
         string l_WasmAssemblyName = Path.GetFileNameWithoutExtension(p_PathToWasmFile).Replace(".", "_").Replace("-", "_").Replace(" ", "_") + "Module";
 
-        WebAssemblyJITSourceCompiler l_Compiler = new WebAssemblyJITSourceCompiler(l_WasmAssemblyName, l_WasmMetaData);
+        WebAssemblyInMemoryCompiler l_Compiler = new WebAssemblyInMemoryCompiler(l_WasmAssemblyName, l_WasmMetaData);
         l_Compiler.Compile();
         Console.WriteLine($"IL generated successfully");
 

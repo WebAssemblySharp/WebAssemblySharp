@@ -1,12 +1,12 @@
-﻿/**
+﻿using System;
+using WebAssemblySharp.Tool;
+
+/**
  * Args for WebAssemblySharp.Tool
  * PathToWasmFile: The path to the WebAssembly file to be processed.
  * OutputPath: The name of the output module.
  *
  */
-
-using System;
-using WebAssemblySharp.Tool;
 
 if (args.Length < 2)
 {
