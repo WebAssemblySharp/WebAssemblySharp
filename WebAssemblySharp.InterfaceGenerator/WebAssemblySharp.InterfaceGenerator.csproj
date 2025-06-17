@@ -44,7 +44,7 @@
     </Target>
     
     <ItemGroup>
-        <None Remove="$(OutputPath)/$(AssemblyName).dll" />
+        <None Remove="$(OutputPath)\$(AssemblyName).dll" />
         <None Include="$(OutputPath)\$(AssemblyName).dll;$(OutputPath)\Mono.Cecil.dll;$(OutputPath)\Mono.Cecil.*.dll"
               Pack="true"
               PackagePath="analyzers/dotnet/cs"
