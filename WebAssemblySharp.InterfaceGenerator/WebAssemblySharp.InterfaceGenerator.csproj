@@ -17,6 +17,7 @@
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/WebAssemblySharp/WebAssemblySharp</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
 
 
     </PropertyGroup>
@@ -49,6 +50,7 @@
               Pack="true"
               PackagePath="analyzers/dotnet/cs"
               Visible="false" />
+        <None Include="README.md" Pack="true" PackagePath="\"/>
     </ItemGroup>
     
    

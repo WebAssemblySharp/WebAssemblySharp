@@ -1,4 +1,11 @@
-# WebAssemblySharp ![example workflow](https://github.com/WebAssemblySharp/WebAssemblySharp/actions/workflows/dotnet.yml/badge.svg)
+# WebAssemblySharp 
+![example workflow](https://github.com/WebAssemblySharp/WebAssemblySharp/actions/workflows/dotnet.yml/badge.svg)![GitHub](https://img.shields.io/github/license/WebAssemblySharp/WebAssemblySharp)![GitHub top language](https://img.shields.io/github/languages/top/WebAssemblySharp/WebAssemblySharp)
+
+[![WebAssemblySharp](https://img.shields.io/nuget/v/WebAssemblySharp?label=WebAssemblySharp)](https://www.nuget.org/packages/WebAssemblySharp/)
+[![WebAssemblySharp](https://img.shields.io/nuget/v/WebAssemblySharp.InterfaceGenerator?label=WebAssemblySharp.InterfaceGenerator)](https://www.nuget.org/packages/WebAssemblySharp.InterfaceGenerator/)
+[![WebAssemblySharp](https://img.shields.io/nuget/v/WebAssemblySharp.Tool?label=WebAssemblySharp.Tool)](https://www.nuget.org/packages/WebAssemblySharp.Tool/)
+
+![GitHub last commit](https://img.shields.io/github/last-commit/WebAssemblySharp/WebAssemblySharp)![GitHub issues](https://img.shields.io/github/issues/WebAssemblySharp/WebAssemblySharp)
 
 **WebAssemblySharp** is an emerging WebAssembly runtime for C#, designed to enable the execution of WebAssembly modules within C# applications. This project is currently under active development.
 

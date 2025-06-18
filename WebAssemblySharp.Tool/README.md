@@ -5,7 +5,7 @@ A .NET CLI tool for generating C# source code from WebAssembly modules.
 ## Installation
 
 ```bash
-dotnet tool install --global WebAssemblySharp.Tool
+dotnet tool install --global WebAssemblySharp.Tool --version VersionToUse
 ```
 
 ## Usage

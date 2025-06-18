@@ -7,7 +7,7 @@ A Roslyn Source Generator for automatically generating C# interfaces for your We
 Add the following package reference to your project:
 
 ```xml
-<PackageReference Include="WebAssemblySharp.InterfaceGenerator" Version="0.1.10-alpha" OutputItemType="Analyzer" ReferenceOutputAssembly="false" Aliases="InternalWasmSourceGenerator"/>
+<PackageReference Include="WebAssemblySharp.InterfaceGenerator" Version="VersionToUse" OutputItemType="Analyzer" ReferenceOutputAssembly="false" Aliases="InternalWasmSourceGenerator"/>
 ```
 
 ### Example
