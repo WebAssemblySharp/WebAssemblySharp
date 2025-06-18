@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
@@ -551,7 +552,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
             // Multiple Results
             if (l_ImportMetaData.Results.Length > 1)
             {
-                object[] l_Results = (object[])l_TaskValue;
+                ITuple l_Results = (ITuple)l_TaskValue;
 
                 if (l_Results.Length != l_ImportMetaData.Results.Length)
                     throw new Exception("Import method result count mismatch: " + l_ImportMetaData.Results.Length + " != " + l_Results.Length);

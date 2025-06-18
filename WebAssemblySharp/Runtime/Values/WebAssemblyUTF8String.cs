@@ -9,8 +9,8 @@ public struct WebAssemblyUTF8String: IWebAssemblyValue
     
     public void Load(object p_Result, IWebAssemblyValueAccess p_Executor)
     {
-        object[] l_Objects = (Object[])p_Result;
-        Span<byte> l_Access = p_Executor.GetInternalMemoryArea().GetMemoryAccess((int)l_Objects[0], (int)l_Objects[1]);
+        (int, int) l_Tuple = (ValueTuple<int, int>)p_Result;
+        Span<byte> l_Access = p_Executor.GetInternalMemoryArea().GetMemoryAccess(l_Tuple.Item1, l_Tuple.Item2);
         m_Value = Encoding.UTF8.GetString(l_Access);
     }
 

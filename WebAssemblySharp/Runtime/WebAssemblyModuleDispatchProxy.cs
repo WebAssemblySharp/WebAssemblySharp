@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 
@@ -7,6 +8,8 @@ namespace WebAssemblySharp.Runtime;
 
 public class WebAssemblyModuleDispatchProxy : DispatchProxy
 {
+    private static MethodInfo DispatchWithReflectionMethodeInfo = typeof(WebAssemblyModuleDispatchProxy).GetMethod("DispatchWithReflection", BindingFlags.NonPublic | BindingFlags.Static);
+    
     private WebAssemblyModule m_WebAssemblyModule;
 
     protected override object Invoke(MethodInfo p_TargetMethod, object[] p_Args)
@@ -159,9 +162,15 @@ public class WebAssemblyModuleDispatchProxy : DispatchProxy
                 return l_TaskCompletionSource.Task;
             }       
         }
+        else if (l_ReturnType.IsGenericType && l_ReturnType.GetGenericArguments()[0].IsAssignableTo(typeof(ITuple)))
+        {
+            ValueTask<object> l_Task = l_Method.DynamicInvoke(p_Args); 
+            return DispatchWithReflectionMethodeInfo.MakeGenericMethod(l_ReturnType.GetGenericArguments()[0]).Invoke(null, new object[] { l_Task });
+        }
         else
         {
-            throw new Exception("QQQ");
+            throw new Exception(
+                $"Unsupported return type '{l_ReturnType.FullName}' for method '{p_TargetMethod.Name}' in WebAssembly module.");
         }
     }
 
@@ -169,4 +178,33 @@ public class WebAssemblyModuleDispatchProxy : DispatchProxy
     {
         m_WebAssemblyModule = p_WebAssemblyModule;
     }
+
+    static object DispatchWithReflection<T>(ValueTask<object> p_Task)
+    {
+        if (p_Task.IsCompleted)
+        {
+            object l_Result = p_Task.Result;
+            return ValueTask.FromResult<T>((T)l_Result);
+        }
+        else
+        {
+            TaskCompletionSource<T> l_TaskCompletionSource = new TaskCompletionSource<T>();
+                
+            Task.Run(async void () =>
+            {
+                try
+                {
+                    object l_Result = await p_Task;
+                    l_TaskCompletionSource.SetResult((T)l_Result);
+                }
+                catch (Exception e)
+                {
+                    l_TaskCompletionSource.SetException(e);
+                }
+            });
+                
+            return l_TaskCompletionSource.Task;
+        }  
+    } 
+    
 }

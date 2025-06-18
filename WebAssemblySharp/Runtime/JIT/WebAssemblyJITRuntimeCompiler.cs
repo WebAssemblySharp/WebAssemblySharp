@@ -60,7 +60,7 @@ public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
         }
         else
         {
-            l_ParameterTypes.Add(typeof(object[]));
+            l_ParameterTypes.Add(WebAssemblyValueTupleUtils.GetValueTupleType(p_FuncType.Results));
         }
 
         Type l_DelegateType;

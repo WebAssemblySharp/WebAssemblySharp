@@ -98,7 +98,7 @@ public class WebAssemblyJITCompiler
         }
         else
         {
-            l_ReturnType = typeof(ValueTask<object[]>);
+            l_ReturnType = typeof(ValueTask<>).MakeGenericType(WebAssemblyValueTupleUtils.GetValueTupleType(p_FuncType.Results));
         }
 
         MethodBuilder l_MethodBuilder = p_TypeBuilder.DefineMethod(p_ExportName, MethodAttributes.Public | MethodAttributes.Virtual, l_ReturnType,
@@ -170,8 +170,11 @@ public class WebAssemblyJITCompiler
         }
         else
         {
+            Type l_ResultType = WebAssemblyValueTupleUtils.GetValueTupleType(p_FuncType.Results);
+            p_IlGenerator.Emit(OpCodes.Newobj, l_ResultType.GetConstructor(p_FuncType.Results.Select(x => WebAssemblyDataTypeUtils.GetInternalType(x)).ToArray()));
+            
             MethodInfo l_FromResultMethod = typeof(ValueTask).GetMethod(nameof(ValueTask.FromResult))
-                .MakeGenericMethod(typeof(object[]));
+                .MakeGenericMethod(l_ResultType);
 
             p_IlGenerator.Emit(OpCodes.Call, l_FromResultMethod);
         }

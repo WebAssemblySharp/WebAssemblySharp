@@ -329,10 +329,7 @@ public class InterfaceSourceGenerator : IIncrementalGenerator
 
                 long l_FinalIndex = l_WasmMetaData.FuncIndex[l_FunctionIndex.Value];
                 WasmFuncType l_FuncType = l_WasmMetaData.FunctionType[l_FinalIndex];
-
-                if (l_FuncType.Results.Length > 1)
-                    continue;
-
+                
                 l_Code.Append("   ");
                 l_Code.Append("public ValueTask");
 
@@ -340,7 +337,14 @@ public class InterfaceSourceGenerator : IIncrementalGenerator
                 {
                     l_Code.Append("<" + GetPrimitiveName(l_FuncType.Results[0]) + ">");
                 }
-
+                else if (l_FuncType.Results.Length > 1)
+                {
+                    String l_ResultType = String.Join(",", l_FuncType.Results.Select(x => GetPrimitiveName(x)));
+                    l_Code.Append("<ValueTuple<");
+                    l_Code.Append(l_ResultType);
+                    l_Code.Append(">>");
+                }
+                
                 l_Code.Append(" " + l_Export.Name.Value + "(");
 
                 for (int i = 0; i < l_FuncType.Parameters.Length; i++)

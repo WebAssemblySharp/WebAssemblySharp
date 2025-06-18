@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.Runtime.Utils;
@@ -11,6 +13,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
     private readonly WasmFuncType m_FuncType;
     private readonly WasmCode m_Code;
     private readonly string m_Name;
+    private readonly Func<object[], ITuple> m_MuliResultCreator;
 
     public WebAssemblyInterpreterMethod(WebAssemblyInterpreterVirtualMaschine p_VirtualMachine, WasmFuncType p_FuncType, WasmCode p_Code,
         string p_Name)
@@ -19,6 +22,23 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         m_Code = p_Code;
         m_Name = p_Name;
         m_VirtualMachine = p_VirtualMachine;
+        m_MuliResultCreator = GetMultiResultCreator(p_FuncType.Results);
+    }
+
+    private Func<object[], ITuple> GetMultiResultCreator(WasmDataType[] p_FuncTypeResults)
+    {
+        if (p_FuncTypeResults.Length <= 1)
+        {
+            // No multi result or single result
+            return null;
+        }
+        
+        Type l_ReturnType = WebAssemblyValueTupleUtils.GetValueTupleType(p_FuncTypeResults);
+        
+        return (args) =>
+        {
+            return (ITuple)Activator.CreateInstance(l_ReturnType, args);
+        };
     }
 
     public async ValueTask<object> DynamicInvoke(params object[] p_Args)
@@ -39,6 +59,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         if (l_JitValues.Length == 1)
             return l_JitValues[0].GetRawValue();
 
+        
         object[] l_Results = new object[l_JitValues.Length];
 
         // Reverse the order of the results because the stack is LIFO
@@ -47,7 +68,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
             l_Results[l_JitValues.Length - 1 - i] = l_JitValues[i].GetRawValue();
         }
 
-        return l_Results;
+        return m_MuliResultCreator.Invoke(l_Results);
     }
 
     public WasmFuncType GetMetaData()
