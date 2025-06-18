@@ -9,9 +9,10 @@ namespace WebAssemblySharpTest.Runtime;
 public class LocalsTest
 {
     [TestMethod]
-    public async Task return_defaultTest()
+    [DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
+    public async Task return_defaultTest(Type p_RuntimeType)
     {
-        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(p_RuntimeType,
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.locals.wasm"));
         
         int l_Result = await l_Module.Call<int>("return_default");
@@ -19,9 +20,10 @@ public class LocalsTest
     }
     
     [TestMethod]
-    public async Task unnamed_localsTest()
+    [DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
+    public async Task unnamed_localsTest(Type p_RuntimeType)
     {
-        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(p_RuntimeType,
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.locals.wasm"));
 
         object[] l_Result = (Object[])await l_Module.DynamicCall("unnamed_locals", 11, 22);
@@ -32,9 +34,10 @@ public class LocalsTest
     }
     
     [TestMethod]
-    public async Task some_unnamedTest()
+    [DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
+    public async Task some_unnamedTest(Type p_RuntimeType)
     {
-        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(p_RuntimeType,
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.locals.wasm"));
 
         object[] l_Result = (Object[])await l_Module.DynamicCall("some_unnamed", 11, 22);
@@ -46,9 +49,10 @@ public class LocalsTest
     }
     
     [TestMethod]
-    public async Task named_by_indexTest()
+    [DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
+    public async Task named_by_indexTest(Type p_RuntimeType)
     {
-        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(p_RuntimeType,
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.locals.wasm"));
 
         object[] l_Result = (Object[])await l_Module.DynamicCall("named_by_index", 11, 22);
@@ -59,9 +63,10 @@ public class LocalsTest
     }
     
     [TestMethod]
-    public async Task multi_declTest()
+    [DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
+    public async Task multi_declTest(Type p_RuntimeType)
     {
-        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(p_RuntimeType,
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.locals.wasm"));
 
         object[] l_Result = (Object[])await l_Module.DynamicCall("multi_decl", 11, 22);

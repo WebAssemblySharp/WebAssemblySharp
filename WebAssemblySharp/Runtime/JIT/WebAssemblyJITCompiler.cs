@@ -360,11 +360,16 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.I32LeU:
                 break;
             case WasmOpcode.I32GeS:
-                break;
+                // The following sequence is equivalent to:
+                // (a >= b) == !(b < a)
+                p_IlGenerator.Emit(OpCodes.Clt); // Lower than
+                p_IlGenerator.Emit(OpCodes.Ldc_I4_0); // Load 0
+                p_IlGenerator.Emit(OpCodes.Ceq); // Compare equal
+                return;
             case WasmOpcode.I32GeU:
                 // The following sequence is equivalent to:
                 // (a >= b) == !(b < a)
-                p_IlGenerator.Emit(OpCodes.Clt_Un); // Lower than
+                p_IlGenerator.Emit(OpCodes.Clt_Un); // Lower than unsinged
                 p_IlGenerator.Emit(OpCodes.Ldc_I4_0); // Load 0
                 p_IlGenerator.Emit(OpCodes.Ceq); // Compare equal
                 return;

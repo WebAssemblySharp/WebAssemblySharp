@@ -60,7 +60,7 @@ public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
         }
         else
         {
-            l_ParameterTypes.Add(typeof(ValueTask<object[]>));
+            l_ParameterTypes.Add(typeof(object[]));
         }
 
         Type l_DelegateType;
