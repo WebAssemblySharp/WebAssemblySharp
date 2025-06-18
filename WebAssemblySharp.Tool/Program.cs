@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.CommandLine;
 using WebAssemblySharp.Tool;
 
 /**
@@ -8,26 +8,9 @@ using WebAssemblySharp.Tool;
  *
  */
 
-if (args.Length < 2)
-{
-    Console.WriteLine("Usage: WebAssemblySharp.Tool <PathToWasmFile> <OutputFileName>");
-    return;
-}
+RootCommand l_Command = new RootCommand("WebAssemblySharp.Tool");
+l_Command.Description = "A tool to work with WebAssembly.";
 
-string l_PathToWasmFile = args[0];
-string l_OutputDir = args[1];
+GenerateCommandSetup.Setup(l_Command);
 
-if (!System.IO.File.Exists(l_PathToWasmFile))
-{
-    Console.WriteLine($"Error: The file '{l_PathToWasmFile}' does not exist.");
-    return;
-}
-
-try
-{
-    await SourceCodeGenerator.Generate(l_PathToWasmFile, l_OutputDir);
-}
-catch (Exception e)
-{
-    Console.WriteLine(e);
-}
+await l_Command.InvokeAsync(args);
