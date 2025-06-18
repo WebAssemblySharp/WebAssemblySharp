@@ -82,7 +82,7 @@ For more advanced usage, including imports and interface-based calls, see the te
 The `WebAssemblySharp.InterfaceGenerator` is a Roslyn Source Generator that automatically generates C# interfaces for your WebAssembly modules. To use it, add the following package reference to your project:
 
 ```xml
-<PackageReference Include="WebAssemblySharp.InterfaceGenerator" Version="0.1.10-alpha" OutputItemType="Analyzer" ReferenceOutputAssembly="false" Aliases="InternalWasmSourceGenerator"/>
+<PackageReference Include="WebAssemblySharp.InterfaceGenerator" Version="VersionToUse" OutputItemType="Analyzer" ReferenceOutputAssembly="false" Aliases="InternalWasmSourceGenerator"/>
 ```
 
 ### How to Use
@@ -120,7 +120,7 @@ See `WebAssemblySharp.GeneratorTest/InterfaceGeneratorTest.cs` for more examples
 ### Installation
 
 ```bash
-dotnet tool install --global WebAssemblySharp.Tool
+dotnet tool install --global WebAssemblySharp.Tool --version VersionToUse
 ```
 
 ### Usage
