@@ -16,7 +16,7 @@ As WebAssemblySharp is in the development phase, the following instructions are 
 
 ### Prerequisites
 
-- [.NET SDK](https://dotnet.microsoft.com/download) (version 6.0 or later)
+- [.NET SDK](https://dotnet.microsoft.com/download) (version 9.0 or later)
 - [Git](https://git-scm.com/)
 
 ### Installation
@@ -55,6 +55,76 @@ To run the test project:
 
 This command executes the test suite, demonstrating the current capabilities of WebAssemblySharp.
 
+#### Example: How to Use WebAssemblySharp
+
+You can find usage examples in the test files, such as loading and calling a WebAssembly module:
+
+```csharp
+WebAssemblyModule module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+    typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.add.wasm"));
+int result = await module.Call<int, int, int>("add", 1, 2);
+Assert.AreEqual(3, result);
+```
+
+For more advanced usage, including imports and interface-based calls, see the tests in `WebAssemblySharpTest/Runtime/ImportTest.cs`, `WebAssemblySharpTest/Runtime/IsPrimeTest.cs`, and others.
+
+---
+
+## WebAssemblySharp.InterfaceGenerator
+
+The `WebAssemblySharp.InterfaceGenerator` is a Roslyn Source Generator that automatically generates C# interfaces for your WebAssembly modules. To use it, add the following package reference to your project:
+
+```xml
+<PackageReference Include="WebAssemblySharp.InterfaceGenerator" Version="0.1.10-alpha" OutputItemType="Analyzer" ReferenceOutputAssembly="false" Aliases="InternalWasmSourceGenerator"/>
+```
+
+### How to Use
+
+1. Annotate your interface with the appropriate attributes:
+
+```csharp
+using WebAssemblySharp.Attributes;
+
+[WebAssemblyModuleManifestResource("WebAssemblySharpExampleData.Programms.add.wasm", typeof(WebAssemblyExamples))]
+[WebAssemblyModuleDefinition("add")]
+public partial interface IAdd
+{
+}
+```
+
+2. The simplest way to create a runtime and use the generated interface:
+
+```csharp
+// Create a runtime and get the IAdd interface implementation
+await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime<IAdd>();
+IAdd add = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime<IAdd>();
+int result = await add.add(1, 2);
+Console.WriteLine($"1 + 2 = {result}");
+```
+
+See `WebAssemblySharp.GeneratorTest/InterfaceGeneratorTest.cs` for more examples.
+
+---
+
+## WebAssemblySharp.Tool
+
+`WebAssemblySharp.Tool` is a .NET CLI tool for generating C# source code from WebAssembly modules.
+
+### Installation
+
+```bash
+dotnet tool install --global WebAssemblySharp.Tool
+```
+
+### Usage
+
+```bash
+wasmsharp generate path\myWasm.wasm Path\Generated\Prime
+```
+
+This command will generate C# source files from the specified `.wasm` file into the output directory.
+
+---
 
 ### Nightly Performance Tests
 
