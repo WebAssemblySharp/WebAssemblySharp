@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
+using WebAssemblySharp.MetaData.Utils;
 using WebAssemblySharp.Runtime.Interpreter;
 
 namespace WebAssemblySharp.Runtime.JIT;
@@ -36,7 +37,14 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor, IWebAssemblyExecutorP
 
     public IWebAssemblyMemoryArea GetMemoryArea(string p_Name)
     {
-        throw new NotImplementedException();
+        int? l_ExportIndex = WasmMetaDataUtils.FindExportIndex(m_WasmMetaData, p_Name, WasmExternalKind.Memory);
+
+        if (!l_ExportIndex.HasValue)
+        {
+            throw new Exception("Export not found: " + p_Name);
+        }
+        
+        return m_Assembly.MemoryAreas[l_ExportIndex.Value];
     }
 
     public void ImportMemoryArea(string p_Name, IWebAssemblyMemoryArea p_Memory)
@@ -51,7 +59,7 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor, IWebAssemblyExecutorP
 
     public IWebAssemblyMemoryAreaReadAccess GetInternalMemoryArea(int p_Index = 0)
     {
-        throw new NotImplementedException();
+        return m_Assembly.MemoryAreas[p_Index];
     }
 
     public void SetProxyType(Type p_ProxyType)

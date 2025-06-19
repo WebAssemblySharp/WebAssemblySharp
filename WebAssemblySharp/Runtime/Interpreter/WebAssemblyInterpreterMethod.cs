@@ -41,7 +41,12 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         };
     }
 
-    public async ValueTask<object> DynamicInvoke(params object[] p_Args)
+    public ValueTask<object> DynamicInvoke(params object[] p_Args)
+    {
+        return DoDynamicInvoke<object>(p_Args);
+    }
+    
+    private async ValueTask<T> DoDynamicInvoke<T>(params object[] p_Args)
     {
         ValidateParameters(p_Args);
 
@@ -54,10 +59,10 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         Span<WebAssemblyInterpreterValue> l_JitValues = m_VirtualMachine.FinishContext(l_Context);
 
         if (l_JitValues.Length == 0)
-            return null;
+            return default(T);
 
         if (l_JitValues.Length == 1)
-            return l_JitValues[0].GetRawValue();
+            return (T)l_JitValues[0].GetRawValue();
 
         
         object[] l_Results = new object[l_JitValues.Length];
@@ -68,7 +73,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
             l_Results[l_JitValues.Length - 1 - i] = l_JitValues[i].GetRawValue();
         }
 
-        return m_MuliResultCreator.Invoke(l_Results);
+        return (T)m_MuliResultCreator.Invoke(l_Results);
     }
 
     public WasmFuncType GetMetaData()
@@ -91,35 +96,22 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         }
     }
     
-    private TResult ConvertToFinalType<TResult>(object p_Value) where TResult : struct
-    {
-        if (typeof(TResult).IsAssignableTo(typeof(IWebAssemblyValue)))
-        {
-            IWebAssemblyValue l_Instance = (IWebAssemblyValue)Activator.CreateInstance<TResult>();
-            l_Instance.Load(p_Value, m_VirtualMachine);
-            return (TResult)l_Instance;
-        }
-
-        return (TResult)p_Value;
-        
-    }
-
     public Func<ValueTask<TResult>> GetDelegate<TResult>() where TResult : struct
     {
-        return new Func<ValueTask<TResult>>(async () => { return ConvertToFinalType<TResult>(await DynamicInvoke()); });
+        return () => DoDynamicInvoke<TResult>();
     }
 
     
 
     public Func<TInput1, ValueTask<TResult>> GetDelegate<TInput1, TResult>() where TInput1 : struct where TResult : struct
     {
-        return new Func<TInput1, ValueTask<TResult>>(async (x1) => { return ConvertToFinalType<TResult>(await DynamicInvoke(x1)); });
+        return (x1) => DoDynamicInvoke<TResult>(x1);
     }
 
     public Func<TInput1, TInput2, ValueTask<TResult>> GetDelegate<TInput1, TInput2, TResult>()
         where TInput1 : struct where TInput2 : struct where TResult : struct
     {
-        return new Func<TInput1, TInput2, ValueTask<TResult>>(async (x1, x2) => { return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2)); });
+        return (x1, x2) => DoDynamicInvoke<TResult>(x1, x2);
     }
 
     public Func<TInput1, TInput2, TInput3, ValueTask<TResult>> GetDelegate<TInput1, TInput2, TInput3, TResult>() where TInput1 : struct
@@ -127,25 +119,19 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         where TInput3 : struct
         where TResult : struct
     {
-        return new Func<TInput1, TInput2, TInput3, ValueTask<TResult>>(async (x1, x2, x3) => { return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3)); });
+        return (x1, x2, x3) => DoDynamicInvoke<TResult>(x1, x2, x3);
     }
 
     public Func<TInput1, TInput2, TInput3, TInput4, ValueTask<TResult>> GetDelegate<TInput1, TInput2, TInput3, TInput4, TResult>()
         where TInput1 : struct where TInput2 : struct where TInput3 : struct where TInput4 : struct where TResult : struct
     {
-        return new Func<TInput1, TInput2, TInput3, TInput4, ValueTask<TResult>>(async (x1, x2, x3, x4) =>
-        {
-            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4));
-        });
+        return (x1, x2, x3, x4) => DoDynamicInvoke<TResult>(x1, x2, x3, x4);
     }
 
     public Func<TInput1, TInput2, TInput3, TInput4, TInput5, ValueTask<TResult>> GetDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TResult>()
         where TInput1 : struct where TInput2 : struct where TInput3 : struct where TInput4 : struct where TInput5 : struct where TResult : struct
     {
-        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, ValueTask<TResult>>(async (x1, x2, x3, x4, x5) =>
-        {
-            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5));
-        });
+        return (x1, x2, x3, x4, x5) => DoDynamicInvoke<TResult>(x1, x2, x3, x4, x5);
     }
 
     public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, ValueTask<TResult>>
@@ -157,10 +143,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         where TInput6 : struct
         where TResult : struct
     {
-        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6) =>
-        {
-            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6));
-        });
+        return (x1, x2, x3, x4, x5, x6) => DoDynamicInvoke<TResult>(x1, x2, x3, x4, x5, x6);
     }
 
     public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, ValueTask<TResult>>
@@ -173,10 +156,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         where TInput7 : struct
         where TResult : struct
     {
-        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6, x7) =>
-        {
-            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7));
-        });
+        return (x1, x2, x3, x4, x5, x6, x7) => DoDynamicInvoke<TResult>(x1, x2, x3, x4, x5, x6, x7);
     }
 
     public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, ValueTask<TResult>>
@@ -190,11 +170,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         where TInput8 : struct
         where TResult : struct
     {
-        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6, x7,
-            x8) =>
-        {
-            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8));
-        });
+        return (x1, x2, x3, x4, x5, x6, x7, x8) => DoDynamicInvoke<TResult>(x1, x2, x3, x4, x5, x6, x7, x8);
     }
 
     public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, ValueTask<TResult>> GetDelegate<TInput1, TInput2,
@@ -209,11 +185,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         where TInput9 : struct
         where TResult : struct
     {
-        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, ValueTask<TResult>>(async (x1, x2, x3, x4,
-            x5, x6, x7, x8, x9) =>
-        {
-            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9));
-        });
+        return (x1, x2, x3, x4, x5, x6, x7, x8, x9) => DoDynamicInvoke<TResult>(x1, x2, x3, x4, x5, x6, x7, x8, x9);
     }
 
     public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, ValueTask<TResult>> GetDelegate<TInput1,
@@ -229,11 +201,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         where TInput10 : struct
         where TResult : struct
     {
-        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, ValueTask<TResult>>(async (x1, x2,
-            x3, x4, x5, x6, x7, x8, x9, x10) =>
-        {
-            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10));
-        });
+        return (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10) => DoDynamicInvoke<TResult>(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10);
     }
 
     public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, ValueTask<TResult>>
@@ -251,12 +219,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         where TInput11 : struct
         where TResult : struct
     {
-        return new
-            Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, ValueTask<TResult>>(async (x1,
-                x2, x3, x4, x5, x6, x7, x8, x9, x10, x11) =>
-            {
-                return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11));
-            });
+        return (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11) => DoDynamicInvoke<TResult>(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11);
     }
 
     public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, ValueTask<TResult>>
@@ -275,12 +238,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         where TInput12 : struct
         where TResult : struct
     {
-        return new
-            Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12,
-                ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12) =>
-            {
-                return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12));
-            });
+        return (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12) => DoDynamicInvoke<TResult>(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12);
     }
 
     public
@@ -302,12 +260,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         where TInput13 : struct
         where TResult : struct
     {
-        return new
-            Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13,
-                ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13) =>
-            {
-                return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13));
-            });
+        return (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13) => DoDynamicInvoke<TResult>(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13);
     }
 
     public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13, TInput14,
@@ -329,12 +282,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         where TInput14 : struct
         where TResult : struct
     {
-        return new
-            Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13, TInput14,
-                ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14) =>
-            {
-                return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14));
-            });
+        return (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14) => DoDynamicInvoke<TResult>(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14);
     }
 
     public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13, TInput14,
@@ -357,13 +305,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         where TInput15 : struct
         where TResult : struct
     {
-        return new
-            Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13, TInput14,
-                TInput15, ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15) =>
-            {
-                return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14,
-                    x15));
-            });
+        return (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15) => DoDynamicInvoke<TResult>(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15);
     }
 
     public Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13, TInput14,
@@ -387,23 +329,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         where TInput16 : struct
         where TResult : struct
     {
-        return new Func<TInput1, TInput2, TInput3, TInput4, TInput5, TInput6, TInput7, TInput8, TInput9, TInput10, TInput11, TInput12, TInput13,
-            TInput14, TInput15, TInput16, ValueTask<TResult>>(async (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11,
-            x12,
-            x13,
-            x14,
-            x15,
-            x16) =>
-        {
-            return ConvertToFinalType<TResult>(await DynamicInvoke(x1, x2, x3, x4, x5, x6, x7, x8, x9,
-                x10,
-                x11,
-                x12,
-                x13,
-                x14,
-                x15,
-                x16));
-        });
+        return (x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16) => DoDynamicInvoke<TResult>(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16);
     }
 
     public Func<ValueTask> GetVoidDelegate()

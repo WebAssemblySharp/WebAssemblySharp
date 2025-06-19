@@ -110,10 +110,22 @@ public class WebAssemblyModule
         return l_Delegate();
     }
     
+    public async ValueTask<TResult> CallAndConvert<TResult>(string p_Name) where TResult: IWebAssemblyValue, new()
+    {
+        TResult l_Value = new TResult();
+        return(TResult) await l_Value.Populate(m_Executor, p_Name);
+    }
+    
     public ValueTask<TResult> Call<TResult, TInput1>(string p_Name, TInput1 p_Input1) where TResult: struct where TInput1: struct
     {
         Func<TInput1, ValueTask<TResult>> l_Delegate = m_Executor.GetMethod(p_Name).GetDelegate<TInput1, TResult>();
         return l_Delegate(p_Input1);
+    }
+    
+    public async ValueTask<TResult> CallAndConvert<TResult, TInput1>(string p_Name, TInput1 p_Input1) where TResult: IWebAssemblyValue, new() where TInput1: struct
+    {
+        TResult l_Value = new TResult();
+        return(TResult) await l_Value.Populate(m_Executor, p_Name, p_Input1);
     }
     
     public ValueTask<TResult> Call<TResult, TInput1, TInput2>(string p_Name, TInput1 p_Input1, TInput2 p_Input2) where TResult: struct where TInput1: struct where TInput2: struct
@@ -122,10 +134,22 @@ public class WebAssemblyModule
         return l_Delegate(p_Input1, p_Input2);
     }
     
+    public async ValueTask<TResult> CallAndConvert<TResult, TInput1, TInput2>(string p_Name, TInput1 p_Input1, TInput2 p_Input2) where TResult: IWebAssemblyValue, new() where TInput1: struct where TInput2: struct
+    {
+        TResult l_Value = new TResult();
+        return(TResult) await l_Value.Populate(m_Executor, p_Name, p_Input1, p_Input2);
+    }
+    
     public ValueTask<TResult> Call<TResult, TInput1, TInput2, TInput3>(string p_Name, TInput1 p_Input1, TInput2 p_Input2, TInput3 p_Input3) where TResult: struct where TInput1: struct where TInput2: struct where TInput3: struct
     {
         Func<TInput1, TInput2, TInput3, ValueTask<TResult>> l_Delegate = m_Executor.GetMethod(p_Name).GetDelegate<TInput1, TInput2, TInput3, TResult>();
         return l_Delegate(p_Input1, p_Input2, p_Input3);
+    }
+    
+    public async ValueTask<TResult> CallAndConvert<TResult, TInput1, TInput2, TInput3>(string p_Name, TInput1 p_Input1, TInput2 p_Input2, TInput3 p_Input3) where TResult: IWebAssemblyValue, new() where TInput1: struct where TInput2: struct where TInput3: struct
+    {
+        TResult l_Value = new TResult();
+        return(TResult) await l_Value.Populate(m_Executor, p_Name, p_Input1, p_Input2, p_Input3);
     }
     
     public ValueTask<TResult> Call<TResult, TInput1, TInput2, TInput3, TInput4>(string p_Name, TInput1 p_Input1, TInput2 p_Input2, TInput3 p_Input3, TInput4 p_Input4) where TResult: struct where TInput1: struct where TInput2: struct where TInput3: struct where TInput4: struct
@@ -134,10 +158,22 @@ public class WebAssemblyModule
         return l_Delegate(p_Input1, p_Input2, p_Input3, p_Input4);
     }
     
+    public async ValueTask<TResult> CallAndConvert<TResult, TInput1, TInput2, TInput3, TInput4>(string p_Name, TInput1 p_Input1, TInput2 p_Input2, TInput3 p_Input3, TInput4 p_Input4) where TResult: IWebAssemblyValue, new() where TInput1: struct where TInput2: struct where TInput3: struct where TInput4: struct
+    {
+        TResult l_Value = new TResult();
+        return(TResult) await l_Value.Populate(m_Executor, p_Name, p_Input1, p_Input2, p_Input3, p_Input4);
+    }
+    
     public ValueTask<TResult> Call<TResult, TInput1, TInput2, TInput3, TInput4, TInput5>(string p_Name, TInput1 p_Input1, TInput2 p_Input2, TInput3 p_Input3, TInput4 p_Input4, TInput5 p_Input5) where TResult: struct where TInput1: struct where TInput2: struct where TInput3: struct where TInput4: struct where TInput5: struct
     {
         Func<TInput1, TInput2, TInput3, TInput4, TInput5, ValueTask<TResult>> l_Delegate = m_Executor.GetMethod(p_Name).GetDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TResult>();
         return l_Delegate(p_Input1, p_Input2, p_Input3, p_Input4, p_Input5);
+    }
+    
+    public async ValueTask<TResult> CallAndConvert<TResult, TInput1, TInput2, TInput3, TInput4, TInput5>(string p_Name, TInput1 p_Input1, TInput2 p_Input2, TInput3 p_Input3, TInput4 p_Input4, TInput5 p_Input5) where TResult: IWebAssemblyValue, new() where TInput1: struct where TInput2: struct where TInput3: struct where TInput4: struct where TInput5: struct
+    {
+        TResult l_Value = new TResult();
+        return(TResult) await l_Value.Populate(m_Executor, p_Name, p_Input1, p_Input2, p_Input3, p_Input4, p_Input5);
     }
     
 }

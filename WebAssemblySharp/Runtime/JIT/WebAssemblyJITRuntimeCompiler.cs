@@ -3,8 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
-using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Utils;
 using WebAssemblySharp.Runtime.Utils;
@@ -40,10 +40,35 @@ public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
             IWebAssemblyMethod l_WebAssemblyMethod = CreateMethod(l_Instance, l_MethodInfo, l_FuncType);
             l_ExportedMethods.Add(l_Pair.Key, l_WebAssemblyMethod);
         }
+
+        IWebAssemblyMemoryArea[] l_MemoryAreas = new IWebAssemblyMemoryArea[m_MemoryFields.Count];
+        
+        for (int i = 0; i < m_MemoryFields.Count; i++)
+        {
+            FieldInfo l_RuntimeFieldInfo = l_Instance.GetType().GetField(m_MemoryFields[i].Name);
+
+            // Constant expression representing the specific instance of MyClass
+            ConstantExpression l_InstanceExpression = Expression.Constant(l_Instance, l_Instance.GetType());
+            // Field expression representing accessing the field
+            MemberExpression l_FieldAccess = Expression.Field(l_InstanceExpression, l_RuntimeFieldInfo);
+            
+            // Getter
+            // Lambda expression representing the lambda that returns the field value
+            Expression<Func<byte[]>> l_Lambda = Expression.Lambda<Func<byte[]>>(l_FieldAccess);
+            Func<byte[]> l_MemoryAccess = l_Lambda.Compile();
+            
+            // Setter
+            ParameterExpression l_Parameter = Expression.Parameter(typeof(byte[]));
+            BinaryExpression l_Assign = Expression.Assign(l_FieldAccess, l_Parameter);
+            Action<byte[]> l_MemoryUpdate = Expression.Lambda<Action<byte[]>>(l_Assign, l_Parameter).Compile();
+            
+            l_MemoryAreas[i] = new WebAssemblyJITMemoryArea(l_MemoryAccess, l_MemoryUpdate, (int)m_WasmMetaData.Memory[i].Max);
+            
+        }
         
         Reset();
         
-        return new WebAssemblyJITAssembly(l_ExportedMethods, l_Instance);
+        return new WebAssemblyJITAssembly(l_ExportedMethods, l_Instance, l_MemoryAreas);
     }
 
     private IWebAssemblyMethod CreateMethod(object p_Instance, MethodInfo p_MethodInfo, WasmFuncType p_FuncType)

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
 using WebAssemblySharp.MetaData.Utils;
+using WebAssemblySharp.Runtime;
 using WebAssemblySharp.Runtime.Utils;
 
 public class WebAssemblyJITCompiler
@@ -15,6 +16,8 @@ public class WebAssemblyJITCompiler
     private readonly Type m_ProxyType;
     protected Dictionary<String, MethodInfo> m_ExportedMethods;
     private Dictionary<WasmCode, MethodInfo> m_DynamicMethodsByCode;
+    private List<FieldInfo> m_GlobalFields;
+    protected List<FieldInfo> m_MemoryFields;
     protected TypeBuilder m_TypeBuilder;
 
     private WasmFuncType m_CurrentFuncType;
@@ -33,6 +36,8 @@ public class WebAssemblyJITCompiler
         m_TypeBuilder = null;
         m_DynamicMethodsByCode = null;
         m_ExportedMethods = null;
+        m_GlobalFields = null;
+        m_MemoryFields = null;
     }
 
     public void Compile()
@@ -48,6 +53,13 @@ public class WebAssemblyJITCompiler
             m_TypeBuilder.AddInterfaceImplementation(m_ProxyType);
         }
 
+        ApplyFields();
+        ApplyConstructor();
+        ApplyMethods();
+    }
+
+    private void ApplyMethods()
+    {
         m_ExportedMethods = new Dictionary<string, MethodInfo>();
         m_DynamicMethodsByCode = new Dictionary<WasmCode, MethodInfo>();
 
@@ -71,6 +83,168 @@ public class WebAssemblyJITCompiler
             MethodInfo l_Method = CompileCode(m_TypeBuilder, l_Export.Name, l_FuncType, l_Code);
             m_ExportedMethods.Add(l_Export.Name, l_Method);
         }
+    }
+
+    private void ApplyFields()
+    {
+        // Create Globals
+        m_GlobalFields = new List<FieldInfo>();
+        
+        if (m_WasmMetaData.Globals != null)
+        {
+            for (int i = 0; i < m_WasmMetaData.Globals.Length; i++)
+            {
+                WasmGlobal l_WasmGlobal = m_WasmMetaData.Globals[i];
+                string l_FieldName = BuildGlobalFieldName(i);
+                FieldBuilder l_FieldBuilder = m_TypeBuilder.DefineField(l_FieldName, WebAssemblyDataTypeUtils.GetInternalType(l_WasmGlobal.Type),
+                    l_WasmGlobal.Mutable ? FieldAttributes.Private | FieldAttributes.InitOnly : FieldAttributes.Private);
+                m_GlobalFields.Add(l_FieldBuilder);
+            }
+        }
+
+        // Create Memory Areas
+        m_MemoryFields = new List<FieldInfo>();
+        
+        if (m_WasmMetaData.Memory != null)
+        {
+            for (int i = 0; i < m_WasmMetaData.Memory.Length; i++)
+            {
+                WasmMemory l_WasmMemory = m_WasmMetaData.Memory[i];
+                string l_FieldName = BuildMemoryFieldName(i);
+                FieldBuilder l_FieldBuilder = m_TypeBuilder.DefineField(l_FieldName, typeof(byte[]), FieldAttributes.Public);
+                m_MemoryFields.Add(l_FieldBuilder);
+            }
+        }
+    }
+
+    private String BuildMemoryFieldName(int p_Index)
+    {
+        return "memory_" + p_Index;
+    }
+    
+    private FieldInfo GetMemoryField(int p_Index)
+    {
+        return m_MemoryFields[p_Index];
+    }
+    
+    private String BuildGlobalFieldName(int p_Index)
+    {
+        return "global_" + p_Index;
+    }
+
+    private FieldInfo GetGlobalField(int p_Index)
+    {
+        return m_GlobalFields[p_Index];
+    }
+
+    private void ApplyConstructor()
+    {
+        ILGenerator l_IlGenerator = m_TypeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, new Type[] {}).GetILGenerator();
+        l_IlGenerator.Emit(OpCodes.Ldarg_0);
+
+        // Call the base class constructor, Object's constructor in this case
+        ConstructorInfo l_ObjectCtor = typeof(object).GetConstructor(new Type[0]);
+        l_IlGenerator.Emit(OpCodes.Call, l_ObjectCtor);
+
+        // Initialize memory areas
+        if (m_WasmMetaData.Memory != null)
+        {
+            for (int i = 0; i < m_WasmMetaData.Memory.Length; i++)
+            {
+                WasmMemory l_WasmMemory = m_WasmMetaData.Memory[i];
+
+                // Create a new memory area
+                Type l_MemoryType = typeof(byte[]);
+                ConstructorInfo l_MemoryCtor = l_MemoryType.GetConstructor(new Type[] { typeof(int) });
+                int l_Size = (int)(l_WasmMemory.Min * WebAssemblyConst.WASM_MEMORY_PAGE_SIZE);
+                
+                // Load "this"
+                l_IlGenerator.Emit(OpCodes.Ldarg_0);
+                
+                // Create the memory area instance
+                l_IlGenerator.Emit(OpCodes.Ldc_I4, l_Size);
+                l_IlGenerator.Emit(OpCodes.Newobj, l_MemoryCtor);
+                
+                // Store the memory area in the field
+                l_IlGenerator.Emit(OpCodes.Stfld, GetMemoryField(i));
+            }
+        }
+        
+        // Preload Memory Areas
+        if (m_WasmMetaData.Data != null)
+        {
+            foreach (WasmData l_WasmData in m_WasmMetaData.Data)
+            {
+
+                FieldInfo l_MemoryField = GetMemoryField((int)l_WasmData.MemoryIndex);
+                
+                // Create a local variable to hold the value
+                LocalBuilder l_OffsetLocalBuilder = l_IlGenerator.DeclareLocal(typeof(int));
+                
+                // Emit the initialization instructions to set the offset
+                EmitInstructions(l_IlGenerator, l_WasmData.OffsetInstructions);
+                
+                // Store the result in the local variable
+                l_IlGenerator.Emit(OpCodes.Stloc, l_OffsetLocalBuilder);
+
+                byte[] l_Bytes = l_WasmData.Data.Data;
+
+                for (int i = 0; i < l_Bytes.Length; i++)
+                {
+                    // Load the memory area
+                    l_IlGenerator.Emit(OpCodes.Ldarg_0);
+                    l_IlGenerator.Emit(OpCodes.Ldfld, l_MemoryField);
+                    // Load the offset
+                    l_IlGenerator.Emit(OpCodes.Ldloc, l_OffsetLocalBuilder);
+
+                    if (i > 0)
+                    {
+                        l_IlGenerator.Emit(OpCodes.Ldc_I4, i);
+                        l_IlGenerator.Emit(OpCodes.Add); // Add the offset to the index    
+                    }
+                    
+                    // Load the byte value
+                    l_IlGenerator.Emit(OpCodes.Ldc_I4, (int)l_Bytes[i]);
+                    l_IlGenerator.Emit(OpCodes.Conv_U1); // Convert the value to byte (unsigned)
+                    // Store the byte value in the memory area
+                    l_IlGenerator.Emit(OpCodes.Stelem_I1);
+                }
+            }
+        }
+        
+        // Initialize globals
+        if (m_WasmMetaData.Globals != null)
+        {
+            for (int i = 0; i < m_WasmMetaData.Globals.Length; i++)
+            {
+                WasmGlobal l_WasmGlobal = m_WasmMetaData.Globals[i];
+
+                if (l_WasmGlobal.InitInstructions == null || !l_WasmGlobal.InitInstructions.Any())
+                {
+                    continue;
+                }
+
+                // Create a local variable to hold the value
+                Type l_GlobalType = WebAssemblyDataTypeUtils.GetInternalType(l_WasmGlobal.Type);
+                LocalBuilder l_LocalBuilder = l_IlGenerator.DeclareLocal(l_GlobalType);
+
+                // Emit the initialization instructions
+                EmitInstructions(l_IlGenerator, l_WasmGlobal.InitInstructions);
+
+                // Store the result in the local variable
+                l_IlGenerator.Emit(OpCodes.Stloc, l_LocalBuilder);
+
+                // Load "this"
+                l_IlGenerator.Emit(OpCodes.Ldarg_0);
+                // Load the local variable onto the stack
+                l_IlGenerator.Emit(OpCodes.Ldloc, l_LocalBuilder);
+                // Store the value in the global field
+                l_IlGenerator.Emit(OpCodes.Stfld, GetGlobalField(i));
+            }
+        }
+
+        // Complete the constructor
+        l_IlGenerator.Emit(OpCodes.Ret);
     }
 
     protected virtual string GetDynamicTypeName()
@@ -171,8 +345,9 @@ public class WebAssemblyJITCompiler
         else
         {
             Type l_ResultType = WebAssemblyValueTupleUtils.GetValueTupleType(p_FuncType.Results);
-            p_IlGenerator.Emit(OpCodes.Newobj, l_ResultType.GetConstructor(p_FuncType.Results.Select(x => WebAssemblyDataTypeUtils.GetInternalType(x)).ToArray()));
-            
+            p_IlGenerator.Emit(OpCodes.Newobj,
+                l_ResultType.GetConstructor(p_FuncType.Results.Select(x => WebAssemblyDataTypeUtils.GetInternalType(x)).ToArray()));
+
             MethodInfo l_FromResultMethod = typeof(ValueTask).GetMethod(nameof(ValueTask.FromResult))
                 .MakeGenericMethod(l_ResultType);
 
@@ -282,7 +457,8 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.LocalTee:
                 break;
             case WasmOpcode.GlobalGet:
-                break;
+                CompileGlobalGet(p_IlGenerator, (WasmGlobalGet)p_Instruction);
+                return;
             case WasmOpcode.GlobalSet:
                 break;
             case WasmOpcode.I32Load:
@@ -296,7 +472,8 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.I32Load8S:
                 break;
             case WasmOpcode.I32Load8U:
-                break;
+                CompileI32Load8U(p_IlGenerator, (WasmI32Load8U)p_Instruction);
+                return;
             case WasmOpcode.I32Load16S:
                 break;
             case WasmOpcode.I32Load16U:
@@ -320,7 +497,8 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.F64Store:
                 break;
             case WasmOpcode.I32Store8:
-                break;
+                CompileI32Store8(p_IlGenerator, (WasmI32Store8)p_Instruction);
+                return;
             case WasmOpcode.I32Store16:
                 break;
             case WasmOpcode.I64Store8:
@@ -343,14 +521,17 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.F64Const:
                 break;
             case WasmOpcode.I32Eqz:
-                break;
+                p_IlGenerator.Emit(OpCodes.Ldc_I4_0); // Load 0
+                p_IlGenerator.Emit(OpCodes.Ceq); // Compare equal
+                return;
             case WasmOpcode.I32Eq:
                 p_IlGenerator.Emit(OpCodes.Ceq);
                 return;
             case WasmOpcode.I32Ne:
                 break;
             case WasmOpcode.I32LtS:
-                break;
+                p_IlGenerator.Emit(OpCodes.Clt);
+                return;
             case WasmOpcode.I32LtU:
                 p_IlGenerator.Emit(OpCodes.Clt_Un);
                 return;
@@ -432,13 +613,15 @@ public class WebAssemblyJITCompiler
                 p_IlGenerator.Emit(OpCodes.Add);
                 return;
             case WasmOpcode.I32Sub:
-                break;
+                p_IlGenerator.Emit(OpCodes.Sub);
+                return;
             case WasmOpcode.I32Mul:
                 break;
             case WasmOpcode.I32DivS:
                 break;
             case WasmOpcode.I32DivU:
-                break;
+                p_IlGenerator.Emit(OpCodes.Div_Un);
+                return;
             case WasmOpcode.I32RemS:
                 break;
             case WasmOpcode.I32RemU:
@@ -655,6 +838,62 @@ public class WebAssemblyJITCompiler
         throw new NotImplementedException("Instruction not implemented: " + p_Instruction.Opcode);
     }
 
+    private void CompileI32Store8(ILGenerator p_IlGenerator, WasmI32Store8 p_Instruction)
+    {
+        LocalBuilder l_Value = p_IlGenerator.DeclareLocal(typeof(byte));
+        p_IlGenerator.Emit(OpCodes.Ldc_I4, 255); // Load the maximum value for byte (255)
+        p_IlGenerator.Emit(OpCodes.And); // Ensure the value is within byte range
+        p_IlGenerator.Emit(OpCodes.Conv_U1); // Convert the value to byte (unsigned)
+        p_IlGenerator.Emit(OpCodes.Stloc, l_Value); // Store the value in the local variable
+        
+        long l_Offset = p_Instruction.Offset;
+        if (l_Offset != 0)
+        {
+            p_IlGenerator.Emit(OpCodes.Ldc_I4, (int)l_Offset); // Load the offset
+            p_IlGenerator.Emit(OpCodes.Add); // Add the offset to the address
+        }
+
+        LocalBuilder l_Address = p_IlGenerator.DeclareLocal(typeof(int));
+        p_IlGenerator.Emit(OpCodes.Stloc, l_Address); // Store the address in the local variable
+
+        p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+        p_IlGenerator.Emit(OpCodes.Ldfld, GetMemoryField(0)); // Load the memory field
+        
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_Address); // Load the address from the local variable
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_Value); // Load the value from the local variable
+        
+        p_IlGenerator.Emit(OpCodes.Stelem_I1); // Store the value at the address
+        
+    }
+
+    private void CompileI32Load8U(ILGenerator p_IlGenerator, WasmI32Load8U p_Instruction)
+    {
+        LocalBuilder l_IndexLocal = p_IlGenerator.DeclareLocal(typeof(int));
+        p_IlGenerator.Emit(OpCodes.Stloc, l_IndexLocal);
+        
+        // Load the address of the memory location
+        p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+        p_IlGenerator.Emit(OpCodes.Ldfld, GetMemoryField(0)); // Load the memory field
+        
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_IndexLocal); // Load the index from the local variable
+        
+        long l_Offset = p_Instruction.Offset;
+        if (l_Offset != 0)
+        {
+            p_IlGenerator.Emit(OpCodes.Ldc_I4, (int)l_Offset); // Load the offset
+            p_IlGenerator.Emit(OpCodes.Add); // Add the offset to the address
+        }
+        // Access the memory area by index 
+        p_IlGenerator.Emit(OpCodes.Ldelem_U1); // Load the byte at the address
+        
+    }
+
+    private void CompileGlobalGet(ILGenerator p_IlGenerator, WasmGlobalGet p_Instruction)
+    {
+        p_IlGenerator.Emit(OpCodes.Ldarg_0);
+        p_IlGenerator.Emit(OpCodes.Ldfld, GetGlobalField((int)p_Instruction.GlobalIndex));
+    }
+
     private void CompileBr(ILGenerator p_IlGenerator, WasmBr p_Instruction)
     {
         p_IlGenerator.Emit(OpCodes.Br, m_CurrentLabels[m_CurrentLabels.Count - 1 - (int)p_Instruction.LabelIndex]);
@@ -715,10 +954,14 @@ public class WebAssemblyJITCompiler
     {
         if (m_CurrentFuncType.Parameters != null && p_Instruction.LocalIndex < m_CurrentFuncType.Parameters.Length)
         {
-            throw new Exception("Cannot set parameter");
+            int l_Index = (int)p_Instruction.LocalIndex + 1;
+            // Set the parameter value
+            p_IlGenerator.Emit(OpCodes.Starg, l_Index);
+            
         }
         else
         {
+            // Store the local variable
             long l_LocalIndex = p_Instruction.LocalIndex;
 
             if (m_CurrentFuncType.Parameters != null)
@@ -726,7 +969,26 @@ public class WebAssemblyJITCompiler
                 l_LocalIndex = l_LocalIndex - m_CurrentFuncType.Parameters.Length;
             }
 
-            p_IlGenerator.Emit(OpCodes.Stloc, m_CurrentLocals[l_LocalIndex]);
+            if (l_LocalIndex == 0)
+            {
+                p_IlGenerator.Emit(OpCodes.Stloc_0);
+            }
+            else if (l_LocalIndex == 1)
+            {
+                p_IlGenerator.Emit(OpCodes.Stloc_1);
+            }
+            else if (l_LocalIndex == 2)
+            {
+                p_IlGenerator.Emit(OpCodes.Stloc_2);
+            }
+            else if (l_LocalIndex == 3)
+            {
+                p_IlGenerator.Emit(OpCodes.Stloc_3);
+            }
+            else
+            {
+                p_IlGenerator.Emit(OpCodes.Stloc, m_CurrentLocals[l_LocalIndex]);   
+            }
         }
     }
 
