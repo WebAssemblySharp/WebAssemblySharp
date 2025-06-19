@@ -1,6 +1,8 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using WebAssemblySharp.Runtime;
+using WebAssemblySharp.Runtime.Interpreter;
+using WebAssemblySharp.Runtime.JIT;
 using WebAssemblySharp.Runtime.Values;
 using WebAssemblySharpExampleData;
 
@@ -15,22 +17,28 @@ public class ItoaBenchmark
     [Params(2, 3, 99, 512, 9999)]
     public int N;
 
-    private WebAssemblyModule m_Module;
+    private WebAssemblyModule m_InterpreterModule;
+    private WebAssemblyModule m_JitModule;
     
 
     [GlobalSetup]
     public async Task GlobalSetup()
     {
-        m_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+        m_InterpreterModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(typeof(WebAssemblyInterpreterExecutor),
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));
         
-        await m_Module.Call<WebAssemblyUTF8String, int>("itoa", 1);     
+        m_JitModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(typeof(WebAssemblyJITExecutor),
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));
+        
+        await m_InterpreterModule.CallAndConvert<WebAssemblyUTF8String, int>("itoa", 1);
+        await m_JitModule.CallAndConvert<WebAssemblyUTF8String, int>("itoa", 1);
     }
 
     [GlobalCleanup]
     public void GlobalCleanup()
     {
-        m_Module = null;
+        m_InterpreterModule = null;
+        m_JitModule = null;
     }
     
     [Benchmark(Baseline = true)]
@@ -43,7 +51,14 @@ public class ItoaBenchmark
     [Benchmark]
     public async Task Interpreter() {
 
-        await m_Module.Call<WebAssemblyUTF8String, int>("itoa", N); 
+        await m_InterpreterModule.CallAndConvert<WebAssemblyUTF8String, int>("itoa", N); 
+
+    }
+    
+    [Benchmark]
+    public async Task Jit() {
+
+        await m_JitModule.CallAndConvert<WebAssemblyUTF8String, int>("itoa", N); 
 
     }
     
