@@ -193,7 +193,7 @@ public class WebAssemblyInterpreterVirtualMaschine
         
         if (l_PagesToAdd < 0)
         {
-            throw new WebAssemblyInterpreterException("Memory grow negative");
+            throw new InvalidOperationException("Memory grow must be non-negative");
         }
         
         IWebAssemblyMemoryArea l_InterpreterMemoryArea = m_MemoryAreas[l_Instruction.MemoryIndex];

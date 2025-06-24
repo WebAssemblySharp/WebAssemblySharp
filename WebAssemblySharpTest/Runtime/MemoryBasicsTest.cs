@@ -10,9 +10,10 @@ public class MemoryBasicsTest
 {
     
     [TestMethod]
-    public async Task MemoryTest()
+    [DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
+    public async Task MemoryTest(Type p_RuntimeType)
     {
-        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(p_RuntimeType,
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.memory-basics.wasm"));
         
         // Check if the init is fine

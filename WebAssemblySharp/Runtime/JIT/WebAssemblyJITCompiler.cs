@@ -508,9 +508,11 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.I64Store32:
                 break;
             case WasmOpcode.MemorySize:
-                break;
+                CompileMemorySize(p_IlGenerator, (WasmMemorySize)p_Instruction);
+                return;
             case WasmOpcode.MemoryGrow:
-                break;
+                CompileMemoryGrow(p_IlGenerator, (WasmMemoryGrow)p_Instruction);
+                return;
             case WasmOpcode.I32Const:
                 p_IlGenerator.Emit(OpCodes.Ldc_I4, ((WasmI32Const)p_Instruction).Const);
                 return;
@@ -818,7 +820,8 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.MemoryCopy:
                 break;
             case WasmOpcode.MemoryFill:
-                break;
+                CompileMemoryFill(p_IlGenerator, (WasmMemoryFill)p_Instruction);
+                return;
             case WasmOpcode.TableInit:
                 break;
             case WasmOpcode.ElemDrop:
@@ -836,6 +839,127 @@ public class WebAssemblyJITCompiler
         }
 
         throw new NotImplementedException("Instruction not implemented: " + p_Instruction.Opcode);
+    }
+
+    private void CompileMemoryFill(ILGenerator p_IlGenerator, WasmMemoryFill p_Instruction)
+    {
+        
+        LocalBuilder l_Length = p_IlGenerator.DeclareLocal(typeof(int));
+        p_IlGenerator.Emit(OpCodes.Stloc, l_Length); // Store the length in the local variable;
+        
+        LocalBuilder l_Value = p_IlGenerator.DeclareLocal(typeof(int));
+        p_IlGenerator.Emit(OpCodes.Ldc_I4, 255); // Load the maximum value for byte (255)
+        p_IlGenerator.Emit(OpCodes.And); // Ensure the value is within byte range
+        p_IlGenerator.Emit(OpCodes.Stloc, l_Value); // Store the value in the local variable
+        
+        LocalBuilder l_Offset = p_IlGenerator.DeclareLocal(typeof(int));
+        p_IlGenerator.Emit(OpCodes.Stloc, l_Offset); // Store the offset in the local variable;
+        
+        LocalBuilder l_Span = p_IlGenerator.DeclareLocal(typeof(Span<byte>));
+        
+        p_IlGenerator.Emit(OpCodes.Ldloca, l_Span); // Load the address of the span
+        p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+        FieldInfo l_MemoryField = GetMemoryField(p_Instruction.MemoryIndex);
+        p_IlGenerator.Emit(OpCodes.Ldfld, l_MemoryField); // Load the memory field
+
+        
+        // Create a span for the memory array
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_Offset); // Load the offset from the local variable
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_Length); // Load the length from the local variable
+        p_IlGenerator.Emit(OpCodes.Call, typeof(Span<byte>).GetConstructor(new[] { typeof(byte[]), typeof(int), typeof(int) })); // Create a span for the memory array
+        
+        
+        p_IlGenerator.Emit(OpCodes.Ldloca, l_Span); // Load the address of the span
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_Value); // Load the value from the local variable
+        p_IlGenerator.Emit(OpCodes.Conv_U1); // Convert the value to byte (unsigned)
+        p_IlGenerator.Emit(OpCodes.Call, typeof(Span<byte>).GetMethod(nameof(Span<byte>.Fill))); // Call the Fill method on the span to fill the memory area with the value
+        
+        
+    }
+
+    private void CompileMemorySize(ILGenerator p_IlGenerator, WasmMemorySize p_Instruction)
+    {
+        p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+        FieldInfo l_MemoryField = GetMemoryField(p_Instruction.MemoryIndex);
+        p_IlGenerator.Emit(OpCodes.Ldfld, l_MemoryField); // Load the memory field
+        p_IlGenerator.Emit(OpCodes.Ldlen); // Load the length of the memory array
+        p_IlGenerator.Emit(OpCodes.Ldc_I4, WebAssemblyConst.WASM_MEMORY_PAGE_SIZE); // Load the page size constant
+        p_IlGenerator.Emit(OpCodes.Div); // Divide the length by the page size to get the current number of pages
+        
+    }
+
+    private void CompileMemoryGrow(ILGenerator p_IlGenerator, WasmMemoryGrow p_Instruction)
+    {
+        
+        LocalBuilder l_PageToAdd = p_IlGenerator.DeclareLocal(typeof(long));
+        p_IlGenerator.Emit(OpCodes.Conv_I8);
+        p_IlGenerator.Emit(OpCodes.Stloc, l_PageToAdd); // Store the value in the local variable
+        
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_PageToAdd); // Load the number of pages to add from the local variable
+        p_IlGenerator.Emit(OpCodes.Ldc_I8, 0L);
+        Label l_NegativePages = p_IlGenerator.DefineLabel();
+        p_IlGenerator.Emit(OpCodes.Bge_S, l_NegativePages); // Branch if the number of pages is negative
+        
+        p_IlGenerator.Emit(OpCodes.Ldstr, "Memory grow must be non-negative");
+        p_IlGenerator.Emit(OpCodes.Newobj, typeof(InvalidOperationException).GetConstructor(new[] { typeof(string) }));
+        p_IlGenerator.Emit(OpCodes.Throw); // Throw an exception if the number of pages is negative
+        
+        p_IlGenerator.MarkLabel(l_NegativePages); // Mark the label for the negative pages
+
+        FieldInfo l_MemoryField = GetMemoryField(p_Instruction.MemoryIndex);
+
+        // Call Current pages
+        LocalBuilder l_CurrentPages = p_IlGenerator.DeclareLocal(typeof(long));
+        p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+        p_IlGenerator.Emit(OpCodes.Ldfld, l_MemoryField); // Load the memory field
+        p_IlGenerator.Emit(OpCodes.Ldlen); // Load the length of the memory array
+        p_IlGenerator.Emit(OpCodes.Ldc_I4, WebAssemblyConst.WASM_MEMORY_PAGE_SIZE); // Load the page size constant
+        p_IlGenerator.Emit(OpCodes.Div); // Divide the length by the page size to get the current number of pages
+        p_IlGenerator.Emit(OpCodes.Conv_I8); // Convert the result to long
+        p_IlGenerator.Emit(OpCodes.Stloc, l_CurrentPages); // Store the current pages in the local variable
+        
+        // Calculate the new size
+        LocalBuilder l_TargetPages = p_IlGenerator.DeclareLocal(typeof(long));
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_CurrentPages); // Load the current pages from the local variable
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_PageToAdd); // Load the number of pages to add from the local variable
+        p_IlGenerator.Emit(OpCodes.Add); // Add the current pages and the pages to add
+        p_IlGenerator.Emit(OpCodes.Stloc, l_TargetPages); // Store the target pages in the local variable
+        
+        // Check if the target pages exceed the maximum allowed memory size
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_TargetPages); // Load the target pages from the local variable
+        p_IlGenerator.Emit(OpCodes.Ldc_I8, m_WasmMetaData.Memory[p_Instruction.MemoryIndex].Max); // Load the maximum memory size constant
+        Label l_ResizeMemory = p_IlGenerator.DefineLabel();
+        p_IlGenerator.Emit(OpCodes.Ble_S, l_ResizeMemory); // Branch if the target pages are less than or equal to the maximum memory size
+        p_IlGenerator.Emit(OpCodes.Ldc_I4, -1); // Load -1 to indicate failure
+        Label l_Return = p_IlGenerator.DefineLabel();
+        p_IlGenerator.Emit(OpCodes.Br_S, l_Return); // Branch to return
+        p_IlGenerator.MarkLabel(l_ResizeMemory); // Mark the label for resizing memory
+        // Resize the memory array
+        p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+        p_IlGenerator.Emit(OpCodes.Ldfld, l_MemoryField); // Load the memory field
+        LocalBuilder l_OldMemory = p_IlGenerator.DeclareLocal(typeof(byte[]));
+        p_IlGenerator.Emit(OpCodes.Stloc, l_OldMemory); // Store the old memory in the local variable
+        p_IlGenerator.Emit(OpCodes.Ldarg_0);
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_TargetPages); // Load the target pages from the local variable
+        p_IlGenerator.Emit(OpCodes.Ldc_I4, WebAssemblyConst.WASM_MEMORY_PAGE_SIZE); // Load the page size constant
+        p_IlGenerator.Emit(OpCodes.Mul); // Multiply the target pages by the page size to get the new size
+        p_IlGenerator.Emit(OpCodes.Conv_I); // Convert the Size to int
+        p_IlGenerator.Emit(OpCodes.Newarr, typeof(byte)); // Create a new byte array with the new size// Load the instance (this)
+        p_IlGenerator.Emit(OpCodes.Stfld, l_MemoryField);
+        
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_OldMemory); // Load the old memory from the local variable
+        p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+        p_IlGenerator.Emit(OpCodes.Ldfld, l_MemoryField); // Load the new memory field
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_OldMemory);
+        p_IlGenerator.Emit(OpCodes.Ldlen); // Load the length of the old memory array
+        p_IlGenerator.Emit(OpCodes.Conv_I4); // Convert the length to int
+        p_IlGenerator.Emit(OpCodes.Call, typeof(Array).GetMethod(nameof(Array.Copy), new[] { typeof(Array), typeof(Array), typeof(int) })); // Copy the old memory to the new memory
+        
+        
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_CurrentPages);
+        p_IlGenerator.Emit(OpCodes.Conv_I4);
+        
+        p_IlGenerator.MarkLabel(l_Return);
     }
 
     private void CompileI32Store8(ILGenerator p_IlGenerator, WasmI32Store8 p_Instruction)
