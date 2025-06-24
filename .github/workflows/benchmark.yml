@@ -120,6 +120,7 @@ jobs:
                       "commit": os.environ.get("GITHUB_SHA"),
                       "date": datetime.utcnow().isoformat(),
                       "fullName": b.get("FullName", "Unknown"),
+                      "runtime": b.get("Runtime", "Unknown"),
                       "namespace": b.get("Namespace", "Unknown"),
                       "type": b.get("Type", "Unknown"),
                       "method": b.get("Method", "Unknown"),
