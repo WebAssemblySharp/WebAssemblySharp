@@ -44,10 +44,15 @@ jobs:
         if: steps.commit-check.outputs.should_run == 'false' || github.event_name == 'workflow_dispatch'
         run: exit 0
 
-      - name: Setup .NET
+      - name: Setup .NET 9.0.x
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x' # or your target version
+          dotnet-version: '9.0.x'
+  
+      - name: Setup .NET 10.0.x
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
 
       - name: Restore dependencies
         run: |
