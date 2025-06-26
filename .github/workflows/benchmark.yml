@@ -118,7 +118,7 @@ jobs:
                   envInfo = b.get("Properties", {})
 
                   entry = {
-                      "shortInfo": b.get("ShortInfo", "Unknown"),
+                      "all": b,
                       "commit": os.environ.get("GITHUB_SHA"),
                       "date": datetime.utcnow().isoformat(),
                       "fullName": b.get("FullName", "Unknown"),
