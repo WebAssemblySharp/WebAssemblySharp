@@ -4,7 +4,8 @@
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>false</ImplicitUsings>
         <Nullable>disable</Nullable>
-
+        <IsAotCompatible>true</IsAotCompatible>
+        
         <Title>WebAssemblySharp</Title>
         <Description>A .NET library for working with WebAssembly (WASM) modules and binaries.</Description>
         <Authors>Christian-Schl</Authors>

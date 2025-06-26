@@ -17,4 +17,5 @@ public interface IWebAssemblyMemoryArea: IWebAssemblyMemoryAreaReadAccess
     int GetMaximumPages();
     
     int GrowMemory(int p_Pages);
+    byte[] GetInternalMemory();
 }

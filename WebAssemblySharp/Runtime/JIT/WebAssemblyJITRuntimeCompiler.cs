@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -11,13 +12,15 @@ using WebAssemblySharp.Runtime.Utils;
 
 namespace WebAssemblySharp.Runtime.JIT;
 
+[RequiresDynamicCode("WebAssemblyJITRuntimeCompiler requires dynamic code.")]
 public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
 {
-    public WebAssemblyJITRuntimeCompiler(WasmMetaData p_WasmMetaData, Type p_ProxyType) : base(p_WasmMetaData, p_ProxyType)
+    public WebAssemblyJITRuntimeCompiler(WasmMetaData p_WasmMetaData, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type p_ProxyType) : base(p_WasmMetaData, p_ProxyType)
     {
     }
 
-    public WebAssemblyJITAssembly BuildAssembly()
+    public WebAssemblyJITAssembly BuildAssembly(IDictionary<int, IWebAssemblyMemoryArea> p_ImportedMemoryAreas,
+        IDictionary<WasmImportFunction, Delegate> p_ImportMethods)
     {
         Type l_Type = m_TypeBuilder.CreateType();
         object l_Instance = Activator.CreateInstance(l_Type);
@@ -40,15 +43,37 @@ public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
             IWebAssemblyMethod l_WebAssemblyMethod = CreateMethod(l_Instance, l_MethodInfo, l_FuncType);
             l_ExportedMethods.Add(l_Pair.Key, l_WebAssemblyMethod);
         }
-
+        
+        if (p_ImportedMemoryAreas.Count > 0)
+        {
+            int l_Max = p_ImportedMemoryAreas.Keys.Max();
+            
+            for (int i = 0; i < l_Max + 1; i++)
+            {
+                byte[] l_Memory;
+                
+                if (p_ImportedMemoryAreas.TryGetValue(i, out IWebAssemblyMemoryArea l_MemoryArea))
+                {
+                    l_Memory = l_MemoryArea.GetInternalMemory();
+                }
+                else
+                {
+                    l_Memory = new byte[0];
+                }
+                
+                FieldInfo l_RuntimeFieldInfo = l_Type.GetField(m_MemoryFields[i].Name);
+                l_RuntimeFieldInfo.SetValue(l_Instance, l_Memory);
+            }
+        }
+        
         IWebAssemblyMemoryArea[] l_MemoryAreas = new IWebAssemblyMemoryArea[m_MemoryFields.Count];
         
         for (int i = 0; i < m_MemoryFields.Count; i++)
         {
-            FieldInfo l_RuntimeFieldInfo = l_Instance.GetType().GetField(m_MemoryFields[i].Name);
+            FieldInfo l_RuntimeFieldInfo = l_Type.GetField(m_MemoryFields[i].Name);
 
             // Constant expression representing the specific instance of MyClass
-            ConstantExpression l_InstanceExpression = Expression.Constant(l_Instance, l_Instance.GetType());
+            ConstantExpression l_InstanceExpression = Expression.Constant(l_Instance, l_Type);
             // Field expression representing accessing the field
             MemberExpression l_FieldAccess = Expression.Field(l_InstanceExpression, l_RuntimeFieldInfo);
             
@@ -71,6 +96,7 @@ public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
         return new WebAssemblyJITAssembly(l_ExportedMethods, l_Instance, l_MemoryAreas);
     }
 
+    [SuppressMessage("Warning", "IL2076")]
     private IWebAssemblyMethod CreateMethod(object p_Instance, MethodInfo p_MethodInfo, WasmFuncType p_FuncType)
     {
         List<Type> l_ParameterTypes = p_FuncType.Parameters.Select(x => WebAssemblyDataTypeUtils.GetInternalType(x)).ToList();
@@ -192,7 +218,8 @@ public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
 
         return (IWebAssemblyMethod)Activator.CreateInstance(l_DelegateType, p_Instance, p_FuncType, p_MethodInfo);
     }
-
+    
+    [SuppressMessage("Warning", "IL2076")]
     private IWebAssemblyMethod CreateVoidMethod(List<Type> p_ParameterTypes, object p_Instance, MethodInfo p_MethodInfo, WasmFuncType p_FuncType)
     {
         

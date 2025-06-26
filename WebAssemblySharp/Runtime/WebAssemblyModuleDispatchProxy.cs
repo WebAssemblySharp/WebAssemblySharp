@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -6,6 +7,8 @@ using WebAssemblySharp.MetaData;
 
 namespace WebAssemblySharp.Runtime;
 
+[SuppressMessage("Warning", "IL3050")]
+[SuppressMessage("Warning", "IL2060")]
 public class WebAssemblyModuleDispatchProxy : DispatchProxy
 {
     private static MethodInfo DispatchWithReflectionMethodeInfo = typeof(WebAssemblyModuleDispatchProxy).GetMethod("DispatchWithReflection", BindingFlags.NonPublic | BindingFlags.Static);

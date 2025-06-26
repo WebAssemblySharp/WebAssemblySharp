@@ -1,4 +1,6 @@
-﻿using BenchmarkDotNet.Attributes;
+﻿using System.Runtime.CompilerServices;
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes.Filters;
 using BenchmarkDotNet.Jobs;
 using WebAssemblySharp.Runtime;
 using WebAssemblySharp.Runtime.Interpreter;
@@ -9,7 +11,9 @@ using WebAssemblySharpExampleData;
 namespace WebAssemblySharpBenchmark;
 
 //[DotTraceDiagnoser]
+[ShortRunJob(RuntimeMoniker.NativeAot10_0)]
 [ShortRunJob(RuntimeMoniker.Net10_0)]
+[ShortRunJob(RuntimeMoniker.NativeAot90)]
 [ShortRunJob(RuntimeMoniker.Net90)]
 [MemoryDiagnoser]
 [JsonExporter("-custom", indentJson: true, excludeMeasurements: true)]
@@ -27,12 +31,18 @@ public class ItoaBenchmark
     {
         m_InterpreterModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(typeof(WebAssemblyInterpreterExecutor),
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));
-        
-        m_JitModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(typeof(WebAssemblyJITExecutor),
-            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));
-        
         await m_InterpreterModule.CallAndConvert<WebAssemblyUTF8String, int>("itoa", 1);
-        await m_JitModule.CallAndConvert<WebAssemblyUTF8String, int>("itoa", 1);
+
+
+        if (RuntimeFeature.IsDynamicCodeSupported)
+        {
+            m_JitModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(typeof(WebAssemblyJITExecutor),
+                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));
+        
+        
+            await m_JitModule.CallAndConvert<WebAssemblyUTF8String, int>("itoa", 1);    
+        }
+        
     }
 
     [GlobalCleanup]
@@ -57,6 +67,7 @@ public class ItoaBenchmark
     }
     
     [Benchmark]
+    [AotFilter]
     public async Task Jit() {
 
         await m_JitModule.CallAndConvert<WebAssemblyUTF8String, int>("itoa", N); 

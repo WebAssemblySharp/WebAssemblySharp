@@ -71,7 +71,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
 
     public void ImportMemoryArea(string p_Name, IWebAssemblyMemoryArea p_Memory)
     {
-        WasmImportMemory l_Import = FindImportByName<WasmImportMemory>(p_Name);
+        WasmImportMemory l_Import = WebAssemblyImportUtils.FindImportByName<WasmImportMemory>(m_WasmMetaData, p_Name);
 
         if (l_Import == null)
             throw new Exception("Import not found: " + p_Name);
@@ -87,7 +87,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
 
     public void ImportMethod(string p_Name, Delegate p_Delegate)
     {
-        WasmImportFunction l_Import = FindImportByName<WasmImportFunction>(p_Name);
+        WasmImportFunction l_Import = WebAssemblyImportUtils.FindImportByName<WasmImportFunction>(m_WasmMetaData, p_Name);
 
         if (l_Import == null)
             throw new Exception("Import not found: " + p_Name);
@@ -631,23 +631,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
             p_Context.PushToStack(WebAssemblyInterpreterValue.CreateDynamic(p_FuncType.Results[0], l_TaskValue));
         });
     }
-
-    private T FindImportByName<T>(string p_Name) where T : WasmImport
-    {
-        foreach (WasmImport l_Import in m_WasmMetaData.Import)
-        {
-            if (!(l_Import is T))
-                continue;
-
-            if (l_Import.Name.Value == p_Name)
-            {
-                return (T)l_Import;
-            }
-        }
-
-        return null;
-    }
-
+    
     private IWebAssemblyMethod GetOrCompileMethod(string p_Name)
     {
         if (m_ExportMethods.TryGetValue(p_Name, out IWebAssemblyMethod l_Method))

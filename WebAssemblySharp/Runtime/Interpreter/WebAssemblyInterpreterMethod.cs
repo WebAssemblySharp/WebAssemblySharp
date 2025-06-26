@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -25,6 +26,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         m_MuliResultCreator = GetMultiResultCreator(p_FuncType.Results);
     }
 
+    [SuppressMessage("Warning", "IL3050")]
     private Func<object[], ITuple> GetMultiResultCreator(WasmDataType[] p_FuncTypeResults)
     {
         if (p_FuncTypeResults.Length <= 1)

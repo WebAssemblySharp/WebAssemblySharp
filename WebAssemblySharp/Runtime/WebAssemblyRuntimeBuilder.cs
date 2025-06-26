@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -32,6 +33,7 @@ namespace WebAssemblySharp.Runtime;
  */
 public class WebAssemblyRuntimeBuilder
 {
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
     private Type m_ExecutorType;
     
     private Dictionary<string, WebAssemblyModuleBuilder> m_Modules;
@@ -41,12 +43,12 @@ public class WebAssemblyRuntimeBuilder
     
     private bool m_ValidateImportAndExport;
 
-    public static WebAssemblyRuntimeBuilder Create(Type p_RuntimeType)
+    public static WebAssemblyRuntimeBuilder Create([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type p_RuntimeType)
     {
         return new WebAssemblyRuntimeBuilder(p_RuntimeType);
     }
     
-    public static WebAssemblyRuntimeBuilder Create<T>() where T : IWebAssemblyExecutor
+    public static WebAssemblyRuntimeBuilder Create<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>() where T : IWebAssemblyExecutor
     {
         return new WebAssemblyRuntimeBuilder(typeof(T));
     }
@@ -56,7 +58,8 @@ public class WebAssemblyRuntimeBuilder
         return new WebAssemblyRuntimeBuilder(typeof(WebAssemblyInterpreterExecutor));
     }
 
-    public static async Task<T> CreateSingleModuleRuntime<T>(Action<WebAssemblyModuleBuilder> p_Configure = null)
+    [RequiresDynamicCode("CreateSingleModuleRuntime requires dynamic code to be enabled")]
+    public static async Task<T> CreateSingleModuleRuntime<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(Action<WebAssemblyModuleBuilder> p_Configure = null)
     
     {
         WebAssemblyRuntimeBuilder l_RuntimeBuilder = Create();
@@ -75,7 +78,7 @@ public class WebAssemblyRuntimeBuilder
         return l_WebAssemblyRuntime.GetModule("main");
     }
     
-    public static async Task<WebAssemblyModule> CreateSingleModuleRuntime(Type p_RuntimeType, Stream p_Stream, Action<WebAssemblyModuleBuilder> p_Configure = null)
+    public static async Task<WebAssemblyModule> CreateSingleModuleRuntime([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type p_RuntimeType, Stream p_Stream, Action<WebAssemblyModuleBuilder> p_Configure = null)
     {
         WebAssemblyRuntimeBuilder l_RuntimeBuilder = Create(p_RuntimeType);
         await l_RuntimeBuilder.LoadModule("main", p_Stream, null, p_Configure);
@@ -83,7 +86,7 @@ public class WebAssemblyRuntimeBuilder
         return l_WebAssemblyRuntime.GetModule("main");
     }
     
-    public static async Task<WebAssemblyModule> CreateSingleModuleRuntime(Type p_RuntimeType, Type p_InterfaceWrapper, Action<WebAssemblyModuleBuilder> p_Configure = null)
+    public static async Task<WebAssemblyModule> CreateSingleModuleRuntime([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type p_RuntimeType, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type p_InterfaceWrapper, Action<WebAssemblyModuleBuilder> p_Configure = null)
     {
         WebAssemblyRuntimeBuilder l_RuntimeBuilder = Create(p_RuntimeType);
         await l_RuntimeBuilder.LoadModule(p_InterfaceWrapper, p_Configure);
@@ -93,7 +96,8 @@ public class WebAssemblyRuntimeBuilder
         return l_WebAssemblyRuntime.GetModule(l_ModuleDefinitionAttribute.Name);
     }
     
-    public static async Task<T> CreateSingleModuleRuntime<T>(Type p_RuntimeType, Action<WebAssemblyModuleBuilder> p_Configure = null)
+    [RequiresDynamicCode("CreateSingleModuleRuntime requires dynamic code to be enabled")]
+    public static async Task<T> CreateSingleModuleRuntime<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type p_RuntimeType, Action<WebAssemblyModuleBuilder> p_Configure = null)
     {
         WebAssemblyRuntimeBuilder l_RuntimeBuilder = Create(p_RuntimeType);
         await l_RuntimeBuilder.LoadModule(typeof(T), p_Configure);
@@ -103,7 +107,7 @@ public class WebAssemblyRuntimeBuilder
         return l_WebAssemblyRuntime.GetModule(l_ModuleDefinitionAttribute.Name).AsInterface<T>();
     }
 
-    public WebAssemblyRuntimeBuilder(Type p_ExecutorType)
+    public WebAssemblyRuntimeBuilder([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type p_ExecutorType)
     {
         m_ValidateImportAndExport = true;
         m_ExecutorType = p_ExecutorType;
@@ -126,7 +130,7 @@ public class WebAssemblyRuntimeBuilder
         return l_ModuleBuilder;
     }
 
-    public Task<WebAssemblyRuntimeBuilder> LoadModule(Type p_InterfaceType, Action<WebAssemblyModuleBuilder> p_Configure = null)
+    public Task<WebAssemblyRuntimeBuilder> LoadModule([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type p_InterfaceType, Action<WebAssemblyModuleBuilder> p_Configure = null)
     {
         WebAssemblyModuleDefinitionAttribute l_ModuleDefinitionAttribute = p_InterfaceType.GetCustomAttribute<WebAssemblyModuleDefinitionAttribute>();
 
@@ -166,12 +170,12 @@ public class WebAssemblyRuntimeBuilder
         
     }
 
-    public Task<WebAssemblyRuntimeBuilder> LoadModule<T>(Action<WebAssemblyModuleBuilder> p_Configure = null)
+    public Task<WebAssemblyRuntimeBuilder> LoadModule<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(Action<WebAssemblyModuleBuilder> p_Configure = null)
     {
         return LoadModule(typeof(T), p_Configure);
     }
     
-    public async Task<WebAssemblyRuntimeBuilder> LoadModule(String p_Module, Stream p_Stream, Type p_WrapperInterfaceType = null, Action<WebAssemblyModuleBuilder> p_Configure = null)
+    public async Task<WebAssemblyRuntimeBuilder> LoadModule(String p_Module, Stream p_Stream, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type p_WrapperInterfaceType = null, Action<WebAssemblyModuleBuilder> p_Configure = null)
     {
         WasmBinaryReader l_Reader = new WasmBinaryReader();
 
@@ -196,7 +200,7 @@ public class WebAssemblyRuntimeBuilder
         return LoadModule(p_Module, p_WrapperInterfaceType, l_WasmMetaData, p_Configure);
     }
 
-    public WebAssemblyRuntimeBuilder LoadModule(string p_Module, Type p_WrapperInterfaceType, WasmMetaData p_WasmMetaData, Action<WebAssemblyModuleBuilder> p_Configure = null)
+    public WebAssemblyRuntimeBuilder LoadModule(string p_Module, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type p_WrapperInterfaceType, WasmMetaData p_WasmMetaData, Action<WebAssemblyModuleBuilder> p_Configure = null)
     {
         if (m_Modules.ContainsKey(p_Module))
         {

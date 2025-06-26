@@ -6,7 +6,9 @@ using WebAssemblySharpExampleData;
 namespace WebAssemblySharpBenchmark;
 
 //[DotTraceDiagnoser]
+[ShortRunJob(RuntimeMoniker.NativeAot10_0)]
 [ShortRunJob(RuntimeMoniker.Net10_0)]
+[ShortRunJob(RuntimeMoniker.NativeAot90)]
 [ShortRunJob(RuntimeMoniker.Net90)]
 [MemoryDiagnoser]
 [JsonExporter("-custom", indentJson: true, excludeMeasurements: true)]

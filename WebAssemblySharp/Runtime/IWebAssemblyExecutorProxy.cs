@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace WebAssemblySharp.Runtime;
 
@@ -10,7 +11,7 @@ public interface IWebAssemblyExecutorProxy
      *
      * @param p_ProxyType The type of the proxy to set
      */
-    void SetProxyType(Type p_ProxyType);
+    void SetProxyType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type p_ProxyType);
     
     /*
      * Converts the executor to a specific interface type.

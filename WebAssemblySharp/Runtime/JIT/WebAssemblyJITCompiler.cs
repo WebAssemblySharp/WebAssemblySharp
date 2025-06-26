@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -10,9 +11,11 @@ using WebAssemblySharp.MetaData.Utils;
 using WebAssemblySharp.Runtime;
 using WebAssemblySharp.Runtime.Utils;
 
+[RequiresDynamicCode("WebAssemblyJITCompiler requires dynamic code.")]
 public class WebAssemblyJITCompiler
 {
     protected readonly WasmMetaData m_WasmMetaData;
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
     private readonly Type m_ProxyType;
     protected Dictionary<String, MethodInfo> m_ExportedMethods;
     private Dictionary<WasmCode, MethodInfo> m_DynamicMethodsByCode;
@@ -25,7 +28,7 @@ public class WebAssemblyJITCompiler
     private List<Label> m_CurrentLabels;
     private Label m_ReturnLabel;
 
-    public WebAssemblyJITCompiler(WasmMetaData p_WasmMetaData, Type p_ProxyType)
+    public WebAssemblyJITCompiler(WasmMetaData p_WasmMetaData, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type p_ProxyType)
     {
         m_WasmMetaData = p_WasmMetaData;
         m_ProxyType = p_ProxyType;
@@ -462,7 +465,8 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.GlobalSet:
                 break;
             case WasmOpcode.I32Load:
-                break;
+                CompileI32Load(p_IlGenerator, (WasmI32Load)p_Instruction);
+                return;
             case WasmOpcode.I64Load:
                 break;
             case WasmOpcode.F32Load:
@@ -618,7 +622,8 @@ public class WebAssemblyJITCompiler
                 p_IlGenerator.Emit(OpCodes.Sub);
                 return;
             case WasmOpcode.I32Mul:
-                break;
+                p_IlGenerator.Emit(OpCodes.Mul);
+                return;
             case WasmOpcode.I32DivS:
                 break;
             case WasmOpcode.I32DivU:
@@ -841,6 +846,8 @@ public class WebAssemblyJITCompiler
         throw new NotImplementedException("Instruction not implemented: " + p_Instruction.Opcode);
     }
 
+    
+
     private void CompileMemoryFill(ILGenerator p_IlGenerator, WasmMemoryFill p_Instruction)
     {
         
@@ -989,6 +996,103 @@ public class WebAssemblyJITCompiler
         p_IlGenerator.Emit(OpCodes.Stelem_I1); // Store the value at the address
         
     }
+    
+    private void CompileI32Load(ILGenerator p_IlGenerator, WasmI32Load p_Instruction)
+{
+    LocalBuilder l_IndexLocal = p_IlGenerator.DeclareLocal(typeof(int));
+    p_IlGenerator.Emit(OpCodes.Stloc, l_IndexLocal);
+
+    // Load the address of the memory location
+    p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+    p_IlGenerator.Emit(OpCodes.Ldfld, GetMemoryField(0)); // Load the memory field
+    
+    p_IlGenerator.Emit(OpCodes.Ldloc, l_IndexLocal); // Load the index from the local variable
+    
+    long l_Offset = p_Instruction.Offset;
+    if (l_Offset != 0)
+    {
+        p_IlGenerator.Emit(OpCodes.Ldc_I4, (int)l_Offset); // Load the offset
+        p_IlGenerator.Emit(OpCodes.Add); // Add the offset to the address
+    }
+
+    // Check bounds - ensure we don't read beyond array bounds
+    p_IlGenerator.Emit(OpCodes.Dup); // Duplicate the index for bounds check
+    p_IlGenerator.Emit(OpCodes.Ldc_I4_3); // Load constant 3 (size of int32 - 1)
+    p_IlGenerator.Emit(OpCodes.Add); // Add to check if index + 3 is within bounds
+    
+    p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+    p_IlGenerator.Emit(OpCodes.Ldfld, GetMemoryField(0)); // Load the memory field
+    p_IlGenerator.Emit(OpCodes.Ldlen); // Get array length
+    p_IlGenerator.Emit(OpCodes.Conv_I4); // Convert to int32
+    
+    Label l_InBounds = p_IlGenerator.DefineLabel();
+    p_IlGenerator.Emit(OpCodes.Blt, l_InBounds); // Branch if less than (within bounds)
+    
+    // Throw exception if out of bounds
+    p_IlGenerator.Emit(OpCodes.Ldstr, "WebAssembly memory access out of bounds");
+    p_IlGenerator.Emit(OpCodes.Newobj, typeof(IndexOutOfRangeException).GetConstructor(new[] { typeof(string) }));
+    p_IlGenerator.Emit(OpCodes.Throw);
+    
+    p_IlGenerator.MarkLabel(l_InBounds);
+    
+    // Load the 32-bit integer from memory (little-endian)
+    // We need to load 4 bytes and combine them into an int32
+    LocalBuilder l_ResultLocal = p_IlGenerator.DeclareLocal(typeof(int));
+    p_IlGenerator.Emit(OpCodes.Ldc_I4_0); // Initialize result to 0
+    p_IlGenerator.Emit(OpCodes.Stloc, l_ResultLocal);
+    
+    // Load byte at index
+    p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+    p_IlGenerator.Emit(OpCodes.Ldfld, GetMemoryField(0)); // Load the memory field
+    p_IlGenerator.Emit(OpCodes.Ldloc, l_IndexLocal); // Load index
+    if (l_Offset != 0)
+    {
+        p_IlGenerator.Emit(OpCodes.Ldc_I4, (int)l_Offset);
+        p_IlGenerator.Emit(OpCodes.Add);
+    }
+    p_IlGenerator.Emit(OpCodes.Ldelem_U1); // Load unsigned byte
+    p_IlGenerator.Emit(OpCodes.Stloc, l_ResultLocal); // Store as result
+    
+    // Load byte at index + 1, shift left by 8, and OR with result
+    p_IlGenerator.Emit(OpCodes.Ldloc, l_ResultLocal); // Load current result
+    p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+    p_IlGenerator.Emit(OpCodes.Ldfld, GetMemoryField(0)); // Load the memory field
+    p_IlGenerator.Emit(OpCodes.Ldloc, l_IndexLocal); // Load index
+    p_IlGenerator.Emit(OpCodes.Ldc_I4, (int)l_Offset + 1);
+    p_IlGenerator.Emit(OpCodes.Add);
+    p_IlGenerator.Emit(OpCodes.Ldelem_U1); // Load unsigned byte
+    p_IlGenerator.Emit(OpCodes.Ldc_I4_8); // Shift left by 8
+    p_IlGenerator.Emit(OpCodes.Shl);
+    p_IlGenerator.Emit(OpCodes.Or); // OR with result
+    p_IlGenerator.Emit(OpCodes.Stloc, l_ResultLocal);
+    
+    // Load byte at index + 2, shift left by 16, and OR with result
+    p_IlGenerator.Emit(OpCodes.Ldloc, l_ResultLocal); // Load current result
+    p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+    p_IlGenerator.Emit(OpCodes.Ldfld, GetMemoryField(0)); // Load the memory field
+    p_IlGenerator.Emit(OpCodes.Ldloc, l_IndexLocal); // Load index
+    p_IlGenerator.Emit(OpCodes.Ldc_I4, (int)l_Offset + 2);
+    p_IlGenerator.Emit(OpCodes.Add);
+    p_IlGenerator.Emit(OpCodes.Ldelem_U1); // Load unsigned byte
+    p_IlGenerator.Emit(OpCodes.Ldc_I4_S, 16); // Shift left by 16
+    p_IlGenerator.Emit(OpCodes.Shl);
+    p_IlGenerator.Emit(OpCodes.Or); // OR with result
+    p_IlGenerator.Emit(OpCodes.Stloc, l_ResultLocal);
+    
+    // Load byte at index + 3, shift left by 24, and OR with result
+    p_IlGenerator.Emit(OpCodes.Ldloc, l_ResultLocal); // Load current result
+    p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+    p_IlGenerator.Emit(OpCodes.Ldfld, GetMemoryField(0)); // Load the memory field
+    p_IlGenerator.Emit(OpCodes.Ldloc, l_IndexLocal); // Load index
+    p_IlGenerator.Emit(OpCodes.Ldc_I4, (int)l_Offset + 3);
+    p_IlGenerator.Emit(OpCodes.Add);
+    p_IlGenerator.Emit(OpCodes.Ldelem_U1); // Load unsigned byte
+    p_IlGenerator.Emit(OpCodes.Ldc_I4_S, 24); // Shift left by 24
+    p_IlGenerator.Emit(OpCodes.Shl);
+    p_IlGenerator.Emit(OpCodes.Or); // OR with result
+    
+    // The final result is now on the stack as an int32
+}
 
     private void CompileI32Load8U(ILGenerator p_IlGenerator, WasmI32Load8U p_Instruction)
     {
