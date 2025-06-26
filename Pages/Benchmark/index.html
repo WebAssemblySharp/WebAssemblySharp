@@ -155,13 +155,17 @@
         });
       }
 
+      function buildGroupName(entry) {
+        return entry.runtime + '@' +  entry.fullName;
+      }
+
       function createChartForGroups(groups, labels, title, valueName, entries, valueProvider) {
 
         const dataSet = [];
 
         groups.forEach(group => {
 
-          const groupEntries = entries.filter(x => x.fullName === group);
+          const groupEntries = entries.filter(x => buildGroupName(x) === group);
 
           let groupName = group;
           if (groupEntries.length > 0) {
@@ -213,7 +217,7 @@
         Object.entries(grouped).forEach(([fullName, entries]) => {
           const title = fullName.replace("WebAssemblySharpBenchmark__", "");
           const labels = Array.from(new Set(entries.map(e => new Date(e.date + 'Z').toLocaleString())));
-          const groups = Array.from(new Set(entries.map(x => x.fullName)));
+          const groups = Array.from(new Set(entries.map(x => buildGroupName(x))));
 
           createChartForGroups(groups, labels, title, 'Mean', entries, e => e.meanNs);
           createChartForGroups(groups, labels, title, 'Alloc Bytes', entries, e => e.allocBytes);
