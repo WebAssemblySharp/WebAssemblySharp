@@ -122,7 +122,7 @@ jobs:
 
                   match = re.search(pattern, b.get("DisplayInfo", "Unknown"))
                   if match:
-                    runtime match.group(1);
+                    runtime = match.group(1);
                   else:
                     runtime = "Unkown";
 
