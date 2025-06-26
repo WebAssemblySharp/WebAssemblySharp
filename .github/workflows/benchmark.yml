@@ -110,19 +110,19 @@ jobs:
                   data = json.load(f)
 
               benchmarks = data.get("Benchmarks", [])
-              envInfo = data.get("HostEnvironmentInfo", {})
-
+              
               # Extract data from each benchmark
               for b in benchmarks:
                   stats = b.get("Statistics", {})
                   memory = b.get("Memory", {})
-                  
+                  envInfo = b.get("Properties", {})
 
                   entry = {
+                      "shortInfo": b.get("ShortInfo", "Unknown"),
                       "commit": os.environ.get("GITHUB_SHA"),
                       "date": datetime.utcnow().isoformat(),
                       "fullName": b.get("FullName", "Unknown"),
-                      "runtime": envInfo.get("RuntimeVersion", "Unknown"),
+                      "runtime": envInfo.get("Runtime", "Unknown"),
                       "namespace": b.get("Namespace", "Unknown"),
                       "type": b.get("Type", "Unknown"),
                       "method": b.get("Method", "Unknown"),
