@@ -220,7 +220,7 @@
         Object.entries(grouped).forEach(([fullName, entries]) => {
           const title = fullName.replace("WebAssemblySharpBenchmark__", "");
           const labels = Array.from(new Set(entries.map(e => new Date(e.date + 'Z').toLocaleString())));
-          const groups = Array.from(new Set(entries.map(x => (x))));
+          const groups = Array.from(new Set(entries.map(x => buildGroupName(x))));
 
           createChartForGroups(groups, labels, title, 'Mean', entries, e => e.meanNs);
           createChartForGroups(groups, labels, title, 'Alloc Bytes', entries, e => e.allocBytes);
