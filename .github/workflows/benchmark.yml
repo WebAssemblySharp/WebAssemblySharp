@@ -44,10 +44,15 @@ jobs:
         if: steps.commit-check.outputs.should_run == 'false' || github.event_name == 'workflow_dispatch'
         run: exit 0
 
-      - name: Setup .NET
+      - name: Setup .NET 9.0.x
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x' # or your target version
+          dotnet-version: '9.0.x'
+  
+      - name: Setup .NET 10.0.x
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
 
       - name: Restore dependencies
         run: |
@@ -73,6 +78,7 @@ jobs:
 
       - name: Parse Benchmark Results and Update History
         run: |
+          
           # Find all JSON artifact files
           ARTIFACTS=$(find ./build/BenchmarkDotNet.Artifacts/results -name "*.json")
 
@@ -88,6 +94,7 @@ jobs:
           python3 <<EOF
           import json
           import os
+          import re
           from datetime import datetime
 
           # Initialize list to collect entries
@@ -105,16 +112,28 @@ jobs:
                   data = json.load(f)
 
               benchmarks = data.get("Benchmarks", [])
-
+              pattern = r"Runtime=([^,]+)"
+              
               # Extract data from each benchmark
               for b in benchmarks:
                   stats = b.get("Statistics", {})
                   memory = b.get("Memory", {})
+                  envInfo = b.get("Properties", {})
+
+                  runtime = "Unkown";
+
+                  match = re.search(pattern, b.get("DisplayInfo", "Unknown"))
+                  if match:
+                    runtime = match.group(1);
+                  else:
+                    runtime = "Unkown";
 
                   entry = {
+                      "displayInfo": b.get("DisplayInfo", "Unknown"),
                       "commit": os.environ.get("GITHUB_SHA"),
                       "date": datetime.utcnow().isoformat(),
                       "fullName": b.get("FullName", "Unknown"),
+                      "runtime": runtime,
                       "namespace": b.get("Namespace", "Unknown"),
                       "type": b.get("Type", "Unknown"),
                       "method": b.get("Method", "Unknown"),
