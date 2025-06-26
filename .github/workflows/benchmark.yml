@@ -78,8 +78,7 @@ jobs:
 
       - name: Parse Benchmark Results and Update History
         run: |
-          import re
-        
+          
           # Find all JSON artifact files
           ARTIFACTS=$(find ./build/BenchmarkDotNet.Artifacts/results -name "*.json")
 
@@ -95,6 +94,7 @@ jobs:
           python3 <<EOF
           import json
           import os
+          import re
           from datetime import datetime
 
           # Initialize list to collect entries
