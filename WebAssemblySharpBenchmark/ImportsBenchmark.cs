@@ -6,6 +6,7 @@ using WebAssemblySharpExampleData;
 namespace WebAssemblySharpBenchmark;
 
 //[DotTraceDiagnoser]
+[ShortRunJob(RuntimeMoniker.Net10_0)]
 [ShortRunJob(RuntimeMoniker.Net90)]
 [MemoryDiagnoser]
 [JsonExporter("-custom", indentJson: true, excludeMeasurements: true)]
@@ -23,14 +24,14 @@ public class ImportsBenchmark
     {
         WebAssemblyRuntimeBuilder l_RuntimeBuilder = WebAssemblyRuntimeBuilder.Create();
         await l_RuntimeBuilder.LoadModule("Async",
-            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"),
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"), null,
             (x) =>
             {
                 x.ImportMethod("times2", new Func<int, Task<int>>(x => Task.FromResult(x * 2)));
             });
         
         await l_RuntimeBuilder.LoadModule("Sync",
-            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"),
+            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"), null,
             (x) =>
             {
                 x.ImportMethod("times2", new Func<int, int>(x => x * 2));
@@ -40,8 +41,8 @@ public class ImportsBenchmark
         m_AsyncModule = l_WebAssemblyRuntime.GetModule("Async");
         m_SyncModule = l_WebAssemblyRuntime.GetModule("Sync");
         
-        await m_AsyncModule.Call("twiceplus5", 3);
-        await m_SyncModule.Call("twiceplus5", 3);
+        await m_AsyncModule.Call<int, int>("twiceplus5", 3);
+        await m_SyncModule.Call<int, int>("twiceplus5", 3);
      
     }
 
@@ -55,14 +56,14 @@ public class ImportsBenchmark
     [Benchmark(Baseline = true)]
     public async Task Sync() {
 
-        await m_SyncModule.Call("twiceplus5", N);
+        await m_SyncModule.Call<int, int>("twiceplus5", N);
 
     }
 
     [Benchmark]
     public async Task Async() {
 
-        await m_AsyncModule.Call("twiceplus5", N); 
+        await m_AsyncModule.DynamicCall("twiceplus5", N); 
 
     }
 }

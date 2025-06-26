@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.Runtime.Interpreter;
@@ -31,28 +32,31 @@ public class WebAssemblyModule
         m_Executor = p_Executor;
         Name = p_Name;
     }
-
-    public ValueTask<object> Call(string p_Name, params object[] p_Args)
+    
+    public T AsInterface<T>()
     {
-        return m_Executor.GetMethod(p_Name).Invoke(p_Args);
+        if (m_Executor is IWebAssemblyExecutorProxy)
+        {
+            T l_DirectCallInstance =  ((IWebAssemblyExecutorProxy)m_Executor).AsInterface<T>();
+
+            if (l_DirectCallInstance != null)
+            {
+                return l_DirectCallInstance;
+            }    
+        }
+        
+        // If the interface is not found, we can try to create an wrapper for the interface
+        WebAssemblyModuleDispatchProxy l_Proxy = (WebAssemblyModuleDispatchProxy)DispatchProxy.Create(typeof(T), typeof(WebAssemblyModuleDispatchProxy)); 
+        l_Proxy.Init(this);
+        return (T)(Object)l_Proxy;
+
+    }
+
+    public ValueTask<object> DynamicCall(string p_Name, params object[] p_Args)
+    {
+        return m_Executor.GetMethod(p_Name).DynamicInvoke(p_Args);
     }
     
-    public async ValueTask<T> Call<T>(string p_Name, params object[] p_Args)
-    {
-        object l_Result = await m_Executor.GetMethod(p_Name).Invoke(p_Args);
-
-        if (typeof(T).IsAssignableTo(typeof(IWebAssemblyValue)))
-        {
-            IWebAssemblyValue l_Instance = (IWebAssemblyValue)Activator.CreateInstance<T>();
-            l_Instance.Load(l_Result, m_Executor);
-            return (T)l_Instance;
-        }
-        else
-        {
-            return (T) l_Result;   
-        }
-    }
-
     public IWebAssemblyMethod GetMethod(string p_Name)
     {
         return m_Executor.GetMethod(p_Name);
@@ -62,4 +66,114 @@ public class WebAssemblyModule
     {
         return m_Executor.GetMemoryArea(p_Name);
     }
+    
+    public ValueTask CallVoid(string p_Name)
+    {
+        Func<ValueTask> l_Delegate = m_Executor.GetMethod(p_Name).GetVoidDelegate();
+        return l_Delegate();
+    }
+    
+    public ValueTask CallVoid<TInput1>(string p_Name, TInput1 p_Input1) where TInput1: struct
+    {
+        Func<TInput1, ValueTask> l_Delegate = m_Executor.GetMethod(p_Name).GetVoidDelegate<TInput1>();
+        return l_Delegate(p_Input1);
+    }
+    
+    public ValueTask CallVoid<TInput1, TInput2>(string p_Name, TInput1 p_Input1, TInput2 p_Input2) where TInput1: struct where TInput2: struct
+    {
+        Func<TInput1, TInput2, ValueTask> l_Delegate = m_Executor.GetMethod(p_Name).GetVoidDelegate<TInput1, TInput2>();
+        return l_Delegate(p_Input1, p_Input2);
+    }
+    
+    public ValueTask CallVoid<TInput1, TInput2, TInput3>(string p_Name, TInput1 p_Input1, TInput2 p_Input2, TInput3 p_Input3) where TInput1: struct where TInput2: struct where TInput3: struct
+    {
+        Func<TInput1, TInput2, TInput3, ValueTask> l_Delegate = m_Executor.GetMethod(p_Name).GetVoidDelegate<TInput1, TInput2, TInput3>();
+        return l_Delegate(p_Input1, p_Input2, p_Input3);
+    }
+    
+    public ValueTask CallVoid<TInput1, TInput2, TInput3, TInput4>(string p_Name, TInput1 p_Input1, TInput2 p_Input2, TInput3 p_Input3, TInput4 p_Input4) where TInput1: struct where TInput2: struct where TInput3: struct where TInput4: struct
+    {
+        Func<TInput1, TInput2, TInput3, TInput4, ValueTask> l_Delegate = m_Executor.GetMethod(p_Name).GetVoidDelegate<TInput1, TInput2, TInput3, TInput4>();
+        return l_Delegate(p_Input1, p_Input2, p_Input3, p_Input4);
+    }
+    
+    public ValueTask CallVoid<TInput1, TInput2, TInput3, TInput4, TInput5>(string p_Name, TInput1 p_Input1, TInput2 p_Input2, TInput3 p_Input3, TInput4 p_Input4, TInput5 p_Input5) where TInput1: struct where TInput2: struct where TInput3: struct where TInput4: struct where TInput5: struct
+    {
+        Func<TInput1, TInput2, TInput3, TInput4, TInput5, ValueTask> l_Delegate = m_Executor.GetMethod(p_Name).GetVoidDelegate<TInput1, TInput2, TInput3, TInput4, TInput5>();
+        return l_Delegate(p_Input1, p_Input2, p_Input3, p_Input4, p_Input5);
+    }
+    
+    
+    public ValueTask<TResult> Call<TResult>(string p_Name) where TResult: struct
+    {
+        Func<ValueTask<TResult>> l_Delegate = m_Executor.GetMethod(p_Name).GetDelegate<TResult>();
+        return l_Delegate();
+    }
+    
+    public async ValueTask<TResult> CallAndConvert<TResult>(string p_Name) where TResult: IWebAssemblyValue, new()
+    {
+        TResult l_Value = new TResult();
+        return(TResult) await l_Value.Populate(m_Executor, p_Name);
+    }
+    
+    public ValueTask<TResult> Call<TResult, TInput1>(string p_Name, TInput1 p_Input1) where TResult: struct where TInput1: struct
+    {
+        Func<TInput1, ValueTask<TResult>> l_Delegate = m_Executor.GetMethod(p_Name).GetDelegate<TInput1, TResult>();
+        return l_Delegate(p_Input1);
+    }
+    
+    public async ValueTask<TResult> CallAndConvert<TResult, TInput1>(string p_Name, TInput1 p_Input1) where TResult: IWebAssemblyValue, new() where TInput1: struct
+    {
+        TResult l_Value = new TResult();
+        return(TResult) await l_Value.Populate(m_Executor, p_Name, p_Input1);
+    }
+    
+    public ValueTask<TResult> Call<TResult, TInput1, TInput2>(string p_Name, TInput1 p_Input1, TInput2 p_Input2) where TResult: struct where TInput1: struct where TInput2: struct
+    {
+        Func<TInput1, TInput2, ValueTask<TResult>> l_Delegate = m_Executor.GetMethod(p_Name).GetDelegate<TInput1, TInput2, TResult>();
+        return l_Delegate(p_Input1, p_Input2);
+    }
+    
+    public async ValueTask<TResult> CallAndConvert<TResult, TInput1, TInput2>(string p_Name, TInput1 p_Input1, TInput2 p_Input2) where TResult: IWebAssemblyValue, new() where TInput1: struct where TInput2: struct
+    {
+        TResult l_Value = new TResult();
+        return(TResult) await l_Value.Populate(m_Executor, p_Name, p_Input1, p_Input2);
+    }
+    
+    public ValueTask<TResult> Call<TResult, TInput1, TInput2, TInput3>(string p_Name, TInput1 p_Input1, TInput2 p_Input2, TInput3 p_Input3) where TResult: struct where TInput1: struct where TInput2: struct where TInput3: struct
+    {
+        Func<TInput1, TInput2, TInput3, ValueTask<TResult>> l_Delegate = m_Executor.GetMethod(p_Name).GetDelegate<TInput1, TInput2, TInput3, TResult>();
+        return l_Delegate(p_Input1, p_Input2, p_Input3);
+    }
+    
+    public async ValueTask<TResult> CallAndConvert<TResult, TInput1, TInput2, TInput3>(string p_Name, TInput1 p_Input1, TInput2 p_Input2, TInput3 p_Input3) where TResult: IWebAssemblyValue, new() where TInput1: struct where TInput2: struct where TInput3: struct
+    {
+        TResult l_Value = new TResult();
+        return(TResult) await l_Value.Populate(m_Executor, p_Name, p_Input1, p_Input2, p_Input3);
+    }
+    
+    public ValueTask<TResult> Call<TResult, TInput1, TInput2, TInput3, TInput4>(string p_Name, TInput1 p_Input1, TInput2 p_Input2, TInput3 p_Input3, TInput4 p_Input4) where TResult: struct where TInput1: struct where TInput2: struct where TInput3: struct where TInput4: struct
+    {
+        Func<TInput1, TInput2, TInput3, TInput4, ValueTask<TResult>> l_Delegate = m_Executor.GetMethod(p_Name).GetDelegate<TInput1, TInput2, TInput3, TInput4, TResult>();
+        return l_Delegate(p_Input1, p_Input2, p_Input3, p_Input4);
+    }
+    
+    public async ValueTask<TResult> CallAndConvert<TResult, TInput1, TInput2, TInput3, TInput4>(string p_Name, TInput1 p_Input1, TInput2 p_Input2, TInput3 p_Input3, TInput4 p_Input4) where TResult: IWebAssemblyValue, new() where TInput1: struct where TInput2: struct where TInput3: struct where TInput4: struct
+    {
+        TResult l_Value = new TResult();
+        return(TResult) await l_Value.Populate(m_Executor, p_Name, p_Input1, p_Input2, p_Input3, p_Input4);
+    }
+    
+    public ValueTask<TResult> Call<TResult, TInput1, TInput2, TInput3, TInput4, TInput5>(string p_Name, TInput1 p_Input1, TInput2 p_Input2, TInput3 p_Input3, TInput4 p_Input4, TInput5 p_Input5) where TResult: struct where TInput1: struct where TInput2: struct where TInput3: struct where TInput4: struct where TInput5: struct
+    {
+        Func<TInput1, TInput2, TInput3, TInput4, TInput5, ValueTask<TResult>> l_Delegate = m_Executor.GetMethod(p_Name).GetDelegate<TInput1, TInput2, TInput3, TInput4, TInput5, TResult>();
+        return l_Delegate(p_Input1, p_Input2, p_Input3, p_Input4, p_Input5);
+    }
+    
+    public async ValueTask<TResult> CallAndConvert<TResult, TInput1, TInput2, TInput3, TInput4, TInput5>(string p_Name, TInput1 p_Input1, TInput2 p_Input2, TInput3 p_Input3, TInput4 p_Input4, TInput5 p_Input5) where TResult: IWebAssemblyValue, new() where TInput1: struct where TInput2: struct where TInput3: struct where TInput4: struct where TInput5: struct
+    {
+        TResult l_Value = new TResult();
+        return(TResult) await l_Value.Populate(m_Executor, p_Name, p_Input1, p_Input2, p_Input3, p_Input4, p_Input5);
+    }
+    
 }

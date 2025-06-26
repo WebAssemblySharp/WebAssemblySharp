@@ -1,289 +1,43 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
 using WebAssemblySharp.MetaData.Utils;
+using WebAssemblySharp.Runtime;
 using WebAssemblySharp.Runtime.Utils;
-
-namespace WebAssemblySharp.Runtime.JIT;
 
 public class WebAssemblyJITCompiler
 {
-    private readonly WasmMetaData m_WasmMetaData;
-    private Dictionary<String, MethodInfo> m_ExportedMethods;
+    protected readonly WasmMetaData m_WasmMetaData;
+    private readonly Type m_ProxyType;
+    protected Dictionary<String, MethodInfo> m_ExportedMethods;
     private Dictionary<WasmCode, MethodInfo> m_DynamicMethodsByCode;
-    private TypeBuilder m_TypeBuilder;
-    private AssemblyBuilder m_AssemblyBuilder;
+    private List<FieldInfo> m_GlobalFields;
+    protected List<FieldInfo> m_MemoryFields;
+    protected TypeBuilder m_TypeBuilder;
 
     private WasmFuncType m_CurrentFuncType;
     private LocalBuilder[] m_CurrentLocals;
     private List<Label> m_CurrentLabels;
     private Label m_ReturnLabel;
 
-    public WebAssemblyJITCompiler(WasmMetaData p_WasmMetaData)
+    public WebAssemblyJITCompiler(WasmMetaData p_WasmMetaData, Type p_ProxyType)
     {
         m_WasmMetaData = p_WasmMetaData;
+        m_ProxyType = p_ProxyType;
     }
 
-    public WebAssemblyJITAssembly BuildAssembly()
+    protected void Reset()
     {
-        Type l_Type = m_TypeBuilder.CreateType();
-
-        IDictionary l_ExportedMethods = new HybridDictionary();
-
-        foreach (KeyValuePair<string, MethodInfo> l_Pair in m_ExportedMethods)
-        {
-            // Find the function index in the module
-            int? l_FunctionIndex = WasmMetaDataUtils.FindExportIndex(m_WasmMetaData, l_Pair.Key, WasmExternalKind.Function);
-
-            if (!l_FunctionIndex.HasValue)
-                throw new Exception($"MetaData for Export not found: {l_Pair.Key}");
-
-            long l_FinalIndex = m_WasmMetaData.FuncIndex[l_FunctionIndex.Value];
-            WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_FinalIndex];
-
-            MethodInfo l_MethodInfo = l_Type.GetMethod(l_Pair.Key);
-
-            IWebAssemblyMethod l_WebAssemblyMethod = CreateMethod(l_MethodInfo, l_FuncType);
-            l_ExportedMethods.Add(l_Pair.Key, l_WebAssemblyMethod);
-        }
-
         m_TypeBuilder = null;
-        m_AssemblyBuilder = null;
         m_DynamicMethodsByCode = null;
         m_ExportedMethods = null;
-
-        return new WebAssemblyJITAssembly(l_ExportedMethods);
-    }
-
-    private IWebAssemblyMethod CreateMethod(MethodInfo p_MethodInfo, WasmFuncType p_FuncType)
-    {
-        List<Type> l_ParameterTypes = p_FuncType.Parameters.Select(x => WebAssemblyDataTypeUtils.GetInternalType(x)).ToList();
-
-        if (p_FuncType.Results.Length == 0)
-        {
-            return CreateVoidMethod(l_ParameterTypes, p_MethodInfo, p_FuncType);
-        }
-        else if (p_FuncType.Results.Length == 1)
-        {
-            l_ParameterTypes.Add(WebAssemblyDataTypeUtils.GetInternalType(p_FuncType.Results[0]));
-        }
-        else
-        {
-            l_ParameterTypes.Add(typeof(ValueTask<object[]>));
-        }
-
-        Type l_DelegateType;
-
-        if (l_ParameterTypes.Count == 0)
-        {
-            throw new Exception("No Gerneric parameters found");
-        }
-        else if (l_ParameterTypes.Count == 1)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<>).MakeGenericType(l_ParameterTypes[0]);
-        }
-        else if (l_ParameterTypes.Count == 2)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1]);
-        }
-        else if (l_ParameterTypes.Count == 3)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1], l_ParameterTypes[2]);
-        }
-        else if (l_ParameterTypes.Count == 4)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,,,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1], l_ParameterTypes[2], l_ParameterTypes[3]);
-        }
-        else if (l_ParameterTypes.Count == 5)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,,,,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1], l_ParameterTypes[2], l_ParameterTypes[3],
-                l_ParameterTypes[4]);
-        }
-        else if (l_ParameterTypes.Count == 6)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,,,,,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1], l_ParameterTypes[2], l_ParameterTypes[3],
-                l_ParameterTypes[4], l_ParameterTypes[5]);
-        }
-        else if (l_ParameterTypes.Count == 7)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,,,,,,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1], l_ParameterTypes[2], l_ParameterTypes[3],
-                l_ParameterTypes[4], l_ParameterTypes[5], l_ParameterTypes[6]);
-        }
-        else if (l_ParameterTypes.Count == 8)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,,,,,,,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1], l_ParameterTypes[2], l_ParameterTypes[3],
-                l_ParameterTypes[4], l_ParameterTypes[5], l_ParameterTypes[6], l_ParameterTypes[7]);
-        }
-        else if (l_ParameterTypes.Count == 9)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,,,,,,,,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1], l_ParameterTypes[2],
-                l_ParameterTypes[3], l_ParameterTypes[4], l_ParameterTypes[5], l_ParameterTypes[6], l_ParameterTypes[7], l_ParameterTypes[8]);
-        }
-        else if (l_ParameterTypes.Count == 10)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,,,,,,,,,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1], l_ParameterTypes[2],
-                l_ParameterTypes[3], l_ParameterTypes[4], l_ParameterTypes[5], l_ParameterTypes[6], l_ParameterTypes[7], l_ParameterTypes[8],
-                l_ParameterTypes[9]);
-        }
-        else if (l_ParameterTypes.Count == 11)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,,,,,,,,,,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1], l_ParameterTypes[2],
-                l_ParameterTypes[3], l_ParameterTypes[4], l_ParameterTypes[5], l_ParameterTypes[6], l_ParameterTypes[7], l_ParameterTypes[8],
-                l_ParameterTypes[9], l_ParameterTypes[10]);
-        }
-        else if (l_ParameterTypes.Count == 12)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,,,,,,,,,,,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1], l_ParameterTypes[2],
-                l_ParameterTypes[3], l_ParameterTypes[4], l_ParameterTypes[5], l_ParameterTypes[6], l_ParameterTypes[7], l_ParameterTypes[8],
-                l_ParameterTypes[9], l_ParameterTypes[10], l_ParameterTypes[11]);
-        }
-        else if (l_ParameterTypes.Count == 13)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,,,,,,,,,,,,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1], l_ParameterTypes[2],
-                l_ParameterTypes[3], l_ParameterTypes[4], l_ParameterTypes[5], l_ParameterTypes[6], l_ParameterTypes[7], l_ParameterTypes[8],
-                l_ParameterTypes[9], l_ParameterTypes[10], l_ParameterTypes[11], l_ParameterTypes[12]);
-        }
-        else if (l_ParameterTypes.Count == 14)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,,,,,,,,,,,,,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1], l_ParameterTypes[2],
-                l_ParameterTypes[3], l_ParameterTypes[4], l_ParameterTypes[5], l_ParameterTypes[6], l_ParameterTypes[7], l_ParameterTypes[8],
-                l_ParameterTypes[9], l_ParameterTypes[10], l_ParameterTypes[11], l_ParameterTypes[12], l_ParameterTypes[13]);
-        }
-        else if (l_ParameterTypes.Count == 15)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,,,,,,,,,,,,,,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1], l_ParameterTypes[2],
-                l_ParameterTypes[3], l_ParameterTypes[4], l_ParameterTypes[5], l_ParameterTypes[6], l_ParameterTypes[7], l_ParameterTypes[8],
-                l_ParameterTypes[9], l_ParameterTypes[10], l_ParameterTypes[11], l_ParameterTypes[12], l_ParameterTypes[13], l_ParameterTypes[14]);
-        }
-        else if (l_ParameterTypes.Count == 16)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,,,,,,,,,,,,,,,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1], l_ParameterTypes[2],
-                l_ParameterTypes[3], l_ParameterTypes[4], l_ParameterTypes[5], l_ParameterTypes[6], l_ParameterTypes[7], l_ParameterTypes[8],
-                l_ParameterTypes[9], l_ParameterTypes[10], l_ParameterTypes[11], l_ParameterTypes[12], l_ParameterTypes[13], l_ParameterTypes[14],
-                l_ParameterTypes[15]);
-        }
-        else if (l_ParameterTypes.Count == 17)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorMethod<,,,,,,,,,,,,,,,,>).MakeGenericType(l_ParameterTypes[0], l_ParameterTypes[1], l_ParameterTypes[2],
-                l_ParameterTypes[3], l_ParameterTypes[4], l_ParameterTypes[5], l_ParameterTypes[6], l_ParameterTypes[7], l_ParameterTypes[8],
-                l_ParameterTypes[9], l_ParameterTypes[10], l_ParameterTypes[11], l_ParameterTypes[12], l_ParameterTypes[13], l_ParameterTypes[14],
-                l_ParameterTypes[15], l_ParameterTypes[16]);
-        }
-        else
-        {
-            throw new Exception($"Too many parameters: {l_ParameterTypes.Count}");
-        }
-
-        return (IWebAssemblyMethod)Activator.CreateInstance(l_DelegateType, p_FuncType, p_MethodInfo);
-    }
-
-    private IWebAssemblyMethod CreateVoidMethod(List<Type> p_ParameterTypes, MethodInfo p_MethodInfo, WasmFuncType p_FuncType)
-    {
-        
-        Type l_DelegateType;
-
-        if (p_ParameterTypes.Count == 0)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod);
-        }
-        else if (p_ParameterTypes.Count == 1)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<>).MakeGenericType(p_ParameterTypes[0]);
-        }
-        else if (p_ParameterTypes.Count == 2)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<,>).MakeGenericType(p_ParameterTypes[0], p_ParameterTypes[1]);
-        }
-        else if (p_ParameterTypes.Count == 3)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<,,>).MakeGenericType(p_ParameterTypes[0], p_ParameterTypes[1], p_ParameterTypes[2]);
-        }
-        else if (p_ParameterTypes.Count == 4)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<,,,>).MakeGenericType(p_ParameterTypes[0], p_ParameterTypes[1], p_ParameterTypes[2], p_ParameterTypes[3]);
-        }
-        else if (p_ParameterTypes.Count == 5)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<,,,,>).MakeGenericType(p_ParameterTypes[0], p_ParameterTypes[1], p_ParameterTypes[2], p_ParameterTypes[3],
-                p_ParameterTypes[4]);
-        }
-        else if (p_ParameterTypes.Count == 6)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<,,,,,>).MakeGenericType(p_ParameterTypes[0], p_ParameterTypes[1], p_ParameterTypes[2], p_ParameterTypes[3],
-                p_ParameterTypes[4], p_ParameterTypes[5]);
-        }
-        else if (p_ParameterTypes.Count == 7)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<,,,,,,>).MakeGenericType(p_ParameterTypes[0], p_ParameterTypes[1], p_ParameterTypes[2], p_ParameterTypes[3],
-                p_ParameterTypes[4], p_ParameterTypes[5], p_ParameterTypes[6]);
-        }
-        else if (p_ParameterTypes.Count == 8)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<,,,,,,,>).MakeGenericType(p_ParameterTypes[0], p_ParameterTypes[1], p_ParameterTypes[2], p_ParameterTypes[3],
-                p_ParameterTypes[4], p_ParameterTypes[5], p_ParameterTypes[6], p_ParameterTypes[7]);
-        }
-        else if (p_ParameterTypes.Count == 9)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<,,,,,,,,>).MakeGenericType(p_ParameterTypes[0], p_ParameterTypes[1], p_ParameterTypes[2],
-                p_ParameterTypes[3], p_ParameterTypes[4], p_ParameterTypes[5], p_ParameterTypes[6], p_ParameterTypes[7], p_ParameterTypes[8]);
-        }
-        else if (p_ParameterTypes.Count == 10)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<,,,,,,,,,>).MakeGenericType(p_ParameterTypes[0], p_ParameterTypes[1], p_ParameterTypes[2],
-                p_ParameterTypes[3], p_ParameterTypes[4], p_ParameterTypes[5], p_ParameterTypes[6], p_ParameterTypes[7], p_ParameterTypes[8],
-                p_ParameterTypes[9]);
-        }
-        else if (p_ParameterTypes.Count == 11)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<,,,,,,,,,,>).MakeGenericType(p_ParameterTypes[0], p_ParameterTypes[1], p_ParameterTypes[2],
-                p_ParameterTypes[3], p_ParameterTypes[4], p_ParameterTypes[5], p_ParameterTypes[6], p_ParameterTypes[7], p_ParameterTypes[8],
-                p_ParameterTypes[9], p_ParameterTypes[10]);
-        }
-        else if (p_ParameterTypes.Count == 12)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<,,,,,,,,,,,>).MakeGenericType(p_ParameterTypes[0], p_ParameterTypes[1], p_ParameterTypes[2],
-                p_ParameterTypes[3], p_ParameterTypes[4], p_ParameterTypes[5], p_ParameterTypes[6], p_ParameterTypes[7], p_ParameterTypes[8],
-                p_ParameterTypes[9], p_ParameterTypes[10], p_ParameterTypes[11]);
-        }
-        else if (p_ParameterTypes.Count == 13)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<,,,,,,,,,,,,>).MakeGenericType(p_ParameterTypes[0], p_ParameterTypes[1], p_ParameterTypes[2],
-                p_ParameterTypes[3], p_ParameterTypes[4], p_ParameterTypes[5], p_ParameterTypes[6], p_ParameterTypes[7], p_ParameterTypes[8],
-                p_ParameterTypes[9], p_ParameterTypes[10], p_ParameterTypes[11], p_ParameterTypes[12]);
-        }
-        else if (p_ParameterTypes.Count == 14)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<,,,,,,,,,,,,,>).MakeGenericType(p_ParameterTypes[0], p_ParameterTypes[1], p_ParameterTypes[2],
-                p_ParameterTypes[3], p_ParameterTypes[4], p_ParameterTypes[5], p_ParameterTypes[6], p_ParameterTypes[7], p_ParameterTypes[8],
-                p_ParameterTypes[9], p_ParameterTypes[10], p_ParameterTypes[11], p_ParameterTypes[12], p_ParameterTypes[13]);
-        }
-        else if (p_ParameterTypes.Count == 15)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<,,,,,,,,,,,,,,>).MakeGenericType(p_ParameterTypes[0], p_ParameterTypes[1], p_ParameterTypes[2],
-                p_ParameterTypes[3], p_ParameterTypes[4], p_ParameterTypes[5], p_ParameterTypes[6], p_ParameterTypes[7], p_ParameterTypes[8],
-                p_ParameterTypes[9], p_ParameterTypes[10], p_ParameterTypes[11], p_ParameterTypes[12], p_ParameterTypes[13], p_ParameterTypes[14]);
-        }
-        else if (p_ParameterTypes.Count == 16)
-        {
-            l_DelegateType = typeof(WebAssemblyJITExecutorVoidMethod<,,,,,,,,,,,,,,,>).MakeGenericType(p_ParameterTypes[0], p_ParameterTypes[1], p_ParameterTypes[2],
-                p_ParameterTypes[3], p_ParameterTypes[4], p_ParameterTypes[5], p_ParameterTypes[6], p_ParameterTypes[7], p_ParameterTypes[8],
-                p_ParameterTypes[9], p_ParameterTypes[10], p_ParameterTypes[11], p_ParameterTypes[12], p_ParameterTypes[13], p_ParameterTypes[14],
-                p_ParameterTypes[15]);
-        }
-        else
-        {
-            throw new Exception($"Too many parameters: {p_ParameterTypes.Count}");
-        }
-
-        return (IWebAssemblyMethod)Activator.CreateInstance(l_DelegateType, p_FuncType, p_MethodInfo);
+        m_GlobalFields = null;
+        m_MemoryFields = null;
     }
 
     public void Compile()
@@ -292,8 +46,20 @@ public class WebAssemblyJITCompiler
         AssemblyBuilder l_AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(l_AssemblyName, AssemblyBuilderAccess.RunAndCollect);
         ModuleBuilder l_ModuleBuilder = l_AssemblyBuilder.DefineDynamicModule("DynamicModule");
 
-        m_TypeBuilder = l_ModuleBuilder.DefineType("DynamicType", TypeAttributes.Public);
+        m_TypeBuilder = l_ModuleBuilder.DefineType(GetDynamicTypeName(), TypeAttributes.Public | TypeAttributes.Sealed);
 
+        if (m_ProxyType != null)
+        {
+            m_TypeBuilder.AddInterfaceImplementation(m_ProxyType);
+        }
+
+        ApplyFields();
+        ApplyConstructor();
+        ApplyMethods();
+    }
+
+    private void ApplyMethods()
+    {
         m_ExportedMethods = new Dictionary<string, MethodInfo>();
         m_DynamicMethodsByCode = new Dictionary<WasmCode, MethodInfo>();
 
@@ -319,6 +85,173 @@ public class WebAssemblyJITCompiler
         }
     }
 
+    private void ApplyFields()
+    {
+        // Create Globals
+        m_GlobalFields = new List<FieldInfo>();
+        
+        if (m_WasmMetaData.Globals != null)
+        {
+            for (int i = 0; i < m_WasmMetaData.Globals.Length; i++)
+            {
+                WasmGlobal l_WasmGlobal = m_WasmMetaData.Globals[i];
+                string l_FieldName = BuildGlobalFieldName(i);
+                FieldBuilder l_FieldBuilder = m_TypeBuilder.DefineField(l_FieldName, WebAssemblyDataTypeUtils.GetInternalType(l_WasmGlobal.Type),
+                    l_WasmGlobal.Mutable ? FieldAttributes.Private | FieldAttributes.InitOnly : FieldAttributes.Private);
+                m_GlobalFields.Add(l_FieldBuilder);
+            }
+        }
+
+        // Create Memory Areas
+        m_MemoryFields = new List<FieldInfo>();
+        
+        if (m_WasmMetaData.Memory != null)
+        {
+            for (int i = 0; i < m_WasmMetaData.Memory.Length; i++)
+            {
+                WasmMemory l_WasmMemory = m_WasmMetaData.Memory[i];
+                string l_FieldName = BuildMemoryFieldName(i);
+                FieldBuilder l_FieldBuilder = m_TypeBuilder.DefineField(l_FieldName, typeof(byte[]), FieldAttributes.Public);
+                m_MemoryFields.Add(l_FieldBuilder);
+            }
+        }
+    }
+
+    private String BuildMemoryFieldName(int p_Index)
+    {
+        return "memory_" + p_Index;
+    }
+    
+    private FieldInfo GetMemoryField(int p_Index)
+    {
+        return m_MemoryFields[p_Index];
+    }
+    
+    private String BuildGlobalFieldName(int p_Index)
+    {
+        return "global_" + p_Index;
+    }
+
+    private FieldInfo GetGlobalField(int p_Index)
+    {
+        return m_GlobalFields[p_Index];
+    }
+
+    private void ApplyConstructor()
+    {
+        ILGenerator l_IlGenerator = m_TypeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, new Type[] {}).GetILGenerator();
+        l_IlGenerator.Emit(OpCodes.Ldarg_0);
+
+        // Call the base class constructor, Object's constructor in this case
+        ConstructorInfo l_ObjectCtor = typeof(object).GetConstructor(new Type[0]);
+        l_IlGenerator.Emit(OpCodes.Call, l_ObjectCtor);
+
+        // Initialize memory areas
+        if (m_WasmMetaData.Memory != null)
+        {
+            for (int i = 0; i < m_WasmMetaData.Memory.Length; i++)
+            {
+                WasmMemory l_WasmMemory = m_WasmMetaData.Memory[i];
+
+                // Create a new memory area
+                Type l_MemoryType = typeof(byte[]);
+                ConstructorInfo l_MemoryCtor = l_MemoryType.GetConstructor(new Type[] { typeof(int) });
+                int l_Size = (int)(l_WasmMemory.Min * WebAssemblyConst.WASM_MEMORY_PAGE_SIZE);
+                
+                // Load "this"
+                l_IlGenerator.Emit(OpCodes.Ldarg_0);
+                
+                // Create the memory area instance
+                l_IlGenerator.Emit(OpCodes.Ldc_I4, l_Size);
+                l_IlGenerator.Emit(OpCodes.Newobj, l_MemoryCtor);
+                
+                // Store the memory area in the field
+                l_IlGenerator.Emit(OpCodes.Stfld, GetMemoryField(i));
+            }
+        }
+        
+        // Preload Memory Areas
+        if (m_WasmMetaData.Data != null)
+        {
+            foreach (WasmData l_WasmData in m_WasmMetaData.Data)
+            {
+
+                FieldInfo l_MemoryField = GetMemoryField((int)l_WasmData.MemoryIndex);
+                
+                // Create a local variable to hold the value
+                LocalBuilder l_OffsetLocalBuilder = l_IlGenerator.DeclareLocal(typeof(int));
+                
+                // Emit the initialization instructions to set the offset
+                EmitInstructions(l_IlGenerator, l_WasmData.OffsetInstructions);
+                
+                // Store the result in the local variable
+                l_IlGenerator.Emit(OpCodes.Stloc, l_OffsetLocalBuilder);
+
+                byte[] l_Bytes = l_WasmData.Data.Data;
+
+                for (int i = 0; i < l_Bytes.Length; i++)
+                {
+                    // Load the memory area
+                    l_IlGenerator.Emit(OpCodes.Ldarg_0);
+                    l_IlGenerator.Emit(OpCodes.Ldfld, l_MemoryField);
+                    // Load the offset
+                    l_IlGenerator.Emit(OpCodes.Ldloc, l_OffsetLocalBuilder);
+
+                    if (i > 0)
+                    {
+                        l_IlGenerator.Emit(OpCodes.Ldc_I4, i);
+                        l_IlGenerator.Emit(OpCodes.Add); // Add the offset to the index    
+                    }
+                    
+                    // Load the byte value
+                    l_IlGenerator.Emit(OpCodes.Ldc_I4, (int)l_Bytes[i]);
+                    l_IlGenerator.Emit(OpCodes.Conv_U1); // Convert the value to byte (unsigned)
+                    // Store the byte value in the memory area
+                    l_IlGenerator.Emit(OpCodes.Stelem_I1);
+                }
+            }
+        }
+        
+        // Initialize globals
+        if (m_WasmMetaData.Globals != null)
+        {
+            for (int i = 0; i < m_WasmMetaData.Globals.Length; i++)
+            {
+                WasmGlobal l_WasmGlobal = m_WasmMetaData.Globals[i];
+
+                if (l_WasmGlobal.InitInstructions == null || !l_WasmGlobal.InitInstructions.Any())
+                {
+                    continue;
+                }
+
+                // Create a local variable to hold the value
+                Type l_GlobalType = WebAssemblyDataTypeUtils.GetInternalType(l_WasmGlobal.Type);
+                LocalBuilder l_LocalBuilder = l_IlGenerator.DeclareLocal(l_GlobalType);
+
+                // Emit the initialization instructions
+                EmitInstructions(l_IlGenerator, l_WasmGlobal.InitInstructions);
+
+                // Store the result in the local variable
+                l_IlGenerator.Emit(OpCodes.Stloc, l_LocalBuilder);
+
+                // Load "this"
+                l_IlGenerator.Emit(OpCodes.Ldarg_0);
+                // Load the local variable onto the stack
+                l_IlGenerator.Emit(OpCodes.Ldloc, l_LocalBuilder);
+                // Store the value in the global field
+                l_IlGenerator.Emit(OpCodes.Stfld, GetGlobalField(i));
+            }
+        }
+
+        // Complete the constructor
+        l_IlGenerator.Emit(OpCodes.Ret);
+    }
+
+    protected virtual string GetDynamicTypeName()
+    {
+        return "DynamicAssembly";
+    }
+
     private MethodInfo CompileCode(TypeBuilder p_TypeBuilder, string p_ExportName, WasmFuncType p_FuncType, WasmCode p_Code)
     {
         if (m_ExportedMethods.TryGetValue(p_ExportName, out var l_Method))
@@ -339,10 +272,10 @@ public class WebAssemblyJITCompiler
         }
         else
         {
-            l_ReturnType = typeof(ValueTask<object[]>);
+            l_ReturnType = typeof(ValueTask<>).MakeGenericType(WebAssemblyValueTupleUtils.GetValueTupleType(p_FuncType.Results));
         }
 
-        MethodBuilder l_MethodBuilder = p_TypeBuilder.DefineMethod(p_ExportName, MethodAttributes.Public | MethodAttributes.Static, l_ReturnType,
+        MethodBuilder l_MethodBuilder = p_TypeBuilder.DefineMethod(p_ExportName, MethodAttributes.Public | MethodAttributes.Virtual, l_ReturnType,
             p_FuncType.Parameters.Select(x => WebAssemblyDataTypeUtils.GetInternalType(x)).ToArray());
         m_DynamicMethodsByCode.Add(p_Code, l_MethodBuilder);
         ILGenerator l_IlGenerator = l_MethodBuilder.GetILGenerator();
@@ -411,8 +344,12 @@ public class WebAssemblyJITCompiler
         }
         else
         {
+            Type l_ResultType = WebAssemblyValueTupleUtils.GetValueTupleType(p_FuncType.Results);
+            p_IlGenerator.Emit(OpCodes.Newobj,
+                l_ResultType.GetConstructor(p_FuncType.Results.Select(x => WebAssemblyDataTypeUtils.GetInternalType(x)).ToArray()));
+
             MethodInfo l_FromResultMethod = typeof(ValueTask).GetMethod(nameof(ValueTask.FromResult))
-                .MakeGenericMethod(typeof(object[]));
+                .MakeGenericMethod(l_ResultType);
 
             p_IlGenerator.Emit(OpCodes.Call, l_FromResultMethod);
         }
@@ -520,7 +457,8 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.LocalTee:
                 break;
             case WasmOpcode.GlobalGet:
-                break;
+                CompileGlobalGet(p_IlGenerator, (WasmGlobalGet)p_Instruction);
+                return;
             case WasmOpcode.GlobalSet:
                 break;
             case WasmOpcode.I32Load:
@@ -534,7 +472,8 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.I32Load8S:
                 break;
             case WasmOpcode.I32Load8U:
-                break;
+                CompileI32Load8U(p_IlGenerator, (WasmI32Load8U)p_Instruction);
+                return;
             case WasmOpcode.I32Load16S:
                 break;
             case WasmOpcode.I32Load16U:
@@ -558,7 +497,8 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.F64Store:
                 break;
             case WasmOpcode.I32Store8:
-                break;
+                CompileI32Store8(p_IlGenerator, (WasmI32Store8)p_Instruction);
+                return;
             case WasmOpcode.I32Store16:
                 break;
             case WasmOpcode.I64Store8:
@@ -568,9 +508,11 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.I64Store32:
                 break;
             case WasmOpcode.MemorySize:
-                break;
+                CompileMemorySize(p_IlGenerator, (WasmMemorySize)p_Instruction);
+                return;
             case WasmOpcode.MemoryGrow:
-                break;
+                CompileMemoryGrow(p_IlGenerator, (WasmMemoryGrow)p_Instruction);
+                return;
             case WasmOpcode.I32Const:
                 p_IlGenerator.Emit(OpCodes.Ldc_I4, ((WasmI32Const)p_Instruction).Const);
                 return;
@@ -581,14 +523,17 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.F64Const:
                 break;
             case WasmOpcode.I32Eqz:
-                break;
+                p_IlGenerator.Emit(OpCodes.Ldc_I4_0); // Load 0
+                p_IlGenerator.Emit(OpCodes.Ceq); // Compare equal
+                return;
             case WasmOpcode.I32Eq:
                 p_IlGenerator.Emit(OpCodes.Ceq);
                 return;
             case WasmOpcode.I32Ne:
                 break;
             case WasmOpcode.I32LtS:
-                break;
+                p_IlGenerator.Emit(OpCodes.Clt);
+                return;
             case WasmOpcode.I32LtU:
                 p_IlGenerator.Emit(OpCodes.Clt_Un);
                 return;
@@ -601,11 +546,16 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.I32LeU:
                 break;
             case WasmOpcode.I32GeS:
-                break;
+                // The following sequence is equivalent to:
+                // (a >= b) == !(b < a)
+                p_IlGenerator.Emit(OpCodes.Clt); // Lower than
+                p_IlGenerator.Emit(OpCodes.Ldc_I4_0); // Load 0
+                p_IlGenerator.Emit(OpCodes.Ceq); // Compare equal
+                return;
             case WasmOpcode.I32GeU:
                 // The following sequence is equivalent to:
                 // (a >= b) == !(b < a)
-                p_IlGenerator.Emit(OpCodes.Clt_Un); // Lower than
+                p_IlGenerator.Emit(OpCodes.Clt_Un); // Lower than unsinged
                 p_IlGenerator.Emit(OpCodes.Ldc_I4_0); // Load 0
                 p_IlGenerator.Emit(OpCodes.Ceq); // Compare equal
                 return;
@@ -665,13 +615,15 @@ public class WebAssemblyJITCompiler
                 p_IlGenerator.Emit(OpCodes.Add);
                 return;
             case WasmOpcode.I32Sub:
-                break;
+                p_IlGenerator.Emit(OpCodes.Sub);
+                return;
             case WasmOpcode.I32Mul:
                 break;
             case WasmOpcode.I32DivS:
                 break;
             case WasmOpcode.I32DivU:
-                break;
+                p_IlGenerator.Emit(OpCodes.Div_Un);
+                return;
             case WasmOpcode.I32RemS:
                 break;
             case WasmOpcode.I32RemU:
@@ -868,7 +820,8 @@ public class WebAssemblyJITCompiler
             case WasmOpcode.MemoryCopy:
                 break;
             case WasmOpcode.MemoryFill:
-                break;
+                CompileMemoryFill(p_IlGenerator, (WasmMemoryFill)p_Instruction);
+                return;
             case WasmOpcode.TableInit:
                 break;
             case WasmOpcode.ElemDrop:
@@ -886,6 +839,183 @@ public class WebAssemblyJITCompiler
         }
 
         throw new NotImplementedException("Instruction not implemented: " + p_Instruction.Opcode);
+    }
+
+    private void CompileMemoryFill(ILGenerator p_IlGenerator, WasmMemoryFill p_Instruction)
+    {
+        
+        LocalBuilder l_Length = p_IlGenerator.DeclareLocal(typeof(int));
+        p_IlGenerator.Emit(OpCodes.Stloc, l_Length); // Store the length in the local variable;
+        
+        LocalBuilder l_Value = p_IlGenerator.DeclareLocal(typeof(int));
+        p_IlGenerator.Emit(OpCodes.Ldc_I4, 255); // Load the maximum value for byte (255)
+        p_IlGenerator.Emit(OpCodes.And); // Ensure the value is within byte range
+        p_IlGenerator.Emit(OpCodes.Stloc, l_Value); // Store the value in the local variable
+        
+        LocalBuilder l_Offset = p_IlGenerator.DeclareLocal(typeof(int));
+        p_IlGenerator.Emit(OpCodes.Stloc, l_Offset); // Store the offset in the local variable;
+        
+        LocalBuilder l_Span = p_IlGenerator.DeclareLocal(typeof(Span<byte>));
+        
+        p_IlGenerator.Emit(OpCodes.Ldloca, l_Span); // Load the address of the span
+        p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+        FieldInfo l_MemoryField = GetMemoryField(p_Instruction.MemoryIndex);
+        p_IlGenerator.Emit(OpCodes.Ldfld, l_MemoryField); // Load the memory field
+
+        
+        // Create a span for the memory array
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_Offset); // Load the offset from the local variable
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_Length); // Load the length from the local variable
+        p_IlGenerator.Emit(OpCodes.Call, typeof(Span<byte>).GetConstructor(new[] { typeof(byte[]), typeof(int), typeof(int) })); // Create a span for the memory array
+        
+        
+        p_IlGenerator.Emit(OpCodes.Ldloca, l_Span); // Load the address of the span
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_Value); // Load the value from the local variable
+        p_IlGenerator.Emit(OpCodes.Conv_U1); // Convert the value to byte (unsigned)
+        p_IlGenerator.Emit(OpCodes.Call, typeof(Span<byte>).GetMethod(nameof(Span<byte>.Fill))); // Call the Fill method on the span to fill the memory area with the value
+        
+        
+    }
+
+    private void CompileMemorySize(ILGenerator p_IlGenerator, WasmMemorySize p_Instruction)
+    {
+        p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+        FieldInfo l_MemoryField = GetMemoryField(p_Instruction.MemoryIndex);
+        p_IlGenerator.Emit(OpCodes.Ldfld, l_MemoryField); // Load the memory field
+        p_IlGenerator.Emit(OpCodes.Ldlen); // Load the length of the memory array
+        p_IlGenerator.Emit(OpCodes.Ldc_I4, WebAssemblyConst.WASM_MEMORY_PAGE_SIZE); // Load the page size constant
+        p_IlGenerator.Emit(OpCodes.Div); // Divide the length by the page size to get the current number of pages
+        
+    }
+
+    private void CompileMemoryGrow(ILGenerator p_IlGenerator, WasmMemoryGrow p_Instruction)
+    {
+        
+        LocalBuilder l_PageToAdd = p_IlGenerator.DeclareLocal(typeof(long));
+        p_IlGenerator.Emit(OpCodes.Conv_I8);
+        p_IlGenerator.Emit(OpCodes.Stloc, l_PageToAdd); // Store the value in the local variable
+        
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_PageToAdd); // Load the number of pages to add from the local variable
+        p_IlGenerator.Emit(OpCodes.Ldc_I8, 0L);
+        Label l_NegativePages = p_IlGenerator.DefineLabel();
+        p_IlGenerator.Emit(OpCodes.Bge_S, l_NegativePages); // Branch if the number of pages is negative
+        
+        p_IlGenerator.Emit(OpCodes.Ldstr, "Memory grow must be non-negative");
+        p_IlGenerator.Emit(OpCodes.Newobj, typeof(InvalidOperationException).GetConstructor(new[] { typeof(string) }));
+        p_IlGenerator.Emit(OpCodes.Throw); // Throw an exception if the number of pages is negative
+        
+        p_IlGenerator.MarkLabel(l_NegativePages); // Mark the label for the negative pages
+
+        FieldInfo l_MemoryField = GetMemoryField(p_Instruction.MemoryIndex);
+
+        // Call Current pages
+        LocalBuilder l_CurrentPages = p_IlGenerator.DeclareLocal(typeof(long));
+        p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+        p_IlGenerator.Emit(OpCodes.Ldfld, l_MemoryField); // Load the memory field
+        p_IlGenerator.Emit(OpCodes.Ldlen); // Load the length of the memory array
+        p_IlGenerator.Emit(OpCodes.Ldc_I4, WebAssemblyConst.WASM_MEMORY_PAGE_SIZE); // Load the page size constant
+        p_IlGenerator.Emit(OpCodes.Div); // Divide the length by the page size to get the current number of pages
+        p_IlGenerator.Emit(OpCodes.Conv_I8); // Convert the result to long
+        p_IlGenerator.Emit(OpCodes.Stloc, l_CurrentPages); // Store the current pages in the local variable
+        
+        // Calculate the new size
+        LocalBuilder l_TargetPages = p_IlGenerator.DeclareLocal(typeof(long));
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_CurrentPages); // Load the current pages from the local variable
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_PageToAdd); // Load the number of pages to add from the local variable
+        p_IlGenerator.Emit(OpCodes.Add); // Add the current pages and the pages to add
+        p_IlGenerator.Emit(OpCodes.Stloc, l_TargetPages); // Store the target pages in the local variable
+        
+        // Check if the target pages exceed the maximum allowed memory size
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_TargetPages); // Load the target pages from the local variable
+        p_IlGenerator.Emit(OpCodes.Ldc_I8, m_WasmMetaData.Memory[p_Instruction.MemoryIndex].Max); // Load the maximum memory size constant
+        Label l_ResizeMemory = p_IlGenerator.DefineLabel();
+        p_IlGenerator.Emit(OpCodes.Ble_S, l_ResizeMemory); // Branch if the target pages are less than or equal to the maximum memory size
+        p_IlGenerator.Emit(OpCodes.Ldc_I4, -1); // Load -1 to indicate failure
+        Label l_Return = p_IlGenerator.DefineLabel();
+        p_IlGenerator.Emit(OpCodes.Br_S, l_Return); // Branch to return
+        p_IlGenerator.MarkLabel(l_ResizeMemory); // Mark the label for resizing memory
+        // Resize the memory array
+        p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+        p_IlGenerator.Emit(OpCodes.Ldfld, l_MemoryField); // Load the memory field
+        LocalBuilder l_OldMemory = p_IlGenerator.DeclareLocal(typeof(byte[]));
+        p_IlGenerator.Emit(OpCodes.Stloc, l_OldMemory); // Store the old memory in the local variable
+        p_IlGenerator.Emit(OpCodes.Ldarg_0);
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_TargetPages); // Load the target pages from the local variable
+        p_IlGenerator.Emit(OpCodes.Ldc_I4, WebAssemblyConst.WASM_MEMORY_PAGE_SIZE); // Load the page size constant
+        p_IlGenerator.Emit(OpCodes.Mul); // Multiply the target pages by the page size to get the new size
+        p_IlGenerator.Emit(OpCodes.Conv_I); // Convert the Size to int
+        p_IlGenerator.Emit(OpCodes.Newarr, typeof(byte)); // Create a new byte array with the new size// Load the instance (this)
+        p_IlGenerator.Emit(OpCodes.Stfld, l_MemoryField);
+        
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_OldMemory); // Load the old memory from the local variable
+        p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+        p_IlGenerator.Emit(OpCodes.Ldfld, l_MemoryField); // Load the new memory field
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_OldMemory);
+        p_IlGenerator.Emit(OpCodes.Ldlen); // Load the length of the old memory array
+        p_IlGenerator.Emit(OpCodes.Conv_I4); // Convert the length to int
+        p_IlGenerator.Emit(OpCodes.Call, typeof(Array).GetMethod(nameof(Array.Copy), new[] { typeof(Array), typeof(Array), typeof(int) })); // Copy the old memory to the new memory
+        
+        
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_CurrentPages);
+        p_IlGenerator.Emit(OpCodes.Conv_I4);
+        
+        p_IlGenerator.MarkLabel(l_Return);
+    }
+
+    private void CompileI32Store8(ILGenerator p_IlGenerator, WasmI32Store8 p_Instruction)
+    {
+        LocalBuilder l_Value = p_IlGenerator.DeclareLocal(typeof(byte));
+        p_IlGenerator.Emit(OpCodes.Ldc_I4, 255); // Load the maximum value for byte (255)
+        p_IlGenerator.Emit(OpCodes.And); // Ensure the value is within byte range
+        p_IlGenerator.Emit(OpCodes.Conv_U1); // Convert the value to byte (unsigned)
+        p_IlGenerator.Emit(OpCodes.Stloc, l_Value); // Store the value in the local variable
+        
+        long l_Offset = p_Instruction.Offset;
+        if (l_Offset != 0)
+        {
+            p_IlGenerator.Emit(OpCodes.Ldc_I4, (int)l_Offset); // Load the offset
+            p_IlGenerator.Emit(OpCodes.Add); // Add the offset to the address
+        }
+
+        LocalBuilder l_Address = p_IlGenerator.DeclareLocal(typeof(int));
+        p_IlGenerator.Emit(OpCodes.Stloc, l_Address); // Store the address in the local variable
+
+        p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+        p_IlGenerator.Emit(OpCodes.Ldfld, GetMemoryField(0)); // Load the memory field
+        
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_Address); // Load the address from the local variable
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_Value); // Load the value from the local variable
+        
+        p_IlGenerator.Emit(OpCodes.Stelem_I1); // Store the value at the address
+        
+    }
+
+    private void CompileI32Load8U(ILGenerator p_IlGenerator, WasmI32Load8U p_Instruction)
+    {
+        LocalBuilder l_IndexLocal = p_IlGenerator.DeclareLocal(typeof(int));
+        p_IlGenerator.Emit(OpCodes.Stloc, l_IndexLocal);
+        
+        // Load the address of the memory location
+        p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the instance (this)
+        p_IlGenerator.Emit(OpCodes.Ldfld, GetMemoryField(0)); // Load the memory field
+        
+        p_IlGenerator.Emit(OpCodes.Ldloc, l_IndexLocal); // Load the index from the local variable
+        
+        long l_Offset = p_Instruction.Offset;
+        if (l_Offset != 0)
+        {
+            p_IlGenerator.Emit(OpCodes.Ldc_I4, (int)l_Offset); // Load the offset
+            p_IlGenerator.Emit(OpCodes.Add); // Add the offset to the address
+        }
+        // Access the memory area by index 
+        p_IlGenerator.Emit(OpCodes.Ldelem_U1); // Load the byte at the address
+        
+    }
+
+    private void CompileGlobalGet(ILGenerator p_IlGenerator, WasmGlobalGet p_Instruction)
+    {
+        p_IlGenerator.Emit(OpCodes.Ldarg_0);
+        p_IlGenerator.Emit(OpCodes.Ldfld, GetGlobalField((int)p_Instruction.GlobalIndex));
     }
 
     private void CompileBr(ILGenerator p_IlGenerator, WasmBr p_Instruction)
@@ -948,10 +1078,14 @@ public class WebAssemblyJITCompiler
     {
         if (m_CurrentFuncType.Parameters != null && p_Instruction.LocalIndex < m_CurrentFuncType.Parameters.Length)
         {
-            throw new Exception("Cannot set parameter");
+            int l_Index = (int)p_Instruction.LocalIndex + 1;
+            // Set the parameter value
+            p_IlGenerator.Emit(OpCodes.Starg, l_Index);
+            
         }
         else
         {
+            // Store the local variable
             long l_LocalIndex = p_Instruction.LocalIndex;
 
             if (m_CurrentFuncType.Parameters != null)
@@ -959,7 +1093,26 @@ public class WebAssemblyJITCompiler
                 l_LocalIndex = l_LocalIndex - m_CurrentFuncType.Parameters.Length;
             }
 
-            p_IlGenerator.Emit(OpCodes.Stloc, m_CurrentLocals[l_LocalIndex]);
+            if (l_LocalIndex == 0)
+            {
+                p_IlGenerator.Emit(OpCodes.Stloc_0);
+            }
+            else if (l_LocalIndex == 1)
+            {
+                p_IlGenerator.Emit(OpCodes.Stloc_1);
+            }
+            else if (l_LocalIndex == 2)
+            {
+                p_IlGenerator.Emit(OpCodes.Stloc_2);
+            }
+            else if (l_LocalIndex == 3)
+            {
+                p_IlGenerator.Emit(OpCodes.Stloc_3);
+            }
+            else
+            {
+                p_IlGenerator.Emit(OpCodes.Stloc, m_CurrentLocals[l_LocalIndex]);   
+            }
         }
     }
 
@@ -967,38 +1120,31 @@ public class WebAssemblyJITCompiler
     {
         if (m_CurrentFuncType.Parameters != null && p_Instruction.LocalIndex < m_CurrentFuncType.Parameters.Length)
         {
-            // Load the parameter
+            // Load the parameter 0 is the this parameter
 
             if (p_Instruction.LocalIndex == 0)
             {
                 // Load the first parameter
-                p_IlGenerator.Emit(OpCodes.Ldarg_0);
+                p_IlGenerator.Emit(OpCodes.Ldarg_1);
                 return;
             }
 
             if (p_Instruction.LocalIndex == 1)
             {
                 // Load the second parameter
-                p_IlGenerator.Emit(OpCodes.Ldarg_1);
+                p_IlGenerator.Emit(OpCodes.Ldarg_2);
                 return;
             }
 
             if (p_Instruction.LocalIndex == 2)
             {
                 // Load the third parameter
-                p_IlGenerator.Emit(OpCodes.Ldarg_2);
-                return;
-            }
-
-            if (p_Instruction.LocalIndex == 3)
-            {
-                // Load the fourth parameter
                 p_IlGenerator.Emit(OpCodes.Ldarg_3);
                 return;
             }
 
             // Load the parameter
-            p_IlGenerator.Emit(OpCodes.Ldarg, p_Instruction.LocalIndex);
+            p_IlGenerator.Emit(OpCodes.Ldarg, p_Instruction.LocalIndex + 1);
         }
         else if (m_CurrentLocals != null)
         {

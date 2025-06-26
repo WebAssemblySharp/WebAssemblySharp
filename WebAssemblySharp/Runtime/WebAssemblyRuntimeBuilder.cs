@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using WebAssemblySharp.Attributes;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.Readers.Binary;
 using WebAssemblySharp.Runtime.Interpreter;
@@ -54,19 +56,21 @@ public class WebAssemblyRuntimeBuilder
         return new WebAssemblyRuntimeBuilder(typeof(WebAssemblyInterpreterExecutor));
     }
 
-    public static async Task<WebAssemblyModule> CreateSingleModuleRuntime<T>(Stream p_Stream, Action<WebAssemblyModuleBuilder> p_Configure = null)
-        where T : IWebAssemblyExecutor
+    public static async Task<T> CreateSingleModuleRuntime<T>(Action<WebAssemblyModuleBuilder> p_Configure = null)
+    
     {
-        WebAssemblyRuntimeBuilder l_RuntimeBuilder = Create<T>();
-        await l_RuntimeBuilder.LoadModule("main", p_Stream, p_Configure);
+        WebAssemblyRuntimeBuilder l_RuntimeBuilder = Create();
+        await l_RuntimeBuilder.LoadModule(typeof(T), p_Configure);
         WebAssemblyRuntime l_WebAssemblyRuntime = await l_RuntimeBuilder.Build();
-        return l_WebAssemblyRuntime.GetModule("main");
+        
+        WebAssemblyModuleDefinitionAttribute l_ModuleDefinitionAttribute = typeof(T).GetCustomAttribute<WebAssemblyModuleDefinitionAttribute>();
+        return l_WebAssemblyRuntime.GetModule(l_ModuleDefinitionAttribute.Name).AsInterface<T>();
     }
 
     public static async Task<WebAssemblyModule> CreateSingleModuleRuntime(Stream p_Stream, Action<WebAssemblyModuleBuilder> p_Configure = null)
     {
         WebAssemblyRuntimeBuilder l_RuntimeBuilder = Create();
-        await l_RuntimeBuilder.LoadModule("main", p_Stream, p_Configure);
+        await l_RuntimeBuilder.LoadModule("main", p_Stream, null, p_Configure);
         WebAssemblyRuntime l_WebAssemblyRuntime = await l_RuntimeBuilder.Build();
         return l_WebAssemblyRuntime.GetModule("main");
     }
@@ -74,9 +78,29 @@ public class WebAssemblyRuntimeBuilder
     public static async Task<WebAssemblyModule> CreateSingleModuleRuntime(Type p_RuntimeType, Stream p_Stream, Action<WebAssemblyModuleBuilder> p_Configure = null)
     {
         WebAssemblyRuntimeBuilder l_RuntimeBuilder = Create(p_RuntimeType);
-        await l_RuntimeBuilder.LoadModule("main", p_Stream, p_Configure);
+        await l_RuntimeBuilder.LoadModule("main", p_Stream, null, p_Configure);
         WebAssemblyRuntime l_WebAssemblyRuntime = await l_RuntimeBuilder.Build();
         return l_WebAssemblyRuntime.GetModule("main");
+    }
+    
+    public static async Task<WebAssemblyModule> CreateSingleModuleRuntime(Type p_RuntimeType, Type p_InterfaceWrapper, Action<WebAssemblyModuleBuilder> p_Configure = null)
+    {
+        WebAssemblyRuntimeBuilder l_RuntimeBuilder = Create(p_RuntimeType);
+        await l_RuntimeBuilder.LoadModule(p_InterfaceWrapper, p_Configure);
+        WebAssemblyRuntime l_WebAssemblyRuntime = await l_RuntimeBuilder.Build();
+        
+        WebAssemblyModuleDefinitionAttribute l_ModuleDefinitionAttribute = p_InterfaceWrapper.GetCustomAttribute<WebAssemblyModuleDefinitionAttribute>();
+        return l_WebAssemblyRuntime.GetModule(l_ModuleDefinitionAttribute.Name);
+    }
+    
+    public static async Task<T> CreateSingleModuleRuntime<T>(Type p_RuntimeType, Action<WebAssemblyModuleBuilder> p_Configure = null)
+    {
+        WebAssemblyRuntimeBuilder l_RuntimeBuilder = Create(p_RuntimeType);
+        await l_RuntimeBuilder.LoadModule(typeof(T), p_Configure);
+        WebAssemblyRuntime l_WebAssemblyRuntime = await l_RuntimeBuilder.Build();
+
+        WebAssemblyModuleDefinitionAttribute l_ModuleDefinitionAttribute = typeof(T).GetCustomAttribute<WebAssemblyModuleDefinitionAttribute>();
+        return l_WebAssemblyRuntime.GetModule(l_ModuleDefinitionAttribute.Name).AsInterface<T>();
     }
 
     public WebAssemblyRuntimeBuilder(Type p_ExecutorType)
@@ -102,7 +126,52 @@ public class WebAssemblyRuntimeBuilder
         return l_ModuleBuilder;
     }
 
-    public async Task<WebAssemblyRuntimeBuilder> LoadModule(String p_Module, Stream p_Stream, Action<WebAssemblyModuleBuilder> p_Configure = null)
+    public Task<WebAssemblyRuntimeBuilder> LoadModule(Type p_InterfaceType, Action<WebAssemblyModuleBuilder> p_Configure = null)
+    {
+        WebAssemblyModuleDefinitionAttribute l_ModuleDefinitionAttribute = p_InterfaceType.GetCustomAttribute<WebAssemblyModuleDefinitionAttribute>();
+
+        if (l_ModuleDefinitionAttribute == null)
+        {
+            throw new Exception($"Cannot find WebAssemblyModuleDefinitionAttribute on type {p_InterfaceType.FullName}");
+        }
+
+        string l_Name = l_ModuleDefinitionAttribute.Name;
+
+        using (Stream l_Stream = LoadStreamByInterfaceType(p_InterfaceType))
+        {
+            return LoadModule(l_Name, l_Stream, p_InterfaceType, p_Configure);
+        }
+    }
+
+    private Stream LoadStreamByInterfaceType(Type p_InterfaceType)
+    {
+        WebAssemblyModuleManifestResource l_ManifestResource = p_InterfaceType.GetCustomAttribute<WebAssemblyModuleManifestResource>();
+
+        Stream l_Stream = null;
+        
+        if (l_ManifestResource != null)
+        {
+            Assembly l_Assembly = l_ManifestResource.AssemblyType?.Assembly ?? p_InterfaceType.Assembly;
+            l_Stream = l_Assembly.GetManifestResourceStream(l_ManifestResource.Location);
+        }
+        
+        // QQQ Handle outer Types
+        
+        if (l_Stream != null)
+        {
+            return l_Stream;
+        }
+        
+        throw new Exception("Unable to find Wasm Steam for type " + p_InterfaceType.FullName);
+        
+    }
+
+    public Task<WebAssemblyRuntimeBuilder> LoadModule<T>(Action<WebAssemblyModuleBuilder> p_Configure = null)
+    {
+        return LoadModule(typeof(T), p_Configure);
+    }
+    
+    public async Task<WebAssemblyRuntimeBuilder> LoadModule(String p_Module, Stream p_Stream, Type p_WrapperInterfaceType = null, Action<WebAssemblyModuleBuilder> p_Configure = null)
     {
         WasmBinaryReader l_Reader = new WasmBinaryReader();
 
@@ -124,17 +193,17 @@ public class WebAssemblyRuntimeBuilder
         }
 
         WasmMetaData l_WasmMetaData = l_Reader.Finish();
-        return LoadModule(p_Module, l_WasmMetaData, p_Configure);
+        return LoadModule(p_Module, p_WrapperInterfaceType, l_WasmMetaData, p_Configure);
     }
 
-    public WebAssemblyRuntimeBuilder LoadModule(string p_Module, WasmMetaData p_WasmMetaData, Action<WebAssemblyModuleBuilder> p_Configure = null)
+    public WebAssemblyRuntimeBuilder LoadModule(string p_Module, Type p_WrapperInterfaceType, WasmMetaData p_WasmMetaData, Action<WebAssemblyModuleBuilder> p_Configure = null)
     {
         if (m_Modules.ContainsKey(p_Module))
         {
             throw new Exception($"Module {p_Module} already loaded");
         }
 
-        WebAssemblyModuleBuilder l_ModuleBuilder = new WebAssemblyModuleBuilder(p_Module, m_ExecutorType, p_WasmMetaData, p_Configure);
+        WebAssemblyModuleBuilder l_ModuleBuilder = new WebAssemblyModuleBuilder(p_Module, m_ExecutorType, p_WrapperInterfaceType, p_WasmMetaData, p_Configure);
         m_Modules.Add(p_Module, l_ModuleBuilder);
         return this;
     }
@@ -240,7 +309,7 @@ public class WebAssemblyRuntimeBuilder
             {
                 case WasmExternalKind.Function:
                     IWebAssemblyMethod l_Method = l_ExportModule.GetMethod(l_Export.Name);
-                    p_ImportModule.ImportMethod(l_WasmImport.Name, l_Method.Invoke);
+                    p_ImportModule.ImportMethod(l_WasmImport.Name, l_Method.DynamicInvoke);
                     break;
                 case WasmExternalKind.Memory:
                     IWebAssemblyMemoryArea l_Memory = l_ExportModule.GetMemoryArea(l_Export.Name);

@@ -3,14 +3,13 @@ using System.Text;
 
 namespace WebAssemblySharp.Runtime.Values;
 
-public struct WebAssemblyUTF32String: IWebAssemblyValue
+public struct WebAssemblyUTF32String: IWebAssemblyValueGeneric<ValueTuple<int, int>>
 {
     private String m_Value;
     
-    public void Load(object p_Result, IWebAssemblyExecutor p_Executor)
+    public void Load(ValueTuple<int, int> p_Result, IWebAssemblyExecutor p_Executor)
     {
-        object[] l_Objects = (Object[])p_Result;
-        Span<byte> l_Access = p_Executor.GetInternalMemoryArea().GetMemoryAccess((int)l_Objects[1], (int)l_Objects[0]);
+        Span<byte> l_Access = p_Executor.GetInternalMemoryArea().GetMemoryAccess(p_Result.Item1, p_Result.Item2);
         m_Value = Encoding.UTF32.GetString(l_Access);
     }
 

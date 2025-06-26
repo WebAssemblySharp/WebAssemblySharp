@@ -1,54 +1,55 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>13</LangVersion>
+        <ImplicitUsings>false</ImplicitUsings>
+        <Nullable>disable</Nullable>
+    </PropertyGroup>
 
-<ItemGroup>
-      <None Remove="Programms\add.wasm" />
-      <EmbeddedResource Include="Programms\add.wasm" />
-      <None Remove="Programms\add.wat" />
-      <EmbeddedResource Include="Programms\add.wat" />
-      <None Remove="Programms\addReaderResult.txt" />
-      <None Remove="Programms\ifexpr.wat" />
-      <EmbeddedResource Include="Programms\ifexpr.wat" />
-      <None Remove="Programms\isprime.wasm" />
-      <EmbeddedResource Include="Programms\isprime.wasm" />
-      <None Remove="Programms\isprime.wat" />
-      <EmbeddedResource Include="Programms\isprime.wat" />
-      <None Remove="Programms\loops.wat" />
-      <EmbeddedResource Include="Programms\loops.wat" />
-      <None Remove="Programms\isprimeReaderResult.txt" />
-      <None Remove="Programms\itoa.wasm" />
-      <EmbeddedResource Include="Programms\itoa.wasm" />
-      <None Remove="Programms\itoa.wat" />
-      <EmbeddedResource Include="Programms\itoa.wat" />
-      <None Remove="Programms\imports.wasm" />
-      <EmbeddedResource Include="Programms\imports.wasm" />
-      <None Remove="Programms\imports.wat" />
-      <EmbeddedResource Include="Programms\imports.wat" />
-      <None Remove="Programms\loops.wasm" />
-      <EmbeddedResource Include="Programms\loops.wasm" />
-      <None Remove="Programms\ifexpr.wasm" />
-      <EmbeddedResource Include="Programms\ifexpr.wasm" />
-      <None Remove="Programms\locals.wasm" />
-      <EmbeddedResource Include="Programms\locals.wasm" />
-      <None Remove="Programms\locals.wat" />
-      <EmbeddedResource Include="Programms\locals.wat" />
-      <None Remove="Programms\memory-basics.wasm" />
-      <EmbeddedResource Include="Programms\memory-basics.wasm" />
-      <None Remove="Programms\memory-basics.wat" />
-      <EmbeddedResource Include="Programms\memory-basics.wat" />
-      <None Remove="Programms\import_mod1.wat" />
-      <EmbeddedResource Include="Programms\import_mod1.wat" />
-      <None Remove="Programms\import_mod2.wat" />
-      <EmbeddedResource Include="Programms\import_mod2.wat" />
-      <None Remove="Programms\import_mod1.wasm" />
-      <EmbeddedResource Include="Programms\import_mod1.wasm" />
-      <None Remove="Programms\import_mod2.wasm" />
-      <EmbeddedResource Include="Programms\import_mod2.wasm" />
+    <ItemGroup>
+        <None Remove="Programms\add.wasm"/>
+        <EmbeddedResource Include="Programms\add.wasm"/>
+        <None Remove="Programms\add.wat"/>
+        <EmbeddedResource Include="Programms\add.wat"/>
+        <None Remove="Programms\addReaderResult.txt"/>
+        <None Remove="Programms\ifexpr.wat"/>
+        <EmbeddedResource Include="Programms\ifexpr.wat"/>
+        <None Remove="Programms\isprime.wasm"/>
+        <EmbeddedResource Include="Programms\isprime.wasm"/>
+        <None Remove="Programms\isprime.wat"/>
+        <EmbeddedResource Include="Programms\isprime.wat"/>
+        <None Remove="Programms\loops.wat"/>
+        <EmbeddedResource Include="Programms\loops.wat"/>
+        <None Remove="Programms\isprimeReaderResult.txt"/>
+        <None Remove="Programms\itoa.wasm"/>
+        <EmbeddedResource Include="Programms\itoa.wasm"/>
+        <None Remove="Programms\itoa.wat"/>
+        <EmbeddedResource Include="Programms\itoa.wat"/>
+        <None Remove="Programms\imports.wasm"/>
+        <EmbeddedResource Include="Programms\imports.wasm"/>
+        <None Remove="Programms\imports.wat"/>
+        <EmbeddedResource Include="Programms\imports.wat"/>
+        <None Remove="Programms\loops.wasm"/>
+        <EmbeddedResource Include="Programms\loops.wasm"/>
+        <None Remove="Programms\ifexpr.wasm"/>
+        <EmbeddedResource Include="Programms\ifexpr.wasm"/>
+        <None Remove="Programms\locals.wasm"/>
+        <EmbeddedResource Include="Programms\locals.wasm"/>
+        <None Remove="Programms\locals.wat"/>
+        <EmbeddedResource Include="Programms\locals.wat"/>
+        <None Remove="Programms\memory-basics.wasm"/>
+        <EmbeddedResource Include="Programms\memory-basics.wasm"/>
+        <None Remove="Programms\memory-basics.wat"/>
+        <EmbeddedResource Include="Programms\memory-basics.wat"/>
+        <None Remove="Programms\import_mod1.wat"/>
+        <EmbeddedResource Include="Programms\import_mod1.wat"/>
+        <None Remove="Programms\import_mod2.wat"/>
+        <EmbeddedResource Include="Programms\import_mod2.wat"/>
+        <None Remove="Programms\import_mod1.wasm"/>
+        <EmbeddedResource Include="Programms\import_mod1.wasm"/>
+        <None Remove="Programms\import_mod2.wasm"/>
+        <EmbeddedResource Include="Programms\import_mod2.wasm"/>
     </ItemGroup>
 
 </Project>

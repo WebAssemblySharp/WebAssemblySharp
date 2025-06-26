@@ -193,7 +193,7 @@ public class WebAssemblyInterpreterVirtualMaschine
         
         if (l_PagesToAdd < 0)
         {
-            throw new WebAssemblyInterpreterException("Memory grow negative");
+            throw new InvalidOperationException("Memory grow must be non-negative");
         }
         
         IWebAssemblyMemoryArea l_InterpreterMemoryArea = m_MemoryAreas[l_Instruction.MemoryIndex];
@@ -783,7 +783,7 @@ public class WebAssemblyInterpreterVirtualMaschine
             
             WebAssemblyInterpreterValue l_OffsetValue = l_Context.PopFromStack();
             
-            Span<byte> l_Memory = m_MemoryAreas[0].GetMemoryAccess(l_OffsetValue.IntValue, l_InitContent.Length);
+            Span<byte> l_Memory = m_MemoryAreas[l_WasmData.MemoryIndex].GetMemoryAccess(l_OffsetValue.IntValue, l_InitContent.Length);
             l_InitContent.CopyTo(l_Memory);
         }
         
@@ -836,6 +836,5 @@ public class WebAssemblyInterpreterVirtualMaschine
     {
         return m_MemoryAreas[p_Index];
     }
-    
     
 }

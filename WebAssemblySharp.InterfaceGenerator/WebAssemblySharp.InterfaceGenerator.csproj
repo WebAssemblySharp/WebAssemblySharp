@@ -1,0 +1,57 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>13</LangVersion>
+        <ImplicitUsings>false</ImplicitUsings>
+        <Nullable>disable</Nullable>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <IsRoslynComponent>true</IsRoslynComponent>
+
+
+        <Title>WebAssemblySharp.InterfaceGenerator</Title>
+        <Description>Interface generation component for WebAssemblySharp. Provides tools for automatically generating .NET interfaces from WebAssembly modules.</Description>
+        <Authors>Christian-Schl</Authors>
+        <Copyright>Christian-Schl</Copyright>
+        <PackageProjectUrl>https://github.com/WebAssemblySharp/WebAssemblySharp</PackageProjectUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/WebAssemblySharp/WebAssemblySharp</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+
+
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
+        <PackageReference Include="Mono.Cecil" Version="0.11.6"/>
+    </ItemGroup>
+
+    <Import Project="..\WebAssemblySharp.Shared\WebAssemblySharp.Shared.projitems" Label="Shared" />
+    
+    <!-- Urgly Fix from https://github.com/dotnet/sdk/issues/17775#issuecomment-848451355 -->
+    
+    <PropertyGroup>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <GetTargetPathDependsOn>$(GetTargetPathDependsOn);GetDependencyTargetPaths</GetTargetPathDependsOn>
+    </PropertyGroup>
+
+    <Target Name="GetDependencyTargetPaths" DependsOnTargets="ResolveReferences">
+        <ItemGroup>
+            <DllDependencies Include="@(ReferenceCopyLocalPaths->'%(FullPath)')" Condition="'%(Extension)' == '.dll'" />
+            <TargetPathWithTargetPlatformMoniker Include="@(DllDependencies)" IncludeRuntimeDependency="false" />
+        </ItemGroup>
+    </Target>
+    
+    <ItemGroup>
+        <None Remove="$(OutputPath)\$(AssemblyName).dll" />
+        <None Include="$(OutputPath)\$(AssemblyName).dll;$(OutputPath)\Mono.Cecil.dll;$(OutputPath)\Mono.Cecil.*.dll"
+              Pack="true"
+              PackagePath="analyzers/dotnet/cs"
+              Visible="false" />
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+    
+   
+</Project>

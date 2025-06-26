@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
@@ -35,12 +36,11 @@ namespace WebAssemblySharp.Runtime.Interpreter;
 public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssemblyInterpreterInteropOptimizer
 {
     private WasmMetaData m_WasmMetaData;
-    private ConcurrentDictionary<String, IWebAssemblyMethod> m_ExportMethods;
-
     private IDictionary<WasmImportFunction, WebAssemblyInterpreterImportMethod> m_ImportMethods;
     private IDictionary<int, IWebAssemblyMemoryArea> m_ImportedMemoryAreas;
-
-    private WebAssemblyInterpreterVirtualMaschine m_VirtualMaschine;
+    
+    private readonly ConcurrentDictionary<String, IWebAssemblyMethod> m_ExportMethods;
+    private readonly WebAssemblyInterpreterVirtualMaschine m_VirtualMaschine;
 
     public WebAssemblyInterpreterExecutor()
     {
@@ -421,9 +421,11 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
             // Optimize for 0 parameters and Task<void> return value
             if (l_ImportMetaData.Parameters.Length == 0)
             {
+                Func<ValueTask> l_Delegate = p_InternalMethod.GetVoidDelegate();
+
                 return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
                 {
-                    ValueTask<object> l_Task = p_InternalMethod.Invoke();
+                    ValueTask l_Task = l_Delegate();
                     await l_Task;    
                 });
             }
@@ -434,7 +436,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
                 return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
                 {
                     WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
-                    ValueTask<object> l_Task = p_InternalMethod.Invoke(l_Value.GetRawValue());
+                    ValueTask<object> l_Task = p_InternalMethod.DynamicInvoke(l_Value.GetRawValue());
                     await l_Task;
                 });
             }
@@ -446,7 +448,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
                 {
                     WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
                     WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
-                    ValueTask<object> l_Task = p_InternalMethod.Invoke(l_Value1.GetRawValue(), l_Value2.GetRawValue());
+                    ValueTask<object> l_Task = p_InternalMethod.DynamicInvoke(l_Value1.GetRawValue(), l_Value2.GetRawValue());
                     await l_Task;
                 });
             }
@@ -461,7 +463,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
                     l_Args[i] = l_Value.GetRawValue();
                 }
                     
-                ValueTask<object> l_Task = p_InternalMethod.Invoke(l_Args);
+                ValueTask<object> l_Task = p_InternalMethod.DynamicInvoke(l_Args);
                 await l_Task;
             });
             
@@ -475,7 +477,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
             {
                 return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
                 {
-                    ValueTask<object> l_Task = p_InternalMethod.Invoke();
+                    ValueTask<object> l_Task = p_InternalMethod.DynamicInvoke();
                     object l_TaskValue = await l_Task;
                     p_Context.PushToStack(WebAssemblyInterpreterValue.CreateDynamic(p_FuncType.Results[0], l_TaskValue));
                 });
@@ -487,7 +489,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
                 return new WebAssemblyInterpreterVirtualMaschine.ExecuteInstructionDelegateAsync(async (p_Instruction, p_Context) =>
                 {
                     WebAssemblyInterpreterValue l_Value = p_Context.PopFromStack();
-                    ValueTask<object> l_Task = p_InternalMethod.Invoke(l_Value.GetRawValue());
+                    ValueTask<object> l_Task = p_InternalMethod.DynamicInvoke(l_Value.GetRawValue());
                     object l_TaskValue = await l_Task;
                     p_Context.PushToStack(WebAssemblyInterpreterValue.CreateDynamic(p_FuncType.Results[0], l_TaskValue));
                 });
@@ -500,7 +502,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
                 {
                     WebAssemblyInterpreterValue l_Value1 = p_Context.PopFromStack();
                     WebAssemblyInterpreterValue l_Value2 = p_Context.PopFromStack();
-                    ValueTask<object> l_Task = p_InternalMethod.Invoke(l_Value1.GetRawValue(), l_Value2.GetRawValue());
+                    ValueTask<object> l_Task = p_InternalMethod.DynamicInvoke(l_Value1.GetRawValue(), l_Value2.GetRawValue());
                     object l_TaskValue = await l_Task;
                     p_Context.PushToStack(WebAssemblyInterpreterValue.CreateDynamic(p_FuncType.Results[0], l_TaskValue));
                 });
@@ -516,7 +518,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
                     l_Args[i] = l_Value.GetRawValue();
                 }
                     
-                ValueTask<object> l_Task = p_InternalMethod.Invoke(l_Args);
+                ValueTask<object> l_Task = p_InternalMethod.DynamicInvoke(l_Args);
                 object l_TaskValue = await l_Task;
                 p_Context.PushToStack(WebAssemblyInterpreterValue.CreateDynamic(p_FuncType.Results[0], l_TaskValue));
             });
@@ -533,7 +535,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
                 l_Args[i] = l_Value.GetRawValue();
             }
 
-            ValueTask<object> l_Task = p_InternalMethod.Invoke(l_Args);
+            ValueTask<object> l_Task = p_InternalMethod.DynamicInvoke(l_Args);
             object l_TaskValue = await l_Task;
 
             // Void Result
@@ -550,7 +552,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
             // Multiple Results
             if (l_ImportMetaData.Results.Length > 1)
             {
-                object[] l_Results = (object[])l_TaskValue;
+                ITuple l_Results = (ITuple)l_TaskValue;
 
                 if (l_Results.Length != l_ImportMetaData.Results.Length)
                     throw new Exception("Import method result count mismatch: " + l_ImportMetaData.Results.Length + " != " + l_Results.Length);

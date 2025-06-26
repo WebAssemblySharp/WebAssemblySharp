@@ -4,6 +4,23 @@
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>false</ImplicitUsings>
         <Nullable>disable</Nullable>
-    </PropertyGroup>
 
+        <Title>WebAssemblySharp</Title>
+        <Description>A .NET library for working with WebAssembly (WASM) modules and binaries.</Description>
+        <Authors>Christian-Schl</Authors>
+        <Copyright>Christian-Schl</Copyright>
+        <PackageProjectUrl>https://github.com/WebAssemblySharp/WebAssemblySharp</PackageProjectUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/WebAssemblySharp/WebAssemblySharp</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        
+    </PropertyGroup>
+    
+    <Import Project="..\WebAssemblySharp.Shared\WebAssemblySharp.Shared.projitems" Label="Shared" />
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+    
 </Project>

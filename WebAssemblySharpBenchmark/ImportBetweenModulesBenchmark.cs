@@ -5,6 +5,7 @@ using WebAssemblySharpExampleData;
 
 namespace WebAssemblySharpBenchmark;
 
+[ShortRunJob(RuntimeMoniker.Net10_0)]
 [ShortRunJob(RuntimeMoniker.Net90)]
 [MemoryDiagnoser]
 [JsonExporter("-custom", indentJson: true, excludeMeasurements: true)]
@@ -25,14 +26,14 @@ public class ImportBetweenModulesBenchmark
 
         m_Module = l_Runtime.GetModule("mod2");
 
-        await m_Module.Call<int>("twiceplus5", 10);
+        await m_Module.Call<int, int>("twiceplus5", 10);
      
     }
 
     [Benchmark]
     public async Task Interpreter()
     {
-        await m_Module.Call<int>("twiceplus5", N);    
+        await m_Module.Call<int, int>("twiceplus5", N);    
     }
     
     [GlobalCleanup]

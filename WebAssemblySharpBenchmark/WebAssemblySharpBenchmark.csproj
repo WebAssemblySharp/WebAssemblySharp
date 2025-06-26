@@ -4,7 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
   </PropertyGroup>
   
 
@@ -19,8 +19,8 @@
 
 
     <ItemGroup>
-      <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
-      <PackageReference Include="BenchmarkDotNet.Diagnostics.dotTrace" Version="0.14.0" />
+      <PackageReference Include="BenchmarkDotNet" Version="0.15.2" />
+      <PackageReference Include="BenchmarkDotNet.Diagnostics.dotTrace" Version="0.15.2" />
     </ItemGroup>
 
 </Project>

@@ -10,14 +10,16 @@ public class WebAssemblyModuleBuilder
 {
     private readonly string m_Name;
     private Type m_RuntimeType;
+    private Type m_WrapperInterfaceType;
     private readonly WasmMetaData m_MetaData;
     private Action<WebAssemblyModuleBuilder> m_ExternalConfig;
     private IWebAssemblyExecutor m_Executor;
 
-    public WebAssemblyModuleBuilder(string p_Name, Type p_RuntimeType, WasmMetaData p_WasmMetaData, Action<WebAssemblyModuleBuilder> p_Configure)
+    public WebAssemblyModuleBuilder(string p_Name, Type p_RuntimeType, Type p_WrapperInterfaceType, WasmMetaData p_WasmMetaData, Action<WebAssemblyModuleBuilder> p_Configure)
     {
         m_Name = p_Name;
         m_RuntimeType = p_RuntimeType;
+        m_WrapperInterfaceType = p_WrapperInterfaceType;
         m_MetaData = p_WasmMetaData;
         m_ExternalConfig = p_Configure;
     }
@@ -38,6 +40,17 @@ public class WebAssemblyModuleBuilder
         return this;
     }
 
+    public WebAssemblyModuleBuilder WrapperInterfaceType(Type p_WrapperInterfaceType)
+    {
+        if (m_Executor != null)
+        {
+            throw new Exception($"Executor already created, wrapper interface type cannot be changed");
+        }    
+        
+        m_WrapperInterfaceType = p_WrapperInterfaceType;
+        return this;
+    }
+
     public WebAssemblyModuleBuilder RuntimeType<T>() where T : IWebAssemblyExecutor
     {
         return RuntimeType(typeof(T));
@@ -55,6 +68,11 @@ public class WebAssemblyModuleBuilder
         {
             m_Executor = (IWebAssemblyExecutor)Activator.CreateInstance(m_RuntimeType);
             m_Executor.LoadCode(m_MetaData);
+            
+            if (m_WrapperInterfaceType != null && m_Executor is IWebAssemblyExecutorProxy)
+            {
+                ((IWebAssemblyExecutorProxy)m_Executor).SetProxyType(m_WrapperInterfaceType);
+            }
         }
         
         if (m_ExternalConfig != null)
@@ -96,5 +114,10 @@ public class WebAssemblyModuleBuilder
         PreInit();
         return m_Executor.GetMemoryArea(p_ExportName);
 
+    }
+
+    public string Name
+    {
+        get { return m_Name; }
     }
 }

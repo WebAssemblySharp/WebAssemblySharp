@@ -34,7 +34,7 @@ public class IsPrimeTest
         WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(p_RunTimeType,
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
 
-        int l_Result = (int)await l_Module.Call("is_prime", p_Number);
+        int l_Result = (int)await l_Module.DynamicCall("is_prime", p_Number);
 
         if (p_IsPrime)
             Assert.AreEqual(1, l_Result);
