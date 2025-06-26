@@ -128,7 +128,10 @@
               },
               tooltip: {
                 mode: "index",
-                intersect: false
+                intersect: false,
+                itemSort: function(a, b) {
+                    return a.label.localeCompare(b.label);
+                }
               }
             },
             interaction: {
@@ -156,7 +159,7 @@
       }
 
       function buildGroupName(entry) {
-        return entry.runtime + '@' +  entry.fullName;
+        return entry.fullName + '@' + entry.runtime;
       }
 
       function createChartForGroups(groups, labels, title, valueName, entries, valueProvider) {
@@ -217,7 +220,7 @@
         Object.entries(grouped).forEach(([fullName, entries]) => {
           const title = fullName.replace("WebAssemblySharpBenchmark__", "");
           const labels = Array.from(new Set(entries.map(e => new Date(e.date + 'Z').toLocaleString())));
-          const groups = Array.from(new Set(entries.map(x => buildGroupName(x))));
+          const groups = Array.from(new Set(entries.map(x => (x))));
 
           createChartForGroups(groups, labels, title, 'Mean', entries, e => e.meanNs);
           createChartForGroups(groups, labels, title, 'Alloc Bytes', entries, e => e.allocBytes);
