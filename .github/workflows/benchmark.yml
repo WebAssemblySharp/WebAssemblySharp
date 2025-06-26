@@ -110,6 +110,7 @@ jobs:
                   data = json.load(f)
 
               benchmarks = data.get("Benchmarks", [])
+              pattern = r"Runtime=([^,]+)"
               
               # Extract data from each benchmark
               for b in benchmarks:
@@ -117,12 +118,20 @@ jobs:
                   memory = b.get("Memory", {})
                   envInfo = b.get("Properties", {})
 
+                  runtime = "Unkown";
+
+                  match = re.search(pattern, b.get("DisplayInfo", "Unknown"))
+                  if match:
+                    runtime match.group(1);
+                  else:
+                    runtime = "Unkown";
+
                   entry = {
-                      "all": b,
+                      "displayInfo": b.get("DisplayInfo", "Unknown"),
                       "commit": os.environ.get("GITHUB_SHA"),
                       "date": datetime.utcnow().isoformat(),
                       "fullName": b.get("FullName", "Unknown"),
-                      "runtime": envInfo.get("Runtime", "Unknown"),
+                      "runtime": runtime,
                       "namespace": b.get("Namespace", "Unknown"),
                       "type": b.get("Type", "Unknown"),
                       "method": b.get("Method", "Unknown"),
