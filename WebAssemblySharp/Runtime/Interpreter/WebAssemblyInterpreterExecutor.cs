@@ -92,7 +92,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
         if (l_Import == null)
             throw new Exception("Import not found: " + p_Name);
 
-        WasmFuncType l_FuncType = m_WasmMetaData.FunctionType[l_Import.FunctionIndex];
+        WasmFuncType l_FuncType = WebAssemblyImportUtils.GetFuncType(m_WasmMetaData, l_Import);
 
         Delegate l_Delegate = CompileImport(l_FuncType, p_Delegate);
         WebAssemblyInterpreterImportMethod l_ImportMethod = new WebAssemblyInterpreterImportMethod(l_Import, l_FuncType, l_Delegate);

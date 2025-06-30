@@ -19,12 +19,12 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor, IWebAssemblyExecutorP
     [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
     private Type m_ProxyType;
     private IDictionary<int, IWebAssemblyMemoryArea> m_ImportedMemoryAreas;
-    private IDictionary<WasmImportFunction, Delegate> m_ImportMethods;
+    private IDictionary<int, Delegate> m_ImportMethods;
 
     public WebAssemblyJITExecutor()
     {
         m_ImportedMemoryAreas = new Dictionary<int, IWebAssemblyMemoryArea>();
-        m_ImportMethods = new Dictionary<WasmImportFunction, Delegate>();
+        m_ImportMethods = new Dictionary<int, Delegate>();
     }
 
     public IWebAssemblyMethod GetMethod(string p_Name)
@@ -44,7 +44,7 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor, IWebAssemblyExecutorP
     public void OptimizeCode()
     {
         m_ImportedMemoryAreas = new ReadOnlyDictionary<int, IWebAssemblyMemoryArea>(m_ImportedMemoryAreas);
-        m_ImportMethods = new ReadOnlyDictionary<WasmImportFunction, Delegate>(m_ImportMethods);
+        m_ImportMethods = new ReadOnlyDictionary<int, Delegate>(m_ImportMethods);
         
         m_RuntimeCompiler = new WebAssemblyJITRuntimeCompiler(m_WasmMetaData, m_ProxyType);
         m_RuntimeCompiler.Compile();
@@ -86,7 +86,7 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor, IWebAssemblyExecutorP
         if (l_Import == null)
             throw new Exception("Import not found: " + p_Name);
         
-        if (!m_ImportMethods.TryAdd(l_Import, p_Delegate))
+        if (!m_ImportMethods.TryAdd((int)l_Import.FunctionIndex, p_Delegate))
             throw new Exception("Import already defined: " + p_Name);
     }
 

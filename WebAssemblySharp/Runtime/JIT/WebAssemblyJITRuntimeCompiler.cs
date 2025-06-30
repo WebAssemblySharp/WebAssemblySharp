@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Utils;
 using WebAssemblySharp.Runtime.Utils;
@@ -20,7 +21,7 @@ public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
     }
 
     public WebAssemblyJITAssembly BuildAssembly(IDictionary<int, IWebAssemblyMemoryArea> p_ImportedMemoryAreas,
-        IDictionary<WasmImportFunction, Delegate> p_ImportMethods)
+        IDictionary<int, Delegate> p_ImportMethods)
     {
         Type l_Type = m_TypeBuilder.CreateType();
         object l_Instance = Activator.CreateInstance(l_Type);
@@ -86,10 +87,41 @@ public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
             ParameterExpression l_Parameter = Expression.Parameter(typeof(byte[]));
             BinaryExpression l_Assign = Expression.Assign(l_FieldAccess, l_Parameter);
             Action<byte[]> l_MemoryUpdate = Expression.Lambda<Action<byte[]>>(l_Assign, l_Parameter).Compile();
+
+            if (m_WasmMetaData.Memory != null && m_WasmMetaData.Memory.Length > i)
+            {
+                l_MemoryAreas[i] = new WebAssemblyJITMemoryArea(l_MemoryAccess, l_MemoryUpdate, (int)m_WasmMetaData.Memory[i].Max);    
+            }
+            else if (p_ImportedMemoryAreas.TryGetValue(i, out IWebAssemblyMemoryArea l_ImportedMemoryArea))
+            {
+                l_MemoryAreas[i] = l_ImportedMemoryArea;    
+            }
+            else
+            {
+                throw new Exception($"Memory not found: {i}");
+            }
             
-            l_MemoryAreas[i] = new WebAssemblyJITMemoryArea(l_MemoryAccess, l_MemoryUpdate, (int)m_WasmMetaData.Memory[i].Max);
             
         }
+
+        // Connect to imported Methods
+        foreach (KeyValuePair<int, Delegate> l_ImportMethod in p_ImportMethods)
+        {
+            FieldInfo l_RuntimeFieldInfo;
+            
+            if (WebAssemblyJITCompilerUtils.IsAsyncFuncResultType(l_ImportMethod.Value.Method.ReturnType))
+            {
+                l_RuntimeFieldInfo = l_Type.GetField(m_AsyncExternalFunctionFields[l_ImportMethod.Key].Name);        
+            }
+            else
+            {
+                l_RuntimeFieldInfo = l_Type.GetField(m_SyncExternalFunctionFields[l_ImportMethod.Key].Name);     
+            }
+            
+            l_RuntimeFieldInfo.SetValue(l_Instance, l_ImportMethod.Value);
+                
+        }
+        
         
         Reset();
         
