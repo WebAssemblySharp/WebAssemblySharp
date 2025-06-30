@@ -14,7 +14,7 @@ public class ImportTest
     {
         WebAssemblyRuntimeBuilder l_RuntimeBuilder = WebAssemblyRuntimeBuilder.Create(p_RuntimeType);
         await l_RuntimeBuilder.LoadModule("main", typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"));
-        l_RuntimeBuilder.ImportMethod("times2", new Func<int, Task<int>>(x => Task.FromResult(x * 2)));
+        l_RuntimeBuilder.ImportMethod("times2", new Func<int, ValueTask<int>>(x => ValueTask.FromResult(x * 2)));
         WebAssemblyRuntime l_Runtime = await l_RuntimeBuilder.Build();
         WebAssemblyModule l_Module = l_Runtime.GetModule("main");
         int l_Result = (int) await l_Module.DynamicCall("twiceplus5", 3);
@@ -43,7 +43,7 @@ public class ImportTest
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"),
             (x) =>
             {
-                x.ImportMethod("times2", new Func<int, Task<int>>(x => Task.FromResult(x * 2)));
+                x.ImportMethod("times2", new Func<int, ValueTask<int>>(x => ValueTask.FromResult(x * 2)));
             });
         
         int l_Result = (int) await l_Module.DynamicCall("twiceplus5", 3);

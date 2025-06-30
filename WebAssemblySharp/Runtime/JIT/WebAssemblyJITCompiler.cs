@@ -932,6 +932,7 @@ public class WebAssemblyJITCompiler
         }
         
         FieldInfo l_FunctionField = GetSyncExternalFunctionField((int)p_Instruction.FunctionIndex);
+        FieldInfo l_AsyncFunctionField = GetAsyncExternalFunctionField((int)p_Instruction.FunctionIndex);
         p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the 'this' parameter
         p_IlGenerator.Emit(OpCodes.Ldfld, l_FunctionField); // Load the function pointer from the 'this' parameter;
         
@@ -960,9 +961,18 @@ public class WebAssemblyJITCompiler
         // Async way
         p_IlGenerator.MarkLabel(l_AsyncLabel); 
         
-        // Throw not Supported Exception for now
-        p_IlGenerator.Emit(OpCodes.Newobj, typeof(NotSupportedException).GetConstructor(Type.EmptyTypes));
-        p_IlGenerator.Emit(OpCodes.Throw);
+        p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the 'this' parameter
+        p_IlGenerator.Emit(OpCodes.Ldfld, l_FunctionField); // Load the function pointer from the 'this' parameter;
+
+        for (int i = l_FuncType.Parameters.Length - 1; i >= 0; i--)
+        {
+            p_IlGenerator.Emit(OpCodes.Ldloc, l_Locals[i]);    
+        }
+        
+        p_IlGenerator.EmitCall(OpCodes.Callvirt, l_FunctionField.FieldType.GetMethod("Invoke"), null); // Call the function
+        
+        // At this point there is an TaskValue on the Stack
+
         
         // End
         p_IlGenerator.MarkLabel(l_End);

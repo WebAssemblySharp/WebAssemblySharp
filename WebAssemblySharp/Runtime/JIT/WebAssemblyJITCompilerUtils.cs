@@ -441,15 +441,15 @@ public static class WebAssemblyJITCompilerUtils
 
         if (p_FuncType.Results.Length == 0)
         {
-            l_ResultType = typeof(Task);
+            l_ResultType = typeof(ValueTask);
         }
         else if (p_FuncType.Results.Length == 1)
         {
-            l_ResultType = typeof(Task<>).MakeGenericType(WebAssemblyDataTypeUtils.GetInternalType(p_FuncType.Results[0]));         
+            l_ResultType = typeof(ValueTask<>).MakeGenericType(WebAssemblyDataTypeUtils.GetInternalType(p_FuncType.Results[0]));         
         }
         else
         {
-            l_ResultType = typeof(Task<>).MakeGenericType(WebAssemblyValueTupleUtils.GetValueTupleType(p_FuncType.Results));         
+            l_ResultType = typeof(ValueTask<>).MakeGenericType(WebAssemblyValueTupleUtils.GetValueTupleType(p_FuncType.Results));         
         }
         
         if (p_FuncType.Parameters.Length == 0)
@@ -671,6 +671,6 @@ public static class WebAssemblyJITCompilerUtils
         return p_ReturnType == typeof(Task) 
                || p_ReturnType == typeof(ValueTask)
                || (p_ReturnType.IsGenericType && 
-                   p_ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
+                   p_ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>));
     }
 }
