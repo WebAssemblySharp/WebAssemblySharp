@@ -944,7 +944,9 @@ public class WebAssemblyJITCompiler
         
 
         p_IlGenerator.Emit(OpCodes.Brtrue, l_AsyncLabel); // If the field is null, go to async
+        
         // Sync way
+        ////////////////////////////////////////
         
         p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the 'this' parameter
         p_IlGenerator.Emit(OpCodes.Ldfld, l_FunctionField); // Load the function pointer from the 'this' parameter;
@@ -958,18 +960,21 @@ public class WebAssemblyJITCompiler
         
         Label l_End = p_IlGenerator.DefineLabel();
         p_IlGenerator.Emit(OpCodes.Br, l_End); // End of the sync way
+        
         // Async way
+        //////////////////////////////////////////
+        
         p_IlGenerator.MarkLabel(l_AsyncLabel); 
         
         p_IlGenerator.Emit(OpCodes.Ldarg_0); // Load the 'this' parameter
-        p_IlGenerator.Emit(OpCodes.Ldfld, l_FunctionField); // Load the function pointer from the 'this' parameter;
+        p_IlGenerator.Emit(OpCodes.Ldfld, l_AsyncFunctionField); // Load the function pointer from the 'this' parameter;
 
         for (int i = l_FuncType.Parameters.Length - 1; i >= 0; i--)
         {
             p_IlGenerator.Emit(OpCodes.Ldloc, l_Locals[i]);    
         }
         
-        p_IlGenerator.EmitCall(OpCodes.Callvirt, l_FunctionField.FieldType.GetMethod("Invoke"), null); // Call the function
+        p_IlGenerator.EmitCall(OpCodes.Callvirt, l_AsyncFunctionField.FieldType.GetMethod("Invoke"), null); // Call the function
         
         // At this point there is an TaskValue on the Stack
 
