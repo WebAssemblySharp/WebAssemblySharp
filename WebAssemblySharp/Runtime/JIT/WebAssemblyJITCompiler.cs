@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Instructions;
@@ -444,7 +445,9 @@ public class WebAssemblyJITCompiler
             {
                 WasmCall l_WasmCall = (WasmCall)l_Instruction;
 
-                Delegate l_Delegate = GetImortMethod(l_WasmCall);
+                // QQQ
+                return false;
+
             }
 
             if (l_Instruction is WasmBlockInstruction)
@@ -458,18 +461,7 @@ public class WebAssemblyJITCompiler
 
         return false;
     }
-
-    private Delegate GetImortMethod(WasmCall p_Instruction)
-    {
-        WasmImportFunction l_WasmImport = m_WasmMetaData.Import.Where(x => x is WasmImportFunction).Cast<WasmImportFunction>()
-            .First(x => x.FunctionIndex == p_Instruction.FunctionIndex);
-
-        if (l_WasmImport == null)
-            throw new Exception($"Function not found: {p_Instruction.FunctionIndex}");
-
-        return null;
-    }
-
+    
     private void EmitInstruction(ILGenerator p_IlGenerator, WasmInstruction p_Instruction)
     {
         // Map WebAssembly instructions to IL opcodes
@@ -956,7 +948,7 @@ public class WebAssemblyJITCompiler
             p_IlGenerator.Emit(OpCodes.Ldloc, l_Locals[i]);    
         }
         
-        p_IlGenerator.EmitCall(OpCodes.Callvirt, l_FunctionField.FieldType.GetMethod("Invoke"), null); // Call the function
+        p_IlGenerator.Emit(OpCodes.Callvirt, l_FunctionField.FieldType.GetMethod("Invoke")); // Call the function
         
         Label l_End = p_IlGenerator.DefineLabel();
         p_IlGenerator.Emit(OpCodes.Br, l_End); // End of the sync way
@@ -974,10 +966,64 @@ public class WebAssemblyJITCompiler
             p_IlGenerator.Emit(OpCodes.Ldloc, l_Locals[i]);    
         }
         
-        p_IlGenerator.EmitCall(OpCodes.Callvirt, l_AsyncFunctionField.FieldType.GetMethod("Invoke"), null); // Call the function
+        p_IlGenerator.Emit(OpCodes.Callvirt, l_AsyncFunctionField.FieldType.GetMethod("Invoke")); // Call the function
         
-        // At this point there is an TaskValue on the Stack
+        // At this point there is a ValueTask on the Stack and we await it in a sync manner for now
+        if (l_FuncType.Results == null || l_FuncType.Results.Length == 0)
+        {
+            LocalBuilder l_ValueTaskLocal = p_IlGenerator.DeclareLocal(typeof(ValueTask));
+            p_IlGenerator.Emit(OpCodes.Stloc, l_ValueTaskLocal); // Store the ValueTask in a local variable
+            
+            // Load the ValueTask from the local variable
+            p_IlGenerator.Emit(OpCodes.Ldloca, l_ValueTaskLocal);
+            // Call ConfigureAwait
+            MethodInfo l_ConfirmAwaitMethod = typeof(ValueTask).GetMethod(nameof(ValueTask.ConfigureAwait));
+            p_IlGenerator.Emit(OpCodes.Ldc_I4_0); // Pass false to ConfigureAwait
+            p_IlGenerator.Emit(OpCodes.Call, l_ConfirmAwaitMethod);
+            p_IlGenerator.Emit(OpCodes.Pop); // Pop the configured awaiter from the stack
 
+            // Load the ValueTask from the local variable
+            p_IlGenerator.Emit(OpCodes.Ldloca, l_ValueTaskLocal);
+            
+            // For ValueTask (no result), call GetAwaiter().GetResult() to wait synchronously
+            MethodInfo l_GetAwaiterMethod = typeof(ValueTask).GetMethod(nameof(ValueTask.GetAwaiter));
+            p_IlGenerator.Emit(OpCodes.Call, l_GetAwaiterMethod);
+            
+            MethodInfo l_GetResultMethod = typeof(ValueTaskAwaiter).GetMethod(nameof(ValueTaskAwaiter.GetResult));
+            p_IlGenerator.Emit(OpCodes.Call, l_GetResultMethod);
+        }
+        else
+        {
+            // For ValueTask<T>, call Result
+            Type l_ResultType;
+            if (l_FuncType.Results.Length == 1)
+            {
+                l_ResultType = WebAssemblyDataTypeUtils.GetInternalType(l_FuncType.Results[0]);
+            }
+            else
+            {
+                l_ResultType = WebAssemblyValueTupleUtils.GetValueTupleType(l_FuncType.Results);
+            }
+
+            Type l_ValueTaskType = typeof(ValueTask<>).MakeGenericType(l_ResultType);
+            
+            LocalBuilder l_ValueTaskLocal = p_IlGenerator.DeclareLocal(l_ValueTaskType);
+            p_IlGenerator.Emit(OpCodes.Stloc, l_ValueTaskLocal); // Store the ValueTask in a local variable
+            
+            // Load the ValueTask from the local variable
+            p_IlGenerator.Emit(OpCodes.Ldloca, l_ValueTaskLocal);
+            // Call ConfigureAwait
+            MethodInfo l_ConfirmAwaitMethod = l_ValueTaskType.GetMethod(nameof(ValueTask<object>.ConfigureAwait));
+            p_IlGenerator.Emit(OpCodes.Ldc_I4_0); // Pass false to ConfigureAwait
+            p_IlGenerator.Emit(OpCodes.Call, l_ConfirmAwaitMethod);
+            p_IlGenerator.Emit(OpCodes.Pop); // Pop the configured awaiter from the stack
+
+            // Load the ValueTask from the local variable
+            p_IlGenerator.Emit(OpCodes.Ldloca, l_ValueTaskLocal);
+            
+            PropertyInfo l_ResultProperty = l_ValueTaskType.GetProperty(nameof(ValueTask<object>.Result));
+            p_IlGenerator.Emit(OpCodes.Call, l_ResultProperty.GetMethod);
+        }
         
         // End
         p_IlGenerator.MarkLabel(l_End);
