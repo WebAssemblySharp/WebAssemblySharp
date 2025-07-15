@@ -16,7 +16,6 @@ public class LoopsTest
     {
         get
         {
-            /*
             foreach (object[] l_Type in TestRuntimeProvider.RuntimeTypes)
             {
                 // Generate test data for the first_power_over_limit function
@@ -26,22 +25,6 @@ public class LoopsTest
                 yield return new object[] {l_Type[0], 25, 10000, 15625 };
                 
             }
-            */
-
-            // Generate test data for the first_power_over_limit function
-            yield return new object[] {typeof(WebAssemblyInterpreterExecutor), 2, 1000, 1024 };
-            yield return new object[] {typeof(WebAssemblyInterpreterExecutor), 2, 0, 1 };
-            yield return new object[] {typeof(WebAssemblyInterpreterExecutor), 3, 25, 27 };
-            yield return new object[] {typeof(WebAssemblyInterpreterExecutor), 25, 10000, 15625 };
-            
-        }
-    }
-
-    public static IEnumerable<object[]> SingleRuntime
-    {
-        get
-        {
-            yield return new object[] {typeof(WebAssemblyInterpreterExecutor)};
         }
     }
     
@@ -59,8 +42,7 @@ public class LoopsTest
     
     
     [TestMethod]
-    //[DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
-    [DynamicData(nameof(SingleRuntime))]
+    [DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
     public async Task ExecuteRand_multiple_of_10Test(Type p_Runtime)
     {
         var (l_HeapMemoryArea, l_StartOffset, l_Count, l_Module) = await SetupMemoryAndRuntime(p_Runtime);
@@ -75,8 +57,7 @@ public class LoopsTest
     }
     
     [TestMethod]
-    //[DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
-    [DynamicData(nameof(SingleRuntime))]
+    [DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
     public async Task ExecuteAddAllTest(Type p_Runtime)
     {
         
