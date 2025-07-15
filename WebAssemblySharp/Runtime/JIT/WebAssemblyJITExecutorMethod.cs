@@ -27,7 +27,11 @@ public class WebAssemblyJITExecutorMethod<TResult> : IWebAssemblyMethod where TR
         return m_FuncMetaData;
     }
 
-
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
+    }
+    
     public Func<ValueTask<TResult1>> GetDelegate<TResult1>() where TResult1 : struct
     {
         return (Func<ValueTask<TResult1>>)(Object)m_Delegate;
@@ -54,6 +58,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TResult> : IWebAssemblyMethod
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput11, ValueTask<TResult1>> GetDelegate<TInput11, TResult1>() where TInput11 : struct where TResult1 : struct
@@ -84,6 +93,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TInput2, TResult> : IWebAssem
     {
         return m_FuncMetaData;
     }
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
+    }
+    
 
     public Func<TInput11, TInput21, ValueTask<TResult1>> GetDelegate<TInput11, TInput21, TResult1>() where TInput11 : struct where TInput21 : struct where TResult1 : struct
     {
@@ -114,6 +128,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TInput2, TInput3, TResult> : 
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput11, TInput21, TInput31, ValueTask<TResult1>> GetDelegate<TInput11, TInput21, TInput31, TResult1>() where TInput11 : struct where TInput21 : struct where TInput31 : struct where TResult1 : struct
@@ -147,6 +166,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TInput2, TInput3, TInput4, TR
     {
         return m_FuncMetaData;
     }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
+    }
 
     public Func<TInput11, TInput21, TInput31, TInput41, ValueTask<TResult1>> GetDelegate<TInput11, TInput21, TInput31, TInput41, TResult1>() where TInput11 : struct where TInput21 : struct where TInput31 : struct where TInput41 : struct where TResult1 : struct
     {
@@ -179,6 +203,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TInput2, TInput3, TInput4, TI
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput11, TInput21, TInput31, TInput41, TInput51, ValueTask<TResult1>> GetDelegate<TInput11, TInput21, TInput31, TInput41, TInput51, TResult1>() where TInput11 : struct where TInput21 : struct where TInput31 : struct where TInput41 : struct where TInput51 : struct where TResult1 : struct
@@ -214,6 +243,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TInput2, TInput3, TInput4, TI
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput11, TInput21, TInput31, TInput41, TInput51, TInput61, ValueTask<TResult1>> GetDelegate<TInput11, TInput21, TInput31, TInput41, TInput51, TInput61, TResult1>() where TInput11 : struct where TInput21 : struct where TInput31 : struct where TInput41 : struct where TInput51 : struct where TInput61 : struct where TResult1 : struct
@@ -253,6 +287,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TInput2, TInput3, TInput4, TI
     {
         return m_FuncMetaData;
     }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
+    }
 
     public Func<TInput11, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, ValueTask<TResult1>> GetDelegate<TInput11, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TResult1>() where TInput11 : struct where TInput21 : struct where TInput31 : struct where TInput41 : struct where TInput51 : struct where TInput61 : struct where TInput71 : struct where TResult1 : struct
     {
@@ -291,6 +330,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TInput2, TInput3, TInput4, TI
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput11, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, ValueTask<TResult1>> GetDelegate<TInput11, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TResult1>() where TInput11 : struct where TInput21 : struct where TInput31 : struct where TInput41 : struct where TInput51 : struct where TInput61 : struct where TInput71 : struct where TInput81 : struct where TResult1 : struct
@@ -333,6 +377,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TInput2, TInput3, TInput4, TI
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput11, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, ValueTask<TResult1>> GetDelegate<TInput11, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TResult1>() where TInput11 : struct where TInput21 : struct where TInput31 : struct where TInput41 : struct where TInput51 : struct where TInput61 : struct where TInput71 : struct where TInput81 : struct where TInput91 : struct where TResult1 : struct
@@ -380,6 +429,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TInput2, TInput3, TInput4, TI
     {
         return m_FuncMetaData;
     }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
+    }
 
     public Func<TInput11, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, ValueTask<TResult1>> GetDelegate<TInput11, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TResult1>() where TInput11 : struct where TInput21 : struct where TInput31 : struct where TInput41 : struct where TInput51 : struct where TInput61 : struct where TInput71 : struct where TInput81 : struct where TInput91 : struct where TInput101 : struct where TResult1 : struct
     {
@@ -425,6 +479,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TInput2, TInput3, TInput4, TI
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput12, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, ValueTask<TResult1>> GetDelegate<TInput12, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TResult1>() where TInput12 : struct where TInput21 : struct where TInput31 : struct where TInput41 : struct where TInput51 : struct where TInput61 : struct where TInput71 : struct where TInput81 : struct where TInput91 : struct where TInput101 : struct where TInput111 : struct where TResult1 : struct
@@ -473,6 +532,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TInput2, TInput3, TInput4, TI
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput13, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TInput121, ValueTask<TResult1>> GetDelegate<TInput13, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TInput121,
@@ -524,6 +588,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TInput2, TInput3, TInput4, TI
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput14, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TInput121, TInput131, ValueTask<TResult1>> GetDelegate<TInput14, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TInput121, TInput131,
@@ -577,6 +646,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TInput2, TInput3, TInput4, TI
     {
         return m_FuncMetaData;
     }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
+    }
 
     public Func<TInput15, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TInput121, TInput131, TInput141, ValueTask<TResult1>> GetDelegate<TInput15, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TInput121, TInput131,
         TInput141, TResult1>() where TInput15 : struct where TInput21 : struct where TInput31 : struct where TInput41 : struct where TInput51 : struct where TInput61 : struct where TInput71 : struct where TInput81 : struct where TInput91 : struct where TInput101 : struct where TInput111 : struct where TInput121 : struct where TInput131 : struct where TInput141 : struct where TResult1 : struct
@@ -629,6 +703,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TInput2, TInput3, TInput4, TI
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput16, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TInput121, TInput131, TInput141, TInput151, ValueTask<TResult1>> GetDelegate<TInput16, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TInput121, TInput131,
@@ -684,6 +763,11 @@ public class WebAssemblyJITExecutorMethod<TInput1, TInput2, TInput3, TInput4, TI
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput17, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TInput121, TInput131, TInput141, TInput151, TInput161, ValueTask<TResult1>> GetDelegate<TInput17, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TInput121, TInput131,

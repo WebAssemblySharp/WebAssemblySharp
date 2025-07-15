@@ -175,7 +175,7 @@ public class WebAssemblyRuntimeBuilder
         return LoadModule(typeof(T), p_Configure);
     }
     
-    public async Task<WebAssemblyRuntimeBuilder> LoadModule(String p_Module, Stream p_Stream, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type p_WrapperInterfaceType = null, Action<WebAssemblyModuleBuilder> p_Configure = null)
+    public async Task<WebAssemblyRuntimeBuilder> LoadModule(String p_Module, Stream p_Stream, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type p_WrapperInterfaceType = null, Action<WebAssemblyModuleBuilder> p_Configure = null, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type p_RuntimeType = null)
     {
         WasmBinaryReader l_Reader = new WasmBinaryReader();
 
@@ -197,17 +197,19 @@ public class WebAssemblyRuntimeBuilder
         }
 
         WasmMetaData l_WasmMetaData = l_Reader.Finish();
-        return LoadModule(p_Module, p_WrapperInterfaceType, l_WasmMetaData, p_Configure);
+        return LoadModule(p_Module, p_WrapperInterfaceType, l_WasmMetaData, p_Configure, p_RuntimeType);
     }
 
-    public WebAssemblyRuntimeBuilder LoadModule(string p_Module, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type p_WrapperInterfaceType, WasmMetaData p_WasmMetaData, Action<WebAssemblyModuleBuilder> p_Configure = null)
+    public WebAssemblyRuntimeBuilder LoadModule(string p_Module, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type p_WrapperInterfaceType, WasmMetaData p_WasmMetaData, Action<WebAssemblyModuleBuilder> p_Configure = null, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type p_RuntimeType = null)
     {
         if (m_Modules.ContainsKey(p_Module))
         {
             throw new Exception($"Module {p_Module} already loaded");
         }
 
-        WebAssemblyModuleBuilder l_ModuleBuilder = new WebAssemblyModuleBuilder(p_Module, m_ExecutorType, p_WrapperInterfaceType, p_WasmMetaData, p_Configure);
+        Type l_FinalRuntimeType = p_RuntimeType ?? m_ExecutorType;
+        
+        WebAssemblyModuleBuilder l_ModuleBuilder = new WebAssemblyModuleBuilder(p_Module, l_FinalRuntimeType, p_WrapperInterfaceType, p_WasmMetaData, p_Configure);
         m_Modules.Add(p_Module, l_ModuleBuilder);
         return this;
     }
@@ -313,7 +315,7 @@ public class WebAssemblyRuntimeBuilder
             {
                 case WasmExternalKind.Function:
                     IWebAssemblyMethod l_Method = l_ExportModule.GetMethod(l_Export.Name);
-                    p_ImportModule.ImportMethod(l_WasmImport.Name, l_Method.DynamicInvoke);
+                    p_ImportModule.ImportMethod(l_WasmImport.Name, l_Method.GetNativeDelegate());
                     break;
                 case WasmExternalKind.Memory:
                     IWebAssemblyMemoryArea l_Memory = l_ExportModule.GetMemoryArea(l_Export.Name);

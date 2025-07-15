@@ -20,8 +20,7 @@ public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
     {
     }
 
-    public WebAssemblyJITAssembly BuildAssembly(IDictionary<int, IWebAssemblyMemoryArea> p_ImportedMemoryAreas,
-        IDictionary<int, Delegate> p_ImportMethods)
+    public WebAssemblyJITUnfinishedAssembly BuildAssembly()
     {
         Type l_Type = m_TypeBuilder.CreateType();
         object l_Instance = Activator.CreateInstance(l_Type);
@@ -43,28 +42,6 @@ public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
 
             IWebAssemblyMethod l_WebAssemblyMethod = CreateMethod(l_Instance, l_MethodInfo, l_FuncType);
             l_ExportedMethods.Add(l_Pair.Key, l_WebAssemblyMethod);
-        }
-        
-        if (p_ImportedMemoryAreas.Count > 0)
-        {
-            int l_Max = p_ImportedMemoryAreas.Keys.Max();
-            
-            for (int i = 0; i < l_Max + 1; i++)
-            {
-                byte[] l_Memory;
-                
-                if (p_ImportedMemoryAreas.TryGetValue(i, out IWebAssemblyMemoryArea l_MemoryArea))
-                {
-                    l_Memory = l_MemoryArea.GetInternalMemory();
-                }
-                else
-                {
-                    l_Memory = new byte[0];
-                }
-                
-                FieldInfo l_RuntimeFieldInfo = l_Type.GetField(m_MemoryFields[i].Name);
-                l_RuntimeFieldInfo.SetValue(l_Instance, l_Memory);
-            }
         }
         
         IWebAssemblyMemoryArea[] l_MemoryAreas = new IWebAssemblyMemoryArea[m_MemoryFields.Count];
@@ -92,40 +69,19 @@ public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
             {
                 l_MemoryAreas[i] = new WebAssemblyJITMemoryArea(l_MemoryAccess, l_MemoryUpdate, (int)m_WasmMetaData.Memory[i].Max);    
             }
-            else if (p_ImportedMemoryAreas.TryGetValue(i, out IWebAssemblyMemoryArea l_ImportedMemoryArea))
-            {
-                l_MemoryAreas[i] = l_ImportedMemoryArea;    
-            }
             else
             {
-                throw new Exception($"Memory not found: {i}");
+                // If no memory is defined in the module, create a default memory area with size 0
+                l_MemoryAreas[i] = new WebAssemblyJITMemoryArea(l_MemoryAccess, l_MemoryUpdate, 0);
             }
-            
             
         }
 
-        // Connect to imported Methods
-        foreach (KeyValuePair<int, Delegate> l_ImportMethod in p_ImportMethods)
-        {
-            FieldInfo l_RuntimeFieldInfo;
-            
-            if (WebAssemblyJITCompilerUtils.IsAsyncFuncResultType(l_ImportMethod.Value.Method.ReturnType))
-            {
-                l_RuntimeFieldInfo = l_Type.GetField(m_AsyncExternalFunctionFields[l_ImportMethod.Key].Name);        
-            }
-            else
-            {
-                l_RuntimeFieldInfo = l_Type.GetField(m_SyncExternalFunctionFields[l_ImportMethod.Key].Name);     
-            }
-            
-            l_RuntimeFieldInfo.SetValue(l_Instance, l_ImportMethod.Value);
-                
-        }
-        
-        
+        WebAssemblyJITUnfinishedAssembly l_UnfinishedAssembly = new WebAssemblyJITUnfinishedAssembly(l_ExportedMethods, l_Instance, l_MemoryAreas, m_MemoryFields, m_AsyncExternalFunctionFields, m_SyncExternalFunctionFields);
+
         Reset();
-        
-        return new WebAssemblyJITAssembly(l_ExportedMethods, l_Instance, l_MemoryAreas);
+
+        return l_UnfinishedAssembly;
     }
 
     [SuppressMessage("Warning", "IL2076")]

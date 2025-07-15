@@ -70,12 +70,13 @@ public class WebAssemblyModuleBuilder
         if (m_Executor == null)
         {
             m_Executor = (IWebAssemblyExecutor)Activator.CreateInstance(m_RuntimeType);
-            m_Executor.LoadCode(m_MetaData);
             
             if (m_WrapperInterfaceType != null && m_Executor is IWebAssemblyExecutorProxy)
             {
                 ((IWebAssemblyExecutorProxy)m_Executor).SetProxyType(m_WrapperInterfaceType);
             }
+            
+            m_Executor.LoadCode(m_MetaData);
         }
         
         if (m_ExternalConfig != null)

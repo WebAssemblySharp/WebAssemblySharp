@@ -14,8 +14,8 @@ namespace WebAssemblySharp.Runtime.JIT;
 public class WebAssemblyJITExecutor: IWebAssemblyExecutor, IWebAssemblyExecutorProxy
 {
     private WasmMetaData m_WasmMetaData;
-    private WebAssemblyJITRuntimeCompiler m_RuntimeCompiler;
     private WebAssemblyJITAssembly m_Assembly;
+    private WebAssemblyJITUnfinishedAssembly m_UnfinishedAssembly;
     [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
     private Type m_ProxyType;
     private IDictionary<int, IWebAssemblyMemoryArea> m_ImportedMemoryAreas;
@@ -29,26 +29,29 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor, IWebAssemblyExecutorP
 
     public IWebAssemblyMethod GetMethod(string p_Name)
     {
-        if (m_Assembly == null)
-            throw new InvalidOperationException("Assembly not initialized. Call Init() before using GetMethod.");
+        if (m_Assembly != null)
+            return (IWebAssemblyMethod)m_Assembly.ExportedMethodes[p_Name];
         
-        return (IWebAssemblyMethod)m_Assembly.ExportedMethodes[p_Name];
- 
+        if (m_UnfinishedAssembly != null)
+            return (IWebAssemblyMethod)m_UnfinishedAssembly.ExportedMethodes[p_Name];
+
+
+        throw new InvalidOperationException("Assembly not initialized. Call Init() before using GetMethod.");
+        
     }
 
     public void LoadCode(WasmMetaData p_WasmMetaData)
     {
         m_WasmMetaData = p_WasmMetaData;
+        WebAssemblyJITRuntimeCompiler l_RuntimeCompiler = new WebAssemblyJITRuntimeCompiler(m_WasmMetaData, m_ProxyType);
+        l_RuntimeCompiler.Compile();
+        m_UnfinishedAssembly = l_RuntimeCompiler.BuildAssembly();
     }
 
     public void OptimizeCode()
     {
         m_ImportedMemoryAreas = new ReadOnlyDictionary<int, IWebAssemblyMemoryArea>(m_ImportedMemoryAreas);
         m_ImportMethods = new ReadOnlyDictionary<int, Delegate>(m_ImportMethods);
-        
-        m_RuntimeCompiler = new WebAssemblyJITRuntimeCompiler(m_WasmMetaData, m_ProxyType);
-        m_RuntimeCompiler.Compile();
-    
     }
 
     public IWebAssemblyMemoryArea GetMemoryArea(string p_Name)
@@ -59,8 +62,19 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor, IWebAssemblyExecutorP
         {
             throw new Exception("Export not found: " + p_Name);
         }
+
+        if (m_Assembly != null)
+        {
+            return m_Assembly.MemoryAreas[l_ExportIndex.Value];    
+        }
         
-        return m_Assembly.MemoryAreas[l_ExportIndex.Value];
+        if (m_UnfinishedAssembly != null)
+        {
+            return m_UnfinishedAssembly.MemoryAreas[l_ExportIndex.Value];
+        }
+        
+        throw new InvalidOperationException("Assembly not initialized. Call Init() before using GetMemoryArea."); 
+        
     }
 
     public void ImportMemoryArea(string p_Name, IWebAssemblyMemoryArea p_Memory)
@@ -100,6 +114,9 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor, IWebAssemblyExecutorP
         if (!p_ProxyType.IsInterface)
             throw new ArgumentException("Proxy type must be an interface type.", nameof(p_ProxyType));
         
+        if (m_UnfinishedAssembly != null || m_Assembly != null)
+            throw new InvalidOperationException("Proxy type cannot be set after assembly has been initialized.");
+        
         m_ProxyType = p_ProxyType;
     }
 
@@ -119,8 +136,8 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor, IWebAssemblyExecutorP
 
     public Task Init()
     {
-        m_Assembly = m_RuntimeCompiler.BuildAssembly(m_ImportedMemoryAreas, m_ImportMethods);
-        m_RuntimeCompiler = null;
+        m_Assembly = m_UnfinishedAssembly.Finalize(m_ImportedMemoryAreas, m_ImportMethods);
+        m_UnfinishedAssembly = null;
         return Task.CompletedTask;
     }
 }
