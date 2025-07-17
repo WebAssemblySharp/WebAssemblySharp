@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using WebAssemblySharp.MetaData;
 
 namespace WebAssemblySharp.Runtime.Utils;
 
+[RequiresDynamicCode("WebAssemblyValueTupleUtils requires dynamic code.")]
 public static class WebAssemblyValueTupleUtils
 {
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
     public static Type GetValueTupleType(WasmDataType[] p_FuncTypeResults)
     {
         if (p_FuncTypeResults.Length == 2)

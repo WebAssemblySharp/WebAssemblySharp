@@ -9,11 +9,23 @@ namespace WebAssemblySharpTest.Runtime;
 public class ImportTest
 {
     [TestMethod]
-    public async Task ExecuteImportRuntimeLevelWasmAsyncTest()
+    [DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
+    public async Task ExecuteImportRuntimeLevelWasmRealAsyncTest(Type p_RuntimeType)
     {
-        WebAssemblyRuntimeBuilder l_RuntimeBuilder = WebAssemblyRuntimeBuilder.Create();
+        WebAssemblyRuntimeBuilder l_RuntimeBuilder = WebAssemblyRuntimeBuilder.Create(p_RuntimeType);
         await l_RuntimeBuilder.LoadModule("main", typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"));
-        l_RuntimeBuilder.ImportMethod("times2", new Func<int, Task<int>>(x => Task.FromResult(x * 2)));
+        l_RuntimeBuilder.ImportMethod("times2", new Func<int, ValueTask<int>>(x =>
+        {
+            TaskCompletionSource<int> l_Tcs = new TaskCompletionSource<int>();
+            
+            Task.Run(async () =>
+            {
+                await Task.Delay(250); // Simulate some async work
+                l_Tcs.SetResult(x * 2);
+            });
+            
+            return new ValueTask<int>(l_Tcs.Task);
+        }));
         WebAssemblyRuntime l_Runtime = await l_RuntimeBuilder.Build();
         WebAssemblyModule l_Module = l_Runtime.GetModule("main");
         int l_Result = (int) await l_Module.DynamicCall("twiceplus5", 3);
@@ -21,9 +33,23 @@ public class ImportTest
     }
     
     [TestMethod]
-    public async Task ExecuteImportRuntimeLevelWasmSyncTest()
+    [DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
+    public async Task ExecuteImportRuntimeLevelWasmAsyncTest(Type p_RuntimeType)
     {
-        WebAssemblyRuntimeBuilder l_RuntimeBuilder = WebAssemblyRuntimeBuilder.Create();
+        WebAssemblyRuntimeBuilder l_RuntimeBuilder = WebAssemblyRuntimeBuilder.Create(p_RuntimeType);
+        await l_RuntimeBuilder.LoadModule("main", typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"));
+        l_RuntimeBuilder.ImportMethod("times2", new Func<int, ValueTask<int>>(x => ValueTask.FromResult(x * 2)));
+        WebAssemblyRuntime l_Runtime = await l_RuntimeBuilder.Build();
+        WebAssemblyModule l_Module = l_Runtime.GetModule("main");
+        int l_Result = (int) await l_Module.DynamicCall("twiceplus5", 3);
+        Assert.AreEqual(11, l_Result);
+    }
+    
+    [TestMethod]
+    [DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
+    public async Task ExecuteImportRuntimeLevelWasmSyncTest(Type p_RuntimeType)
+    {
+        WebAssemblyRuntimeBuilder l_RuntimeBuilder = WebAssemblyRuntimeBuilder.Create(p_RuntimeType);
         await l_RuntimeBuilder.LoadModule("main", typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"));
         l_RuntimeBuilder.ImportMethod("times2", new Func<int, int>(x => x * 2));
         WebAssemblyRuntime l_Runtime = await l_RuntimeBuilder.Build();
@@ -34,13 +60,14 @@ public class ImportTest
     }
     
     [TestMethod]
-    public async Task ExecuteImportModuleLevelWasmAsyncTest()
+    [DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
+    public async Task ExecuteImportModuleLevelWasmAsyncTest(Type p_RuntimeType)
     {
-        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(p_RuntimeType,
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"),
             (x) =>
             {
-                x.ImportMethod("times2", new Func<int, Task<int>>(x => Task.FromResult(x * 2)));
+                x.ImportMethod("times2", new Func<int, ValueTask<int>>(x => ValueTask.FromResult(x * 2)));
             });
         
         int l_Result = (int) await l_Module.DynamicCall("twiceplus5", 3);
@@ -48,9 +75,10 @@ public class ImportTest
     }
     
     [TestMethod]
-    public async Task ExecuteImportModuleLevelWasmSyncTest()
+    [DynamicData(nameof(TestRuntimeProvider.RuntimeTypes), typeof(TestRuntimeProvider))]
+    public async Task ExecuteImportModuleLevelWasmSyncTest(Type p_RuntimeType)
     {
-        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
+        WebAssemblyModule l_Module = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(p_RuntimeType,
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.imports.wasm"),
             (x) =>
             {

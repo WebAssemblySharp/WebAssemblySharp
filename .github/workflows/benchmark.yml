@@ -118,7 +118,6 @@ jobs:
               for b in benchmarks:
                   stats = b.get("Statistics", {})
                   memory = b.get("Memory", {})
-                  envInfo = b.get("Properties", {})
 
                   runtime = "Unkown";
 
@@ -127,6 +126,14 @@ jobs:
                     runtime = match.group(1);
                   else:
                     runtime = "Unkown";
+
+                  if stats is None:
+                    print(f"Skip benchmark result from: {b.get("DisplayInfo", "Unknown")} because stats contains no data")
+                    continue
+
+                  if memory is None:
+                    print(f"Skip benchmark result from: {b.get("DisplayInfo", "Unknown")} because memory contains no data")
+                    continue
 
                   entry = {
                       "displayInfo": b.get("DisplayInfo", "Unknown"),

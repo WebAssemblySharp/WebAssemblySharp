@@ -27,6 +27,11 @@ public class WebAssemblyJITExecutorVoidMethod : IWebAssemblyMethod
     {
         return m_FuncMetaData;
     }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
+    }
 
     public Func<ValueTask> GetVoidDelegate()
     {
@@ -56,6 +61,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1> : IWebAssemblyMethod
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput11, ValueTask> GetVoidDelegate<TInput11>() where TInput11 : struct
@@ -90,6 +100,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2> : IWebAssemblyMe
     {
         return m_FuncMetaData;
     }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
+    }
 
     public Func<TInput11, TInput12, ValueTask> GetVoidDelegate<TInput11, TInput12>() where TInput11 : struct where TInput12 : struct
     {
@@ -121,6 +136,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3> : IWebA
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput11, TInput12, TInput13, ValueTask> GetVoidDelegate<TInput11, TInput12, TInput13>()
@@ -157,6 +177,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput11, TInput12, TInput13, TInput14, ValueTask> GetVoidDelegate<TInput11, TInput12, TInput13, TInput14>() where TInput11 : struct
@@ -197,6 +222,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     {
         return m_FuncMetaData;
     }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
+    }
 
     public Func<TInput11, TInput12, TInput13, TInput14, TInput15, ValueTask> GetVoidDelegate<TInput11, TInput12, TInput13, TInput14, TInput15>()
         where TInput11 : struct where TInput12 : struct where TInput13 : struct where TInput14 : struct where TInput15 : struct
@@ -234,6 +264,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput11, TInput12, TInput13, TInput14, TInput15, TInput16, ValueTask>
@@ -278,6 +313,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput11, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, ValueTask>
@@ -325,6 +365,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput11, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, ValueTask> GetVoidDelegate<TInput11, TInput21,
@@ -374,6 +419,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput11, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, ValueTask> GetVoidDelegate<TInput11,
@@ -426,6 +476,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput11, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, ValueTask>
@@ -485,6 +540,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput12, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, ValueTask>
@@ -549,6 +609,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput13, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TInput121, ValueTask>
@@ -615,6 +680,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput14, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TInput121, TInput131,
@@ -686,6 +756,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput15, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TInput121, TInput131,
@@ -760,6 +835,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     {
         return m_FuncMetaData;
     }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
+    }
 
     public Func<TInput16, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TInput121, TInput131,
         TInput141, TInput151, ValueTask> GetVoidDelegate<TInput16, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91,
@@ -833,6 +913,11 @@ public class WebAssemblyJITExecutorVoidMethod<TInput1, TInput2, TInput3, TInput4
     public WasmFuncType GetMetaData()
     {
         return m_FuncMetaData;
+    }
+    
+    public Delegate GetNativeDelegate()
+    {
+        return m_Delegate;
     }
 
     public Func<TInput17, TInput21, TInput31, TInput41, TInput51, TInput61, TInput71, TInput81, TInput91, TInput101, TInput111, TInput121, TInput131,

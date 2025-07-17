@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
@@ -9,13 +10,15 @@ namespace WebAssemblySharp.Runtime;
 public class WebAssemblyModuleBuilder
 {
     private readonly string m_Name;
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
     private Type m_RuntimeType;
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
     private Type m_WrapperInterfaceType;
     private readonly WasmMetaData m_MetaData;
     private Action<WebAssemblyModuleBuilder> m_ExternalConfig;
     private IWebAssemblyExecutor m_Executor;
 
-    public WebAssemblyModuleBuilder(string p_Name, Type p_RuntimeType, Type p_WrapperInterfaceType, WasmMetaData p_WasmMetaData, Action<WebAssemblyModuleBuilder> p_Configure)
+    public WebAssemblyModuleBuilder(string p_Name, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type p_RuntimeType, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type p_WrapperInterfaceType, WasmMetaData p_WasmMetaData, Action<WebAssemblyModuleBuilder> p_Configure)
     {
         m_Name = p_Name;
         m_RuntimeType = p_RuntimeType;
@@ -29,7 +32,7 @@ public class WebAssemblyModuleBuilder
         get { return m_MetaData; }
     }
 
-    public WebAssemblyModuleBuilder RuntimeType(Type p_RuntimeType)
+    public WebAssemblyModuleBuilder RuntimeType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type p_RuntimeType)
     {
         if (m_Executor != null)
         {
@@ -40,7 +43,7 @@ public class WebAssemblyModuleBuilder
         return this;
     }
 
-    public WebAssemblyModuleBuilder WrapperInterfaceType(Type p_WrapperInterfaceType)
+    public WebAssemblyModuleBuilder WrapperInterfaceType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type p_WrapperInterfaceType)
     {
         if (m_Executor != null)
         {
@@ -51,7 +54,7 @@ public class WebAssemblyModuleBuilder
         return this;
     }
 
-    public WebAssemblyModuleBuilder RuntimeType<T>() where T : IWebAssemblyExecutor
+    public WebAssemblyModuleBuilder RuntimeType<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>() where T : IWebAssemblyExecutor
     {
         return RuntimeType(typeof(T));
     }
@@ -67,12 +70,13 @@ public class WebAssemblyModuleBuilder
         if (m_Executor == null)
         {
             m_Executor = (IWebAssemblyExecutor)Activator.CreateInstance(m_RuntimeType);
-            m_Executor.LoadCode(m_MetaData);
             
             if (m_WrapperInterfaceType != null && m_Executor is IWebAssemblyExecutorProxy)
             {
                 ((IWebAssemblyExecutorProxy)m_Executor).SetProxyType(m_WrapperInterfaceType);
             }
+            
+            m_Executor.LoadCode(m_MetaData);
         }
         
         if (m_ExternalConfig != null)

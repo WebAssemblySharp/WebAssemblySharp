@@ -1,4 +1,6 @@
-﻿using BenchmarkDotNet.Attributes;
+﻿using System.Runtime.CompilerServices;
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes.Filters;
 using BenchmarkDotNet.Jobs;
 using WebAssemblySharp.Attributes;
 using WebAssemblySharp.Runtime;
@@ -9,8 +11,11 @@ using WebAssemblySharpExampleData;
 namespace WebAssemblySharpBenchmark;
 
 //[DotTraceDiagnoser]
+//[ShortRunJob(RuntimeMoniker.NativeAot10_0)] // Not supported right now
 [ShortRunJob(RuntimeMoniker.Net10_0)]
+//[ShortRunJob(RuntimeMoniker.NativeAot90)] // Not supported right now
 [ShortRunJob(RuntimeMoniker.Net90)]
+
 [MemoryDiagnoser]
 [JsonExporter("-custom", indentJson: true, excludeMeasurements: true)]
 public class CallingOverHeadBenchmark
@@ -26,19 +31,24 @@ public class CallingOverHeadBenchmark
     public async Task GlobalSetup()
     {
         m_InterpreterModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(typeof(WebAssemblyInterpreterExecutor), typeof(IAdd));
-        m_JitModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(typeof(WebAssemblyJITExecutor), typeof(IAdd));
-
         m_InterpreterModuleAdd = m_InterpreterModule.AsInterface<IAdd>();
-        m_JitModuleAdd = m_JitModule.AsInterface<IAdd>();
         m_InterpreterModuleLateBinding = m_InterpreterModule.AsInterface<IAddLateBinding>();
-        m_JitModuleLateBinding = m_JitModule.AsInterface<IAddLateBinding>();
 
         await m_InterpreterModule.Call<int, int, int>("add", 1, 1);
-        await m_JitModule.Call<int, int, int>("add", 1, 1);
         await m_InterpreterModuleAdd.add(1, 1);
-        await m_JitModuleAdd.add(1, 1);
         await m_InterpreterModuleLateBinding.add(1, 1);
-        await m_JitModuleLateBinding.add(1, 1);
+        
+        
+        if (WebAssemblyJITExecutor.IsSupported)
+        {
+            m_JitModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(typeof(WebAssemblyJITExecutor), typeof(IAdd));
+            m_JitModuleAdd = m_JitModule.AsInterface<IAdd>();
+            m_JitModuleLateBinding = m_JitModule.AsInterface<IAddLateBinding>();
+            
+            await m_JitModule.Call<int, int, int>("add", 1, 1);
+            await m_JitModuleAdd.add(1, 1);
+            await m_JitModuleLateBinding.add(1, 1);
+        }
         
     }
 
@@ -79,18 +89,21 @@ public class CallingOverHeadBenchmark
     }
 
     [Benchmark]
+    [AotFilter]
     public async Task JitModule()
     {
         await m_JitModule.Call<int, int, int>("add", 1, 1);
     }
 
     [Benchmark]
+    [AotFilter]
     public async Task JitInterface()
     {
         await m_JitModuleAdd.add(1, 1);
     }
     
     [Benchmark]
+    [AotFilter]
     public async Task JitInterfaceLateBinding()
     {
         await m_JitModuleLateBinding.add(1, 1);

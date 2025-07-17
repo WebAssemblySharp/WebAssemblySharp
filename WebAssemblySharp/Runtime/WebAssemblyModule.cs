@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
@@ -33,7 +34,8 @@ public class WebAssemblyModule
         Name = p_Name;
     }
     
-    public T AsInterface<T>()
+    [RequiresDynamicCode("AsInterface requires dynamic code to be enabled")]
+    public T AsInterface<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
     {
         if (m_Executor is IWebAssemblyExecutorProxy)
         {

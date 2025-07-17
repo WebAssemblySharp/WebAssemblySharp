@@ -1,5 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
@@ -14,7 +18,9 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
     private readonly WasmCode m_Code;
     private readonly string m_Name;
     private readonly Func<object[], ITuple> m_MuliResultCreator;
+    private readonly Delegate m_NativeDelegate;
 
+    [RequiresDynamicCode("Call CreateNativeDelegate")]
     public WebAssemblyInterpreterMethod(WebAssemblyInterpreterVirtualMaschine p_VirtualMachine, WasmFuncType p_FuncType, WasmCode p_Code,
         string p_Name)
     {
@@ -23,8 +29,64 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         m_Name = p_Name;
         m_VirtualMachine = p_VirtualMachine;
         m_MuliResultCreator = GetMultiResultCreator(p_FuncType.Results);
+
+        m_NativeDelegate = CreateNativeDelegate();
     }
 
+    [RequiresDynamicCode("Calls System.Reflection.MethodInfo.MakeGenericMethod(params Type[])")]
+    private Delegate CreateNativeDelegate()
+    {
+        List<Type> l_Types = m_FuncType.Parameters.Select(x => WebAssemblyDataTypeUtils.GetInternalType(x)).ToList();
+        String l_DelegateName;
+        
+        if (m_FuncType.Results == null || m_FuncType.Results.Length == 0)
+        {
+            if (m_FuncType.Parameters.Length == 0)
+            {
+                // No parameters and no results
+                return GetVoidDelegate();
+            }
+            
+            l_DelegateName = nameof(GetVoidDelegate);
+        }
+        else
+        {
+            
+            l_DelegateName = nameof(GetDelegate);
+            // Add Results type
+            if (m_FuncType.Results.Length == 1)
+            {
+                l_Types.Add(WebAssemblyDataTypeUtils.GetInternalType(m_FuncType.Results[0]));
+            }
+            else
+            {
+                Type l_ReturnType = WebAssemblyValueTupleUtils.GetValueTupleType(m_FuncType.Results);
+                l_Types.Add(l_ReturnType);
+            }
+        }
+
+        MethodInfo[] l_MethodInfos = typeof(WebAssemblyInterpreterMethod).GetMethods();
+
+        Type[] l_GenericArguments = l_Types.ToArray();
+
+        foreach (MethodInfo l_MethodInfo in l_MethodInfos)
+        {
+            
+            if (l_MethodInfo.Name != l_DelegateName)
+                continue;
+            
+            if (l_GenericArguments.Length != l_MethodInfo.GetGenericArguments().Length)
+                continue;
+            
+            return (Delegate)l_MethodInfo.MakeGenericMethod(l_GenericArguments).Invoke(this, new object[0]);
+            
+        }
+        
+        throw new InvalidOperationException("Could not find method " + l_DelegateName + " with " + l_GenericArguments.Length +
+                                            " generic arguments in WebAssemblyInterpreterMethod");
+    }
+
+    [SuppressMessage("Warning", "IL3050")]
     private Func<object[], ITuple> GetMultiResultCreator(WasmDataType[] p_FuncTypeResults)
     {
         if (p_FuncTypeResults.Length <= 1)
@@ -79,6 +141,11 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
     public WasmFuncType GetMetaData()
     {
         return m_FuncType;
+    }
+
+    public Delegate GetNativeDelegate()
+    {
+        return m_NativeDelegate;
     }
 
     private void ValidateParameters(object[] p_Args)

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 
@@ -16,5 +17,5 @@ public class WebAssemblyJITAssembly
         Instance = p_Instance;
         MemoryAreas = p_MemoryAreas;
     }
-
+    
 }

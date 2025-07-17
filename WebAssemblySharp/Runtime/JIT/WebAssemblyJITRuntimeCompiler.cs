@@ -2,22 +2,25 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Utils;
 using WebAssemblySharp.Runtime.Utils;
 
 namespace WebAssemblySharp.Runtime.JIT;
 
+[RequiresDynamicCode("WebAssemblyJITRuntimeCompiler requires dynamic code.")]
 public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
 {
-    public WebAssemblyJITRuntimeCompiler(WasmMetaData p_WasmMetaData, Type p_ProxyType) : base(p_WasmMetaData, p_ProxyType)
+    public WebAssemblyJITRuntimeCompiler(WasmMetaData p_WasmMetaData, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type p_ProxyType) : base(p_WasmMetaData, p_ProxyType)
     {
     }
 
-    public WebAssemblyJITAssembly BuildAssembly()
+    public WebAssemblyJITUnfinishedAssembly BuildAssembly()
     {
         Type l_Type = m_TypeBuilder.CreateType();
         object l_Instance = Activator.CreateInstance(l_Type);
@@ -40,15 +43,15 @@ public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
             IWebAssemblyMethod l_WebAssemblyMethod = CreateMethod(l_Instance, l_MethodInfo, l_FuncType);
             l_ExportedMethods.Add(l_Pair.Key, l_WebAssemblyMethod);
         }
-
+        
         IWebAssemblyMemoryArea[] l_MemoryAreas = new IWebAssemblyMemoryArea[m_MemoryFields.Count];
         
         for (int i = 0; i < m_MemoryFields.Count; i++)
         {
-            FieldInfo l_RuntimeFieldInfo = l_Instance.GetType().GetField(m_MemoryFields[i].Name);
+            FieldInfo l_RuntimeFieldInfo = l_Type.GetField(m_MemoryFields[i].Name);
 
             // Constant expression representing the specific instance of MyClass
-            ConstantExpression l_InstanceExpression = Expression.Constant(l_Instance, l_Instance.GetType());
+            ConstantExpression l_InstanceExpression = Expression.Constant(l_Instance, l_Type);
             // Field expression representing accessing the field
             MemberExpression l_FieldAccess = Expression.Field(l_InstanceExpression, l_RuntimeFieldInfo);
             
@@ -61,16 +64,27 @@ public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
             ParameterExpression l_Parameter = Expression.Parameter(typeof(byte[]));
             BinaryExpression l_Assign = Expression.Assign(l_FieldAccess, l_Parameter);
             Action<byte[]> l_MemoryUpdate = Expression.Lambda<Action<byte[]>>(l_Assign, l_Parameter).Compile();
-            
-            l_MemoryAreas[i] = new WebAssemblyJITMemoryArea(l_MemoryAccess, l_MemoryUpdate, (int)m_WasmMetaData.Memory[i].Max);
+
+            if (m_WasmMetaData.Memory != null && m_WasmMetaData.Memory.Length > i)
+            {
+                l_MemoryAreas[i] = new WebAssemblyJITMemoryArea(l_MemoryAccess, l_MemoryUpdate, (int)m_WasmMetaData.Memory[i].Max);    
+            }
+            else
+            {
+                // If no memory is defined in the module, create a default memory area with size 0
+                l_MemoryAreas[i] = new WebAssemblyJITMemoryArea(l_MemoryAccess, l_MemoryUpdate, 0);
+            }
             
         }
-        
+
+        WebAssemblyJITUnfinishedAssembly l_UnfinishedAssembly = new WebAssemblyJITUnfinishedAssembly(l_ExportedMethods, l_Instance, l_MemoryAreas, m_MemoryFields, m_AsyncExternalFunctionFields, m_SyncExternalFunctionFields);
+
         Reset();
-        
-        return new WebAssemblyJITAssembly(l_ExportedMethods, l_Instance, l_MemoryAreas);
+
+        return l_UnfinishedAssembly;
     }
 
+    [SuppressMessage("Warning", "IL2076")]
     private IWebAssemblyMethod CreateMethod(object p_Instance, MethodInfo p_MethodInfo, WasmFuncType p_FuncType)
     {
         List<Type> l_ParameterTypes = p_FuncType.Parameters.Select(x => WebAssemblyDataTypeUtils.GetInternalType(x)).ToList();
@@ -192,7 +206,8 @@ public class WebAssemblyJITRuntimeCompiler: WebAssemblyJITCompiler
 
         return (IWebAssemblyMethod)Activator.CreateInstance(l_DelegateType, p_Instance, p_FuncType, p_MethodInfo);
     }
-
+    
+    [SuppressMessage("Warning", "IL2076")]
     private IWebAssemblyMethod CreateVoidMethod(List<Type> p_ParameterTypes, object p_Instance, MethodInfo p_MethodInfo, WasmFuncType p_FuncType)
     {
         

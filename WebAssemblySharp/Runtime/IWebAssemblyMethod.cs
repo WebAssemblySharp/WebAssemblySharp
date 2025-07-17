@@ -20,6 +20,8 @@ public interface IWebAssemblyMethod
     ValueTask<object> DynamicInvoke(params object[] p_Args);
 
     WasmFuncType GetMetaData();
+    
+    Delegate GetNativeDelegate();
 
     Func<ValueTask<TResult>> GetDelegate<TResult>() where TResult : struct
     {

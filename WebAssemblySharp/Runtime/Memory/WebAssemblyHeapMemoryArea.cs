@@ -64,4 +64,9 @@ public class WebAssemblyHeapMemoryArea: IWebAssemblyMemoryArea
         Array.Copy(l_OldMemory, m_Memory, l_OldMemory.Length);
         return m_CurrentPages;
     }
+
+    public byte[] GetInternalMemory()
+    {
+        return m_Memory;
+    }
 }

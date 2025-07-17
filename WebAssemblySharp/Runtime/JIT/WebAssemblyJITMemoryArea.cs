@@ -62,4 +62,9 @@ public class WebAssemblyJITMemoryArea: IWebAssemblyMemoryArea
         m_MemoryUpdate(l_NewMemory);
         return GetCurrentPages();
     }
+
+    public byte[] GetInternalMemory()
+    {
+        return m_MemoryAccess();
+    }
 }

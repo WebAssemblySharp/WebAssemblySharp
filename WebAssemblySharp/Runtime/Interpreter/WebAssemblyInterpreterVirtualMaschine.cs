@@ -23,7 +23,7 @@ public class WebAssemblyInterpreterVirtualMaschine
 {
     public delegate void ExecuteInstructionDelegate(WasmInstruction Instruction, WebAssemblyInterpreterExecutionContext Context);
 
-    public delegate Task ExecuteInstructionDelegateAsync(WasmInstruction Instruction, WebAssemblyInterpreterExecutionContext Context);
+    public delegate ValueTask ExecuteInstructionDelegateAsync(WasmInstruction Instruction, WebAssemblyInterpreterExecutionContext Context);
 
     private WebAssemblyInterpreterValue[] m_Globals;
     private IWebAssemblyMemoryArea[] m_MemoryAreas;

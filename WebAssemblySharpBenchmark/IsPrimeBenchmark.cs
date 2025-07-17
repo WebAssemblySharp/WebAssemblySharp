@@ -1,7 +1,7 @@
+using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Diagnostics.dotTrace;
+using BenchmarkDotNet.Attributes.Filters;
 using BenchmarkDotNet.Jobs;
-using BenchmarkDotNet.Running;
 using WebAssemblySharp.Runtime;
 using WebAssemblySharp.Runtime.JIT;
 using WebAssemblySharpExampleData;
@@ -9,7 +9,10 @@ using WebAssemblySharpExampleData;
 namespace WebAssemblySharpBenchmark;
 
 //[DotTraceDiagnoser]
+
+[ShortRunJob(RuntimeMoniker.NativeAot10_0)]
 [ShortRunJob(RuntimeMoniker.Net10_0)]
+[ShortRunJob(RuntimeMoniker.NativeAot90)]
 [ShortRunJob(RuntimeMoniker.Net90)]
 [MemoryDiagnoser]
 [JsonExporter("-custom", indentJson: true, excludeMeasurements: true)]
@@ -28,14 +31,21 @@ public class IsPrimeBenchmark {
     {
         m_InterpreterModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(
             typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
-        
-        m_JitModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(typeof(WebAssemblyJITExecutor),
-            typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
-        
         await m_InterpreterModule.Call<int, int>("is_prime", 1);
-        await m_JitModule.Call<int, int>("is_prime", 1);
+        
+        
+        if (WebAssemblyJITExecutor.IsSupported)
+        {
+            m_JitModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(typeof(WebAssemblyJITExecutor),
+                typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));
+        
+        
+            await m_JitModule.Call<int, int>("is_prime", 1);
+            
+        }
+        
     }
-
+    
     [GlobalCleanup]
     public void GlobalCleanup()
     {
@@ -66,6 +76,7 @@ public class IsPrimeBenchmark {
     }
 
     [Benchmark]
+    [AotFilter]
     public async Task Jit() {
 
         await m_JitModule.Call<int, int>("is_prime", N);
