@@ -948,7 +948,9 @@ public class WebAssemblyJITCompiler
             p_IlGenerator.Emit(OpCodes.Ldloc, l_Locals[i]);    
         }
         
+#pragma warning disable IL2075
         p_IlGenerator.Emit(OpCodes.Callvirt, l_FunctionField.FieldType.GetMethod("Invoke")); // Call the function
+#pragma warning restore IL2075
         
         Label l_End = p_IlGenerator.DefineLabel();
         p_IlGenerator.Emit(OpCodes.Br, l_End); // End of the sync way
@@ -966,7 +968,9 @@ public class WebAssemblyJITCompiler
             p_IlGenerator.Emit(OpCodes.Ldloc, l_Locals[i]);    
         }
         
+#pragma warning disable IL2075
         p_IlGenerator.Emit(OpCodes.Callvirt, l_AsyncFunctionField.FieldType.GetMethod("Invoke")); // Call the function
+#pragma warning restore IL2075
         
         // At this point there is a ValueTask on the Stack and we await it in a sync manner for now
         if (l_FuncType.Results == null || l_FuncType.Results.Length == 0)
@@ -1041,7 +1045,9 @@ public class WebAssemblyJITCompiler
             for (int i = 0; i < l_FuncType.Results.Length; i++)
             {
                 p_IlGenerator.Emit(OpCodes.Ldloc, l_TupleLocal);
+#pragma warning disable IL2075
                 p_IlGenerator.Emit(OpCodes.Ldfld, l_ResultType.GetField($"Item{i + 1}"));
+#pragma warning restore IL2075
             }
         }
     }

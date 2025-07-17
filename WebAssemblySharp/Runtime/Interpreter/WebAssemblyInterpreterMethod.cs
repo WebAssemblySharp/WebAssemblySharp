@@ -20,7 +20,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
     private readonly Func<object[], ITuple> m_MuliResultCreator;
     private readonly Delegate m_NativeDelegate;
 
-    [RequiresDynamicCode("Call CreateNativeDelegate")]
+    
     public WebAssemblyInterpreterMethod(WebAssemblyInterpreterVirtualMaschine p_VirtualMachine, WasmFuncType p_FuncType, WasmCode p_Code,
         string p_Name)
     {
@@ -33,7 +33,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
         m_NativeDelegate = CreateNativeDelegate();
     }
 
-    [RequiresDynamicCode("Calls System.Reflection.MethodInfo.MakeGenericMethod(params Type[])")]
+    
     private Delegate CreateNativeDelegate()
     {
         List<Type> l_Types = m_FuncType.Parameters.Select(x => WebAssemblyDataTypeUtils.GetInternalType(x)).ToList();

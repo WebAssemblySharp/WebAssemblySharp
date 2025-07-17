@@ -4,7 +4,9 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Benchmark History Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/multiple-select-vanilla/dist/styles/css/multiple-select.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
         body {
             font-family: sans-serif;
@@ -54,14 +56,34 @@
             min-height: 180px;
             max-height: 180px;
         }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            /* Make header sticky */
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: #f4f4f4;
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+        
     </style>
 </head>
 <body>
-<h1>Benchmark History Dashboard</h1>
 
-<select id="runtimeFilter" multiple size="1" onchange="main()">
-    <option selected value="">All</option>
-</select>
+<div class="header">
+    <h1>Benchmark History Dashboard</h1>
+
+    <div>
+        <select id="runtimeFilter" multiple onchange="main()">
+            
+        </select>    
+    </div>
+        
+</div>
+
 
 <div id="charts"></div>
 
@@ -138,6 +160,7 @@
 
         // Create an select element for the chart
         const select = document.createElement("select");
+        select.multiple = true;
         select.onchange = () => {
 
             container.querySelector("canvas").remove();
@@ -145,12 +168,7 @@
             container.appendChild(canvas);
             createChartElement(canvas, select, labels, datasets, valueName);
         }; 
-
-        const defaultOption = document.createElement("option");
-        defaultOption.value = "";
-        defaultOption.textContent = "All";
-        select.appendChild(defaultOption);
-
+        
         const usedNames = new Set();
 
         // Create options for each dataset
@@ -165,12 +183,14 @@
             const option = document.createElement("option");
             option.value = parts.fullName;
             option.textContent = parts.fullName;
+            option.selected = true;
             select.appendChild(option);
             usedNames.add(parts.fullName);
         });
 
         // Add the select element to the container
         container.appendChild(select);
+        multipleSelect(select);
 
         const canvas = document.createElement("canvas");
         container.appendChild(canvas);
@@ -181,19 +201,14 @@
     
     function createChartElement(canvas, select, labels, datasets, valueName) {
 
-        
+        const selectedOptions = Array.from(select.selectedOptions).map(opt => opt.value)
         
         const finalDataSets = [];
 
         datasets.filter((x) => {
             
-            if (select.value === "") {
-                return true; // Show all datasets
-            }
-
             const parts = splitGroupName(x.name);
-            
-            return parts.fullName === select.value;
+            return selectedOptions.includes(parts.fullName);
             
         }).forEach((x) => {
             finalDataSets.push({
@@ -321,16 +336,16 @@
                 const option = document.createElement("option");
                 option.value = runtime;
                 option.textContent = runtime;
+                option.selected = true;
                 runtimeFilter.appendChild(option);
             });
+            multipleSelect(runtimeFilter);
         }
 
         // Filter data by selected runtime(s)
         const runtimeFilter = document.getElementById("runtimeFilter");
-        const selectedOptions = Array.from(runtimeFilter.selectedOptions).map(opt => opt.value).filter(v => v !== "");
-        const filteredData = (selectedOptions.length > 0)
-            ? rawData.filter(e => selectedOptions.includes(e.runtime))
-            : rawData;
+        const selectedOptions = Array.from(runtimeFilter.selectedOptions).map(opt => opt.value);
+        const filteredData = rawData.filter(e => selectedOptions.includes(e.runtime));
 
         // Sort data by timestamp (optional, in case the order is inconsistent)
         filteredData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -351,6 +366,16 @@
     }
 
     main(true);
+
+    
+    
+    
+</script>
+<script type="module">
+    // Initialize multiple select
+    import { multipleSelect } from 'https://cdn.jsdelivr.net/npm/multiple-select-vanilla/dist/index.js';
+    window.multipleSelect = multipleSelect;
+    
 </script>
 </body>
 </html>
