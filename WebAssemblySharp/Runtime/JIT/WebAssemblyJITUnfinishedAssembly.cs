@@ -7,6 +7,7 @@ using System.Reflection;
 
 namespace WebAssemblySharp.Runtime.JIT;
 
+[RequiresDynamicCode("WebAssemblyJITUnfinishedAssembly requires dynamic code.")]
 public class WebAssemblyJITUnfinishedAssembly: WebAssemblyJITAssembly
 {
     private readonly List<FieldInfo> m_MemoryFields;
@@ -42,7 +43,9 @@ public class WebAssemblyJITUnfinishedAssembly: WebAssemblyJITAssembly
                     l_Memory = new byte[0];
                 }
                 
+#pragma warning disable IL2075
                 FieldInfo l_RuntimeFieldInfo = l_Type.GetField(m_MemoryFields[i].Name);
+#pragma warning restore IL2075
                 l_RuntimeFieldInfo.SetValue(Instance, l_Memory);
             }
         }
@@ -54,11 +57,15 @@ public class WebAssemblyJITUnfinishedAssembly: WebAssemblyJITAssembly
             
             if (WebAssemblyJITCompilerUtils.IsAsyncFuncResultType(l_ImportMethod.Value.Method.ReturnType))
             {
+#pragma warning disable IL2075
                 l_RuntimeFieldInfo = l_Type.GetField(m_AsyncExternalFunctionFields[l_ImportMethod.Key].Name);        
+#pragma warning restore IL2075
             }
             else
             {
+#pragma warning disable IL2075
                 l_RuntimeFieldInfo = l_Type.GetField(m_SyncExternalFunctionFields[l_ImportMethod.Key].Name);     
+#pragma warning restore IL2075
             }
             
             l_RuntimeFieldInfo.SetValue(Instance, l_ImportMethod.Value);

@@ -1,63 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Benchmark History Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/multiple-select-vanilla/dist/styles/css/multiple-select.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
-      body {
-        font-family: sans-serif;
-        margin: 20px;
-        background-color: #f4f4f4;
-      }
-      .chart-container {
-        margin-bottom: 40px;
-        background: #fff;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      }
-      h2 {
-        font-size: 1.2em;
-        margin-bottom: 10px;
-      }
-      canvas {
-        max-width: 100%;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Benchmark History Dashboard</h1>
-    <div id="charts"></div>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
 
-    <script>
-      async function fetchData() {
+        .chart-container {
+            margin-bottom: 40px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        canvas {
+            max-width: 100%;
+        }
+
+        #runtimeFilter {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: white;
+            margin-bottom: 20px;
+            width: 200px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s, height 0.3s;
+            /* Use a fixed height for single row, will expand on hover */
+            height: 36px;
+            min-height: 36px;
+            max-height: 36px;
+        }
+
+        #runtimeFilter:hover, #runtimeFilter:focus {
+            border-color: #bbb;
+            /* Expand height to show more options */
+            height: 180px;
+            min-height: 180px;
+            max-height: 180px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            /* Make header sticky */
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: #f4f4f4;
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+        
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Benchmark History Dashboard</h1>
+
+    <div>
+        <select id="runtimeFilter" multiple onchange="main()">
+            
+        </select>    
+    </div>
+        
+</div>
+
+
+<div id="charts"></div>
+
+<script>
+
+    async function fetchData() {
         //const response = await fetch("https://webassemblysharp.github.io/WebAssemblySharp/Pages/Benchmark/history.json");
         const response = await fetch("history.json");
         const data = await response.json();
         return data;
-      }
+    }
 
-      function groupByFullName(data) {
+    function groupByFullName(data) {
         const grouped = {};
         data.forEach(entry => {
 
-          const key = entry.namespace + '__' + entry.type
+            const key = entry.namespace + '__' + entry.type
 
-          if (!grouped[key]) {
-            grouped[key] = [];
-          }
-          grouped[key].push(entry);
+            if (!grouped[key]) {
+                grouped[key] = [];
+            }
+            grouped[key].push(entry);
         });
         return grouped;
-      }
+    }
 
-      function nameToColor(name) {
+    function nameToColor(name) {
         // DJB2 hash - better distribution for strings
         let hash = 5381;
         for (let i = 0; i < name.length; i++) {
-          hash = ((hash << 5) + hash) ^ name.charCodeAt(i); // hash * 33 ^ char
+            hash = ((hash << 5) + hash) ^ name.charCodeAt(i); // hash * 33 ^ char
         }
 
         // Ensure positive value
@@ -69,9 +126,9 @@
         const l = 50 + (hash % 10);           // Lightness: 50–60%
 
         return hslToRgbString(h, s, l);
-      }
+    }
 
-      function hslToRgbString(h, s, l) {
+    function hslToRgbString(h, s, l) {
         s /= 100;
         l /= 100;
 
@@ -80,117 +137,176 @@
         const m = l - c / 2;
         let r = 0, g = 0, b = 0;
 
-        if (h < 60)      [r, g, b] = [c, x, 0];
-        else if (h < 120)[r, g, b] = [x, c, 0];
-        else if (h < 180)[r, g, b] = [0, c, x];
-        else if (h < 240)[r, g, b] = [0, x, c];
-        else if (h < 300)[r, g, b] = [x, 0, c];
-        else             [r, g, b] = [c, 0, x];
+        if (h < 60) [r, g, b] = [c, x, 0];
+        else if (h < 120) [r, g, b] = [x, c, 0];
+        else if (h < 180) [r, g, b] = [0, c, x];
+        else if (h < 240) [r, g, b] = [0, x, c];
+        else if (h < 300) [r, g, b] = [x, 0, c];
+        else [r, g, b] = [c, 0, x];
 
         r = Math.round((r + m) * 255);
         g = Math.round((g + m) * 255);
         b = Math.round((b + m) * 255);
 
         return `rgb(${r}, ${g}, ${b})`;
-      }
+    }
 
-      function createChart(id, title, valueName, labels, datasets) {
-        const canvas = document.createElement("canvas");
+    function createChart(id, title, valueName, labels, datasets) {
+
         const container = document.createElement("div");
         container.className = "chart-container";
         container.innerHTML = `<h2>${title} - ${valueName}</h2>`;
-        container.appendChild(canvas);
         document.getElementById("charts").appendChild(container);
 
+        // Create an select element for the chart
+        const select = document.createElement("select");
+        select.multiple = true;
+        select.onchange = () => {
+
+            container.querySelector("canvas").remove();
+            const canvas = document.createElement("canvas");
+            container.appendChild(canvas);
+            createChartElement(canvas, select, labels, datasets, valueName);
+        }; 
+        
+        const usedNames = new Set();
+
+        // Create options for each dataset
+        datasets.forEach((dataset, index) => {
+
+            const parts = splitGroupName(dataset.name); // Ensure the name is split correctly
+            
+            if (usedNames.has(parts.fullName)) {
+                return; // Skip if name already exists
+            }
+
+            const option = document.createElement("option");
+            option.value = parts.fullName;
+            option.textContent = parts.fullName;
+            option.selected = true;
+            select.appendChild(option);
+            usedNames.add(parts.fullName);
+        });
+
+        // Add the select element to the container
+        container.appendChild(select);
+        multipleSelect(select);
+
+        const canvas = document.createElement("canvas");
+        container.appendChild(canvas);
+        
+        createChartElement(canvas, select, labels, datasets, valueName);
+        
+    }
+    
+    function createChartElement(canvas, select, labels, datasets, valueName) {
+
+        const selectedOptions = Array.from(select.selectedOptions).map(opt => opt.value)
+        
         const finalDataSets = [];
 
-        datasets.forEach((x) => {
-          finalDataSets.push({
-              label: x.name,
-              data: x.values,
-              fill: false,
-              color: nameToColor(x.name),
-              tension: 0.1
+        datasets.filter((x) => {
+            
+            const parts = splitGroupName(x.name);
+            return selectedOptions.includes(parts.fullName);
+            
+        }).forEach((x) => {
+            finalDataSets.push({
+                label: x.name,
+                data: x.values,
+                fill: false,
+                color: nameToColor(x.name),
+                tension: 0.1
             })
         });
 
         new Chart(canvas, {
-          type: "line",
-          data: {
-            labels: labels,
-            datasets: finalDataSets
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                display: false
-              },
-              title: {
-                display: true
-              }
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: finalDataSets
             },
-            interaction: {
-              mode: "nearest",
-              axis: "xy",
-              intersect: false
-            },
-            scales: {
-              y: {
-                beginAtZero: false,
-                title: {
-                  display: true,
-                  text: valueName
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true
+                    }
+                },
+                interaction: {
+                    mode: "nearest",
+                    axis: "xy",
+                    intersect: false
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: valueName
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: "Time"
+                        }
+                    }
                 }
-              },
-              x: {
-                title: {
-                  display: true,
-                  text: "Time"
-                }
-              }
             }
-          }
         });
-      }
+        
+    }
 
-      function buildGroupName(entry) {
+    function buildGroupName(entry) {
         return entry.fullName + '@' + entry.runtime;
-      }
+    }
+    
+    function splitGroupName(groupName) {
+        const parts = groupName.split('@');
+        return {
+            fullName: parts[0],
+            runtime: parts[1]
+        };
+    }
 
-      function createChartForGroups(groups, labels, title, valueName, entries, valueProvider) {
+    function createChartForGroups(groups, labels, title, valueName, entries, valueProvider) {
 
         const dataSet = [];
 
         groups.forEach(group => {
 
-          const groupEntries = entries.filter(x => buildGroupName(x) === group);
+            const groupEntries = entries.filter(x => buildGroupName(x) === group);
 
-          let groupName = group;
-          if (groupEntries.length > 0) {
-            groupName = groupName.replace(groupEntries[0].namespace + '.', '').replace(groupEntries[0].type + '.', '');   
-          }
-          
-          const values = [];
-          labels.forEach((x) => {
-
-            
-            let groupElement = groupEntries.find(e => {return new Date(e.date + 'Z').toLocaleString() === x});
-
-            
-            
-            if (groupElement) {
-              values.push(valueProvider(groupElement));  
-            } else {
-              values.push(null);    
+            let groupName = group;
+            if (groupEntries.length > 0) {
+                groupName = groupName.replace(groupEntries[0].namespace + '.', '').replace(groupEntries[0].type + '.', '');
             }
-            
-          })
 
-          dataSet.push({
-            name: groupName,
-            values: values,
-          });
+            const values = [];
+            labels.forEach((x) => {
+
+
+                let groupElement = groupEntries.find(e => {
+                    return new Date(e.date + 'Z').toLocaleString() === x
+                });
+
+
+                if (groupElement) {
+                    values.push(valueProvider(groupElement));
+                } else {
+                    values.push(null);
+                }
+
+            })
+
+            dataSet.push({
+                name: groupName,
+                values: values,
+            });
         });
 
         let hasValues = false;
@@ -200,33 +316,66 @@
         })
 
         if (hasValues) {
-          createChart('chart-' + title, title, valueName, labels, dataSet);
+            createChart('chart-' + title, title, valueName, labels, dataSet);
         }
 
-      }
+    }
 
-      async function main() {
+    async function main(fristRun) {
+
+        // Cleanup all charts
+        document.getElementById("charts").innerHTML = "";
+
         const rawData = await fetchData();
 
-        // Sort data by timestamp (optional, in case the order is inconsistent)
-        rawData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        if (fristRun) {
+            // Populate runtime filter options
+            const runtimeFilter = document.getElementById("runtimeFilter");
+            const runtimes = Array.from(new Set(rawData.map(e => e.runtime)));
+            runtimes.forEach(runtime => {
+                const option = document.createElement("option");
+                option.value = runtime;
+                option.textContent = runtime;
+                option.selected = true;
+                runtimeFilter.appendChild(option);
+            });
+            multipleSelect(runtimeFilter);
+        }
 
-        const grouped = groupByFullName(rawData);
+        // Filter data by selected runtime(s)
+        const runtimeFilter = document.getElementById("runtimeFilter");
+        const selectedOptions = Array.from(runtimeFilter.selectedOptions).map(opt => opt.value);
+        const filteredData = rawData.filter(e => selectedOptions.includes(e.runtime));
+
+        // Sort data by timestamp (optional, in case the order is inconsistent)
+        filteredData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+        const grouped = groupByFullName(filteredData);
 
         Object.entries(grouped).forEach(([fullName, entries]) => {
-          const title = fullName.replace("WebAssemblySharpBenchmark__", "");
-          const labels = Array.from(new Set(entries.map(e => new Date(e.date + 'Z').toLocaleString())));
-          const groups = Array.from(new Set(entries.map(x => buildGroupName(x))));
+            const title = fullName.replace("WebAssemblySharpBenchmark__", "");
+            const labels = Array.from(new Set(entries.map(e => new Date(e.date + 'Z').toLocaleString())));
+            const groups = Array.from(new Set(entries.map(x => buildGroupName(x))));
 
-          createChartForGroups(groups, labels, title, 'Mean', entries, e => e.meanNs);
-          createChartForGroups(groups, labels, title, 'Alloc Bytes', entries, e => e.allocBytes);
-          createChartForGroups(groups, labels, title, 'Gen0', entries, e => e.gen0);
-          createChartForGroups(groups, labels, title, 'Gen1', entries, e => e.gen1);
-          createChartForGroups(groups, labels, title, 'Gen2', entries, e => e.gen2);
+            createChartForGroups(groups, labels, title, 'Mean', entries, e => e.meanNs);
+            createChartForGroups(groups, labels, title, 'Alloc Bytes', entries, e => e.allocBytes);
+            createChartForGroups(groups, labels, title, 'Gen0', entries, e => e.gen0);
+            createChartForGroups(groups, labels, title, 'Gen1', entries, e => e.gen1);
+            createChartForGroups(groups, labels, title, 'Gen2', entries, e => e.gen2);
         });
-      }
+    }
 
-      main();
-    </script>
-  </body>
+    main(true);
+
+    
+    
+    
+</script>
+<script type="module">
+    // Initialize multiple select
+    import { multipleSelect } from 'https://cdn.jsdelivr.net/npm/multiple-select-vanilla/dist/index.js';
+    window.multipleSelect = multipleSelect;
+    
+</script>
+</body>
 </html>
