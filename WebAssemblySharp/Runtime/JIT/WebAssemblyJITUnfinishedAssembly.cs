@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 
@@ -19,6 +20,7 @@ public class WebAssemblyJITUnfinishedAssembly: WebAssemblyJITAssembly
         m_SyncExternalFunctionFields = p_SyncExternalFunctionFields;
     }
 
+    
     public WebAssemblyJITAssembly Finalize(IDictionary<int, IWebAssemblyMemoryArea> p_ImportedMemoryAreas, IDictionary<int, Delegate> p_ImportMethods)
     {
         Type l_Type = Instance.GetType();

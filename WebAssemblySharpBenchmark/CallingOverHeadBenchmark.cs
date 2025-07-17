@@ -39,7 +39,7 @@ public class CallingOverHeadBenchmark
         await m_InterpreterModuleLateBinding.add(1, 1);
         
         
-        if (RuntimeFeature.IsDynamicCodeSupported)
+        if (WebAssemblyJITExecutor.IsSupported)
         {
             m_JitModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(typeof(WebAssemblyJITExecutor), typeof(IAdd));
             m_JitModuleAdd = m_JitModule.AsInterface<IAdd>();
