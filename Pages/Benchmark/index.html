@@ -126,17 +126,13 @@
               legend: {
                 display: false
               },
-              tooltip: {
-                mode: "index",
-                intersect: false,
-                itemSort: function(a, b) {
-                    return a.dataset.label.localeCompare(b.dataset.label);
-                }
+              title: {
+                display: true
               }
             },
             interaction: {
               mode: "nearest",
-              axis: "x",
+              axis: "xy",
               intersect: false
             },
             scales: {
