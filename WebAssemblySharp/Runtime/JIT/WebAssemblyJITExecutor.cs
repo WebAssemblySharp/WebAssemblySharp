@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using WebAssemblySharp.MetaData;
 using WebAssemblySharp.MetaData.Utils;
@@ -21,6 +22,14 @@ public class WebAssemblyJITExecutor: IWebAssemblyExecutor, IWebAssemblyExecutorP
     private IDictionary<int, IWebAssemblyMemoryArea> m_ImportedMemoryAreas;
     private IDictionary<int, Delegate> m_ImportMethods;
 
+    public static bool IsSupported
+    {
+        get
+        {
+            return RuntimeFeature.IsDynamicCodeSupported;     
+        }
+    } 
+    
     public WebAssemblyJITExecutor()
     {
         m_ImportedMemoryAreas = new Dictionary<int, IWebAssemblyMemoryArea>();

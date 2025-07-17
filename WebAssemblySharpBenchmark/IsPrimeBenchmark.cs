@@ -34,7 +34,7 @@ public class IsPrimeBenchmark {
         await m_InterpreterModule.Call<int, int>("is_prime", 1);
         
         
-        if (RuntimeFeature.IsDynamicCodeSupported)
+        if (WebAssemblyJITExecutor.IsSupported)
         {
             m_JitModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(typeof(WebAssemblyJITExecutor),
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.isprime.wasm"));

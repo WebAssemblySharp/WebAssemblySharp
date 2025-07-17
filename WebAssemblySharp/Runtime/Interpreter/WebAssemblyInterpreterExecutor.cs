@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -645,6 +646,7 @@ public class WebAssemblyInterpreterExecutor : IWebAssemblyExecutor, IWebAssembly
         return m_ExportMethods[p_Name];
     }
 
+    [RequiresDynamicCode("Dynamic code generation is required for WebAssembly method compilation.")]
     private IWebAssemblyMethod CompileMethod(string p_Name)
     {
         int? l_Index = WasmMetaDataUtils.FindExportIndex(m_WasmMetaData, p_Name, WasmExternalKind.Function);

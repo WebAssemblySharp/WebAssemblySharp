@@ -34,7 +34,7 @@ public class ItoaBenchmark
         await m_InterpreterModule.CallAndConvert<WebAssemblyUTF8String, int>("itoa", 1);
 
 
-        if (RuntimeFeature.IsDynamicCodeSupported)
+        if (WebAssemblyJITExecutor.IsSupported)
         {
             m_JitModule = await WebAssemblyRuntimeBuilder.CreateSingleModuleRuntime(typeof(WebAssemblyJITExecutor),
                 typeof(WebAssemblyExamples).Assembly.GetManifestResourceStream("WebAssemblySharpExampleData.Programms.itoa.wasm"));

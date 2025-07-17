@@ -20,6 +20,7 @@ public class WebAssemblyInterpreterMethod : IWebAssemblyMethod
     private readonly Func<object[], ITuple> m_MuliResultCreator;
     private readonly Delegate m_NativeDelegate;
 
+    [RequiresDynamicCode("Call CreateNativeDelegate")]
     public WebAssemblyInterpreterMethod(WebAssemblyInterpreterVirtualMaschine p_VirtualMachine, WasmFuncType p_FuncType, WasmCode p_Code,
         string p_Name)
     {
