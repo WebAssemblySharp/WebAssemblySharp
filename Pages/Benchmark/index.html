@@ -68,6 +68,93 @@
             padding-top: 10px;
             padding-bottom: 10px;
         }
+
+        .table-scroll-wrapper {
+            height: 600px;
+            overflow: auto;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .chart-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .chart-table th, .chart-table td {
+            border: 1px solid #ddd;
+            padding: 12px 15px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .chart-table th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .chart-table th.sortable {
+            cursor: pointer;
+        }
+
+        .chart-table th .sort-indicator {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+
+        .chart-table th .sort-indicator.asc {
+            border-bottom: 5px solid #333;
+        }
+
+        .chart-table th .sort-indicator.desc {
+            border-top: 5px solid #333;
+        }
+
+        .chart-table th:first-child,
+        .chart-table td:first-child {
+            position: sticky;
+            left: 0;
+        }
+
+        /* Style the first column cells to have a background and stay on top */
+        .chart-table td:first-child {
+            background-color: #fff; /* Default background for first column cells */
+        }
+
+        .chart-table th:first-child {
+            z-index: 2; /* Ensure the top-left corner is above both header and first column */
+        }
+
+        .chart-table td:not(:first-child) {
+            text-align: right;
+        }
+
+        .chart-table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        /* Ensure first column in even rows has the correct background */
+        .chart-table tbody tr:nth-child(even) td:first-child {
+            background-color: #f9f9f9;
+        }
+
+        .chart-table tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* Ensure first column in hovered rows has the correct background */
+        .chart-table tbody tr:hover td:first-child {
+            background-color: #f1f1f1;
+        }
         
     </style>
 </head>
@@ -163,10 +250,18 @@
         select.multiple = true;
         select.onchange = () => {
 
+            // Recreate the chart when selection changes
             container.querySelector("canvas").remove();
             const canvas = document.createElement("canvas");
             container.appendChild(canvas);
             createChartElement(canvas, select, labels, datasets, valueName);
+            
+            // Recreate the table when selection changes
+            container.querySelector(".table").remove();
+            const tableDiv = document.createElement("div");
+            tableDiv.className = "table";
+            container.appendChild(tableDiv);
+            createTableElement(tableDiv, select, labels, datasets, valueName);
         }; 
         
         const usedNames = new Set();
@@ -196,7 +291,119 @@
         container.appendChild(canvas);
         
         createChartElement(canvas, select, labels, datasets, valueName);
+
+        const tableDiv = document.createElement("div");
+        tableDiv.className = "table";
+        container.appendChild(tableDiv);
+        createTableElement(tableDiv, select, labels, datasets, valueName);
         
+    }
+
+    function createTableElement(container, select, labels, datasets, valueName) {
+        const selectedOptions = Array.from(select.selectedOptions).map(opt => opt.value);
+
+        const filteredDatasets = datasets.filter((x) => {
+            const parts = splitGroupName(x.name);
+            return selectedOptions.includes(parts.fullName);
+        });
+
+        if (filteredDatasets.length === 0) {
+            return;
+        }
+
+        const scrollWrapper = document.createElement('div');
+        scrollWrapper.className = 'table-scroll-wrapper';
+
+        const table = document.createElement('table');
+        table.className = 'chart-table'; // for styling if needed
+        table.dataset.sortColumn = '-1';
+        table.dataset.sortDirection = 'asc';
+
+        const thead = table.createTHead();
+        const headerRow = thead.insertRow();
+        const th = document.createElement('th');
+        th.textContent = 'Name';
+        th.classList.add('sortable');
+        th.onclick = () => sortTable(table, 0, filteredDatasets, tbody);
+        headerRow.appendChild(th);
+
+        labels.forEach((label, index) => {
+            const th = document.createElement('th');
+            th.textContent = label;
+            th.classList.add('sortable');
+            th.onclick = () => sortTable(table, index + 1, filteredDatasets, tbody);
+            headerRow.appendChild(th);
+        });
+
+        const tbody = table.createTBody();
+        populateTableBody(tbody, filteredDatasets);
+
+        scrollWrapper.appendChild(table);
+        container.appendChild(scrollWrapper);
+    }
+
+    function populateTableBody(tbody, datasets) {
+        tbody.innerHTML = ''; // Clear existing rows
+        datasets.forEach(dataset => {
+            const row = tbody.insertRow();
+            const nameCell = row.insertCell();
+            nameCell.textContent = dataset.name;
+
+            dataset.values.forEach(value => {
+                const valueCell = row.insertCell();
+                valueCell.textContent = value !== null ? value.toLocaleString() : 'N/A';
+            });
+        });
+    }
+
+    function sortTable(table, columnIndex, datasets, tbody) {
+        const currentColumn = table.dataset.sortColumn;
+        let direction = 'asc';
+
+        if (currentColumn == columnIndex) {
+            direction = table.dataset.sortDirection === 'asc' ? 'desc' : 'asc';
+        }
+
+        table.dataset.sortColumn = columnIndex;
+        table.dataset.sortDirection = direction;
+
+        datasets.sort((a, b) => {
+            let valA, valB;
+
+            if (columnIndex === 0) {
+                valA = a.name;
+                valB = b.name;
+            } else {
+                valA = a.values[columnIndex - 1];
+                valB = b.values[columnIndex - 1];
+                if (valA === null) valA = direction === 'asc' ? Infinity : -Infinity;
+                if (valB === null) valB = direction === 'asc' ? Infinity : -Infinity;
+            }
+
+            if (valA < valB) {
+                return direction === 'asc' ? -1 : 1;
+            }
+            if (valA > valB) {
+                return direction === 'asc' ? 1 : -1;
+            }
+            return 0;
+        });
+
+        // Update header indicators
+        const headers = table.tHead.rows[0].cells;
+        for (let i = 0; i < headers.length; i++) {
+            const indicator = headers[i].querySelector('.sort-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+            if (i == columnIndex) {
+                const newIndicator = document.createElement('span');
+                newIndicator.className = `sort-indicator ${direction}`;
+                headers[i].appendChild(newIndicator);
+            }
+        }
+
+        populateTableBody(tbody, datasets);
     }
     
     function createChartElement(canvas, select, labels, datasets, valueName) {
