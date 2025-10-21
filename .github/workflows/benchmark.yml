@@ -1,8 +1,8 @@
 name: Run Benchmarks
 
 on:
-  schedule:
-    - cron: '0 2 * * *'  # Every night at 2 AM UTC
+#  schedule:
+#    - cron: '0 2 * * *'  # Every night at 2 AM UTC
   workflow_dispatch:
 
 jobs:
